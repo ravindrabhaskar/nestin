@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, Phone, Mail, Building2, Users, FileText, CheckCircle2 } from 'lucide-react';
 import { usePropertyListing } from '../../../context/PropertyListingContext';
 import { useCRM } from '../../../context/CRMContext';
+import { useRBAC } from '../../../context/RBACContext';
+import { useAuth } from '../../../context/AuthContext';
 import { LeadItem } from '../../../types/crm';
 import { CalendarDatePicker } from '../../ui/CalendarDatePicker';
 
@@ -18,6 +20,12 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 }) => {
   const { ownerProperties } = usePropertyListing();
   const { leads, scheduleVisit } = useCRM();
+  const { employees } = useRBAC();
+  const { user: currentUser } = useAuth();
+  // Assignable staff: active team members from the RBAC directory, with the signed-in user first.
+  const staffOptions = Array.from(
+    new Set([currentUser?.name || 'Owner', ...employees.filter((e) => e.status === 'active').map((e) => e.name)])
+  );
 
   const [selectedLeadId, setSelectedLeadId] = useState<string>(initialLead?.id || '');
   const [visitorName, setVisitorName] = useState(initialLead?.fullName || '');
@@ -277,10 +285,11 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                 onChange={(e) => setAssignedTo(e.target.value)}
                 className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-[#a3e635]"
               >
-                <option value="Ramesh (Operations)">Ramesh (Operations)</option>
-                <option value="Srinivas Rao">Srinivas Rao (Caretaker)</option>
-                <option value="Vikram Joshi">Vikram Joshi (Leasing)</option>
-                <option value="Paritala Venkata Vaibhav">Owner</option>
+                {staffOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
               </select>
             </div>
 

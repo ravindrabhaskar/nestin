@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { SEO } from './components/SEO';
 import { SmoothScroll, scrollToTarget } from './components/SmoothScroll';
@@ -32,9 +32,17 @@ import { PropertyNotFoundPage } from './pages/PropertyNotFoundPage';
 import { CitiesPage } from './pages/CitiesPage';
 import { CityDetailsPage } from './pages/CityDetailsPage';
 import { AuthCallback } from './pages/AuthCallback';
-import { UserDashboardPage } from './pages/UserDashboardPage';
 import { ForOwnersPage } from './pages/ForOwnersPage';
-import { OwnerDashboardPage } from './pages/OwnerDashboardPage';
+import { SyncNoticeToast } from './components/SyncNoticeToast';
+const OwnerDashboardPage = lazy(() => import('./pages/OwnerDashboardPage').then((m) => ({ default: m.OwnerDashboardPage })));
+const SuperAdminLoginPage = lazy(() => import('./pages/admin/SuperAdminLoginPage').then((m) => ({ default: m.SuperAdminLoginPage })));
+const SuperAdminDashboardPage = lazy(() => import('./pages/admin/SuperAdminDashboardPage').then((m) => ({ default: m.SuperAdminDashboardPage })));
+
+const PortalFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-[#FAF9F5]">
+    <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 import { TenantProfilePage } from './pages/TenantProfilePage';
 import { TenantSettingsPage } from './pages/TenantSettingsPage';
 import { TenantBookingsPage } from './pages/TenantBookingsPage';
@@ -47,34 +55,6 @@ import {
   ProtectedSuperAdminRoute,
   ProtectedTenantRoute,
 } from './components/auth/ProtectedRoute';
-import { SuperAdminLoginPage } from './pages/admin/SuperAdminLoginPage';
-import { SuperAdminDashboardPage } from './pages/admin/SuperAdminDashboardPage';
-
-function ProtectedUserRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, requireAuth } = useAuth();
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen pt-32 pb-20 flex items-center justify-center text-center p-6 font-sans bg-[#FAF9F5]">
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-8 max-w-md w-full shadow-lg space-y-4">
-          <h3 className="text-xl font-black font-heading text-slate-900">Resident Login Required</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Please sign in to access your bookings, room allotment, rent receipts, and profile.
-          </p>
-          <button
-            type="button"
-            onClick={() => requireAuth(() => {}, 'Please log in to access your resident portal.')}
-            className="w-full py-3 px-5 rounded-xl bg-slate-900 text-[#a3e635] font-extrabold text-xs sm:text-sm cursor-pointer shadow-md hover:bg-slate-800 transition-all"
-          >
-            Sign In / Register
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-}
 
 function AppInner() {
   const navigate = useNavigate();
@@ -164,6 +144,7 @@ function AppInner() {
 
           {/* Main Routing Views with full min-h-screen and natural browser scrolling */}
           <main className="relative z-10 flex-grow min-h-screen">
+            <Suspense fallback={<PortalFallback />}>
             <Routes>
               {/* Home Page Route */}
               <Route
@@ -295,6 +276,7 @@ function AppInner() {
               {/* Catch-all Not Found Route */}
               <Route path="*" element={<PropertyNotFoundPage />} />
             </Routes>
+            </Suspense>
           </main>
 
           {/* Footer for non-details and non-admin pages */}
@@ -338,6 +320,9 @@ function AppInner() {
 
           {/* Quick Login Toast Notification */}
           <QuickLoginToast />
+
+          {/* Background sync notices (persistence errors, staff credentials, etc.) */}
+          <SyncNoticeToast />
 
           {/* Floating Scroll To Top Button */}
           <ScrollToTopButton />

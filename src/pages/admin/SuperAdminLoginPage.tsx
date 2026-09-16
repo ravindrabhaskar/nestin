@@ -20,9 +20,9 @@ export const SuperAdminLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { loginAsSuperAdmin, isSuperAdmin } = useAuth();
 
-  const [email, setEmail] = useState('admin@nestin.io');
-  const [password, setPassword] = useState('Admin@NestIn2026');
-  const [accessCode, setAccessCode] = useState('NESTIN-SUPER-ADMIN-2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -193,19 +193,8 @@ export const SuperAdminLoginPage: React.FC = () => {
 
           {/* Quick Staff Credential Fill */}
           <div className="pt-4 border-t border-slate-800/80 text-center">
-            <div className="text-[11px] text-slate-400">
-              Staff Demo Mode:{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('admin@nestin.io');
-                  setPassword('Admin@NestIn2026');
-                  setAccessCode('NESTIN-SUPER-ADMIN-2026');
-                }}
-                className="text-rose-400 hover:underline font-bold"
-              >
-                Auto-fill Administrator Keys
-              </button>
+            <div className="text-[11px] text-slate-500">
+              Credentials are provisioned by the platform operator (SUPER_ADMIN_* environment variables). All attempts are logged.
             </div>
           </div>
         </div>

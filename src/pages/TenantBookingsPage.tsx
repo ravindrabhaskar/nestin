@@ -11,18 +11,36 @@ import {
   Phone,
 } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
-import { INITIAL_TENANT_BOOKINGS } from '../data/tenantData';
 import { TenantBookingItem } from '../types';
+import { ApiClient } from '../lib/apiClient';
+import { useApiResource } from '../hooks/useApiResource';
+import { useAuth } from '../context/AuthContext';
 
 export const TenantBookingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [bookings] = useState<TenantBookingItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('nestin_tenant_bookings');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return INITIAL_TENANT_BOOKINGS;
+  const { user } = useAuth();
+  const { data: bookings, setData: setBookings, isLoading } = useApiResource<TenantBookingItem[]>(() => ApiClient.tenant.bookings(), [], {
+    enabled: !!user,
+    key: user?.id,
+    label: 'Could not load your bookings',
   });
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const handleCancel = async (booking: TenantBookingItem) => {
+    if (!window.confirm(`Cancel booking ${booking.bookingNumber}? The owner will be notified.`)) return;
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const updated = await ApiClient.tenant.cancelBooking(booking.id, 'Cancelled by resident');
+      setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+      setSelectedBooking(updated);
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Could not cancel this booking.');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<'Upcoming' | 'Active' | 'Completed' | 'Cancelled'>('Active');
   const [selectedBooking, setSelectedBooking] = useState<TenantBookingItem | null>(null);
@@ -119,7 +137,11 @@ export const TenantBookingsPage: React.FC = () => {
         </div>
 
         {/* BOOKINGS LIST */}
-        {filteredBookings.length > 0 ? (
+        {isLoading ? (
+          <div className="py-16 flex justify-center">
+            <div className="w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filteredBookings.length > 0 ? (
           <div className="space-y-4">
             {filteredBookings.map((booking) => (
               <div
@@ -283,7 +305,21 @@ export const TenantBookingsPage: React.FC = () => {
               </div>
             )}
 
+            {cancelError && (
+              <div className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{cancelError}</div>
+            )}
+
             <div className="pt-2 flex items-center justify-end gap-3">
+              {(selectedBooking.status === 'upcoming' || selectedBooking.status === 'active') && (
+                <button
+                  type="button"
+                  disabled={cancelling}
+                  onClick={() => handleCancel(selectedBooking)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50 transition-colors cursor-pointer font-heading"
+                >
+                  {cancelling ? 'Cancelling…' : 'Cancel Booking'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setSelectedBooking(null)}

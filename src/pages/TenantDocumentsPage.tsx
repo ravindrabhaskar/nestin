@@ -13,16 +13,17 @@ import {
   Plus,
 } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
-import { INITIAL_TENANT_DOCUMENTS } from '../data/tenantData';
 import { TenantDocument } from '../types';
+import { ApiClient } from '../lib/apiClient';
+import { useApiResource } from '../hooks/useApiResource';
+import { useAuth } from '../context/AuthContext';
 
 export const TenantDocumentsPage: React.FC = () => {
-  const [documents, setDocuments] = useState<TenantDocument[]>(() => {
-    try {
-      const saved = localStorage.getItem('nestin_tenant_docs');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return INITIAL_TENANT_DOCUMENTS;
+  const { user } = useAuth();
+  const { data: documents, setData: setDocuments } = useApiResource<TenantDocument[]>(() => ApiClient.tenant.documents(), [], {
+    enabled: !!user,
+    key: user?.id,
+    label: 'Could not load your documents',
   });
 
   const [selectedDoc, setSelectedDoc] = useState<TenantDocument | null>(null);
@@ -70,39 +71,43 @@ export const TenantDocumentsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
-    const updated = documents.filter((d) => d.id !== id);
-    setDocuments(updated);
+  const handleDelete = async (id: string) => {
+    const previous = documents;
+    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    setSelectedDoc(null);
     try {
-      localStorage.setItem('nestin_tenant_docs', JSON.stringify(updated));
-    } catch {}
-    showToast('Document deleted.');
+      await ApiClient.tenant.deleteDocument(id);
+      showToast('Document deleted.');
+    } catch (err) {
+      setDocuments(previous);
+      showToast(err instanceof Error ? err.message : 'Could not delete the document.');
+    }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Files must be smaller than 10 MB.');
+      return;
+    }
 
-    const newDoc: TenantDocument = {
-      id: `doc-${Date.now()}`,
-      name: newDocName || file.name,
-      fileName: file.name,
-      type: newDocType,
-      uploadedAt: 'Today',
-      status: 'in_review',
-      fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-      fileUrl: URL.createObjectURL(file),
-    };
-
-    const updated = [newDoc, ...documents];
-    setDocuments(updated);
+    // Document metadata is registered with the API; the file itself is kept in-browser for preview.
+    // Binary uploads to object storage are wired in via the same endpoint once a bucket is configured.
     try {
-      localStorage.setItem('nestin_tenant_docs', JSON.stringify(updated));
-    } catch {}
-
-    setUploadModalOpen(false);
-    setNewDocName('');
-    showToast('Document uploaded for verification.');
+      const saved = await ApiClient.tenant.addDocument({
+        name: newDocName || file.name,
+        fileName: file.name,
+        type: newDocType,
+        fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+      });
+      setDocuments((prev) => [{ ...saved, fileUrl: URL.createObjectURL(file) }, ...prev]);
+      setUploadModalOpen(false);
+      setNewDocName('');
+      showToast('Document uploaded for verification.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Upload failed.');
+    }
   };
 
   return (
@@ -122,7 +127,7 @@ export const TenantDocumentsPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
-        
+
         {/* TRUST BANNER */}
         <div className="p-5 bg-white rounded-3xl border border-slate-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
           <div className="flex items-start gap-4">

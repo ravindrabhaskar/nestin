@@ -11,10 +11,13 @@ import {
   X,
 } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
-import { INITIAL_SUPPORT_TICKETS } from '../data/tenantData';
 import { TenantSupportTicket } from '../types';
+import { ApiClient } from '../lib/apiClient';
+import { useApiResource } from '../hooks/useApiResource';
+import { useAuth } from '../context/AuthContext';
 
 export const TenantSupportPage: React.FC = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
   const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
@@ -22,12 +25,10 @@ export const TenantSupportPage: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const [tickets, setTickets] = useState<TenantSupportTicket[]>(() => {
-    try {
-      const saved = localStorage.getItem('nestin_tenant_tickets');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return INITIAL_SUPPORT_TICKETS;
+  const { data: tickets, setData: setTickets } = useApiResource<TenantSupportTicket[]>(() => ApiClient.tenant.tickets(), [], {
+    enabled: !!user,
+    key: user?.id,
+    label: 'Could not load your support tickets',
   });
 
   const [ticketSubject, setTicketSubject] = useState('');
@@ -64,75 +65,34 @@ export const TenantSupportPage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const handleCreateTicket = (e: React.FormEvent) => {
+  const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newTicket: TenantSupportTicket = {
-      id: `TICK-${Date.now().toString().slice(-4)}`,
-      ticketNumber: `TCK-${Date.now().toString().slice(-4)}`,
-      subject: ticketSubject,
-      category: ticketCategory,
-      priority: 'Medium',
-      status: 'Open',
-      createdAt: 'Just now',
-      updatedAt: 'Just now',
-      description: ticketMessage,
-      responses: [
-        {
-          sender: 'user',
-          message: ticketMessage,
-          timestamp: 'Just now',
-        },
-      ],
-      messages: [
-        {
-          id: `m-${Date.now()}`,
-          sender: 'user',
-          senderName: 'You',
-          text: ticketMessage,
-          timestamp: 'Just now',
-        },
-      ],
-    };
-
-    const updated = [newTicket, ...tickets];
-    setTickets(updated);
+    if (!ticketSubject.trim() || !ticketMessage.trim()) return;
     try {
-      localStorage.setItem('nestin_tenant_tickets', JSON.stringify(updated));
-    } catch {}
-
-    setTicketSubject('');
-    setTicketMessage('');
-    setNewTicketModalOpen(false);
-    showToast('Support ticket created.');
+      const created = await ApiClient.tenant.createTicket({ subject: ticketSubject, category: ticketCategory, description: ticketMessage, priority: 'Medium' });
+      setTickets((prev) => [created, ...prev]);
+      setTicketSubject('');
+      setTicketMessage('');
+      setNewTicketModalOpen(false);
+      showToast(`Support ticket ${created.ticketNumber} created.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not create the ticket.');
+    }
   };
 
-  const handleSendReply = (e: React.FormEvent) => {
+  const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyText.trim() || !selectedTicket) return;
-
-    const newMsg = {
-      id: `m-${Date.now()}`,
-      sender: 'user' as const,
-      senderName: 'You',
-      text: replyText,
-      message: replyText,
-      timestamp: 'Just now',
-    };
-
-    const updatedTicket: TenantSupportTicket = {
-      ...selectedTicket,
-      messages: [...(selectedTicket.messages || []), newMsg],
-      responses: [...(selectedTicket.responses || []), { sender: 'user', message: replyText, timestamp: 'Just now' }],
-      updatedAt: 'Just now',
-    };
-
-    const updated = tickets.map((t) => (t.id === selectedTicket.id ? updatedTicket : t));
-    setTickets(updated);
-    setSelectedTicket(updatedTicket);
+    const text = replyText;
     setReplyText('');
     try {
-      localStorage.setItem('nestin_tenant_tickets', JSON.stringify(updated));
-    } catch {}
+      const updated = await ApiClient.tenant.replyTicket(selectedTicket.id, text);
+      setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setSelectedTicket(updated);
+    } catch (err) {
+      setReplyText(text);
+      showToast(err instanceof Error ? err.message : 'Could not send your reply.');
+    }
   };
 
   return (
@@ -160,7 +120,7 @@ export const TenantSupportPage: React.FC = () => {
       )}
 
       <div className="space-y-6">
-        
+
         {/* SEARCH HELP BAR */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs">
           <div className="relative">

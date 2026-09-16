@@ -41,9 +41,9 @@ import { OwnerPropertyListing, PropertyRoom } from '../../types/property';
 import { PropertyListing } from '../../types';
 import { usePropertyListing } from '../../context/PropertyListingContext';
 import { useAuth } from '../../context/AuthContext';
-import { useCRM } from '../../context/CRMContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { CalendarDatePicker } from '../ui/CalendarDatePicker';
+import { ApiClient } from '../../lib/apiClient';
 
 interface PropertyDetailsViewProps {
   property: OwnerPropertyListing;
@@ -63,7 +63,6 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
   const { calculateInitialMoveIn, bookRoom, addTenantReview } = usePropertyListing();
   const { user, requireAuth, isAuthenticated } = useAuth();
   const { isWishlisted, toggleWishlist, showQuickLoginToast } = useWishlist();
-  const { createBooking } = useCRM();
 
   const isLiked = isWishlisted(property.id);
 
@@ -161,44 +160,34 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
     title: property.name,
   };
 
-  const handleConfirmBooking = (e: React.FormEvent) => {
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+
+  const handleConfirmBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bookingTenantName.trim()) return;
+    if (!bookingTenantName.trim() || isBooking) return;
+    setIsBooking(true);
+    setBookingError(null);
 
-    const res = bookRoom(property.id, selectedRoom?.id || '', bookingTenantName);
-    if (res.success) {
-      try {
-        createBooking({
-          propertyId: property.id,
-          propertyName: property.name,
-          propertyCity: property.city,
-          roomId: selectedRoom?.id,
-          roomName: selectedRoom?.name || 'Selected Suite',
-          roomType: (selectedRoom?.type as any) || 'Double Sharing',
-          bedNumber: selectedRoom?.beds?.[0]?.bedNumber || 'Bed 1',
-          tenantName: bookingTenantName,
-          tenantPhone: bookingPhone || user?.phone || '+91 98765 43210',
-          tenantEmail: user?.email || 'tenant@nestin.io',
-          moveInDate: bookingDate,
-          monthlyRent: selectedRoom?.monthlyRent || property.pricing.minRent,
-          securityDeposit: selectedRoom?.securityDeposit || property.pricing.minRent * 2,
-          tokenAmount: moveInCalc.bookingFee,
-          status: 'Pending Verification',
-          paymentStatus: 'Token Paid',
-          source: 'Website (Direct)',
-        });
-      } catch (err) {
-        console.warn('CRM booking sync error', err);
-      }
+    // The server reserves the bed, records the token payment and notifies the owner's CRM.
+    const res = await bookRoom(property.id, selectedRoom?.id || '', bookingTenantName, {
+      moveInDate: bookingDate,
+      phone: bookingPhone || user?.phone,
+    });
+    setIsBooking(false);
 
-      setBookingSuccessData({
-        number: res.bookingNumber,
-        room: selectedRoom?.name || 'Selected Suite',
-      });
-      if (onBookSuccess) onBookSuccess(res.bookingNumber);
-      setShowBookingModal(false);
-      triggerNotice(`Booking confirmed! Token Receipt: ${res.bookingNumber}`);
+    if (!res.success) {
+      setBookingError(res.error || 'Booking could not be completed. Please try again.');
+      return;
     }
+
+    setBookingSuccessData({
+      number: res.bookingNumber,
+      room: selectedRoom?.name || 'Selected Suite',
+    });
+    if (onBookSuccess) onBookSuccess(res.bookingNumber);
+    setShowBookingModal(false);
+    triggerNotice(`Booking request sent! Reference: ${res.bookingNumber}. The owner will confirm shortly.`);
   };
 
   const handleAddReview = (e: React.FormEvent) => {
@@ -1194,7 +1183,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setShowScheduleVisitModal(true)}
+                  onClick={() => requireAuth(() => setShowScheduleVisitModal(true), 'Sign in to schedule a visit — the owner will confirm your slot.')}
                   className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Calendar className="w-4 h-4 text-[#a3e635]" />
@@ -1325,11 +1314,16 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                 <span>Zero Brokerage guaranteed. Token adjusts into your first month's invoice.</span>
               </div>
 
+              {bookingError && (
+                <div className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{bookingError}</div>
+              )}
+
               <button
                 type="submit"
-                className="w-full py-3.5 bg-[#a3e635] hover:bg-[#92d428] text-slate-950 font-black text-sm rounded-xl shadow-md transition-all cursor-pointer"
+                disabled={isBooking}
+                className="w-full py-3.5 bg-[#a3e635] hover:bg-[#92d428] disabled:opacity-60 disabled:cursor-wait text-slate-950 font-black text-sm rounded-xl shadow-md transition-all cursor-pointer"
               >
-                Pay Token ₹{moveInCalc.bookingFee} & Confirm Bed
+                {isBooking ? 'Reserving your bed…' : `Pay Token ₹${moveInCalc.bookingFee} & Confirm Bed`}
               </button>
             </form>
           </div>
@@ -1354,10 +1348,21 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
             </div>
 
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                setShowScheduleVisitModal(false);
-                triggerNotice(`Visit scheduled for ${visitDate} at ${visitTime}! Caretaker notified.`);
+                try {
+                  await ApiClient.tenant.scheduleVisit({
+                    propertyId: property.id,
+                    visitDate,
+                    visitTime,
+                    phone: bookingPhone || user?.phone,
+                    preferredRoom: selectedRoom?.name,
+                  });
+                  setShowScheduleVisitModal(false);
+                  triggerNotice(`Visit scheduled for ${visitDate} at ${visitTime}! The property team has been notified.`);
+                } catch (err) {
+                  triggerNotice(err instanceof Error ? err.message : 'Could not schedule the visit. Please try again.');
+                }
               }}
               className="space-y-4 text-xs"
             >

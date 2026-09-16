@@ -1,0 +1,369 @@
+import type { OwnerPropertyListing, PropertyResidentReview, PropertyRoom } from "../../src/types/property";
+import { calculatePropertyCompleteness } from "../../src/lib/domain/propertyCompleteness";
+import { properties, users, bookings } from "../db/repositories.js";
+import { Collection } from "../db/database.js";
+import { badRequest, conflict, forbidden, notFound } from "../lib/errors.js";
+import { isSafeId, newId, slugify } from "../lib/ids.js";
+import * as v from "../lib/validate.js";
+import { events, type EventContext } from "../lib/events.js";
+import type { AuthUser } from "../middleware/auth.js";
+
+const PROPERTY_TYPES = ["PG", "Hostel", "Co-living", "Student Housing", "Working Professionals"] as const;
+const CATEGORIES = ["Men", "Women", "Co-ed"] as const;
+
+/** Fields only the platform (super admin) or workflows may change. */
+const SYSTEM_CONTROLLED = ["summary", "id", "ownerId", "ownerName", "ownerEmail", "isNestinVerified", "isFeatured", "isZeroBrokerage", "systemMetrics", "reviews", "rejectionReason", "completenessScore", "status"];
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+export interface PublicPropertyFilters {
+  city?: string;
+  query?: string;
+  maxRent?: number;
+  category?: string;
+  limit?: number;
+}
+
+/** Removes owner-private information before a listing is exposed publicly. */
+export function toPublicListing(p: OwnerPropertyListing): OwnerPropertyListing {
+  return {
+    ...p,
+    ownerEmail: "",
+    documents: [],
+    caretaker: p.caretaker?.isPubliclyVisible
+      ? { ...p.caretaker, email: undefined, emergencyContact: undefined }
+      : { name: "Property Manager", phone: "", isIdentityVerified: p.caretaker?.isIdentityVerified || false, isBackgroundVerified: p.caretaker?.isBackgroundVerified || false, isPubliclyVisible: false },
+    rooms: p.rooms.map((r) => ({ ...r, beds: r.beds.map((b) => ({ id: b.id, bedNumber: b.bedNumber, isOccupied: b.isOccupied })) })),
+  };
+}
+
+/** Trimmed projection for catalogue/card views; the details endpoint returns the full record. */
+export function toCardListing(p: OwnerPropertyListing): OwnerPropertyListing {
+  const pub = toPublicListing(p);
+  return {
+    ...pub,
+    summary: true,
+    longDescription: "",
+    reviews: [],
+    nearbyPlaces: [],
+    documents: [],
+    gallery: pub.gallery.slice(0, 4).map((g) => ({ id: g.id, url: g.url, title: g.title, category: g.category })),
+    policies: { ...pub.policies, additionalRules: [] },
+    rooms: pub.rooms.map((r) => ({ ...r, beds: [], amenities: undefined } as unknown as PropertyRoom)),
+  };
+}
+
+export function listPublished(filters: PublicPropertyFilters = {}): OwnerPropertyListing[] {
+  let list = properties.list({ status: "published" });
+  if (filters.city) {
+    const city = filters.city.toLowerCase();
+    list = list.filter((p) => p.location?.city?.toLowerCase() === city);
+  }
+  if (filters.category && CATEGORIES.includes(filters.category as (typeof CATEGORIES)[number])) {
+    list = list.filter((p) => p.category === filters.category);
+  }
+  if (filters.maxRent) {
+    list = list.filter((p) => Math.min(p.pricing?.minRent || Infinity, ...p.rooms.map((r) => r.monthlyRent)) <= filters.maxRent!);
+  }
+  if (filters.query) {
+    const q = filters.query.toLowerCase();
+    list = list.filter((p) => [p.name, p.location?.area, p.location?.city, p.location?.formattedAddress, ...(p.tags || [])].some((s) => s?.toLowerCase().includes(q)));
+  }
+  return list.slice(0, filters.limit || 500).map(toCardListing);
+}
+
+export function getPublicBySlugOrId(slugOrId: string, viewer?: AuthUser | null): OwnerPropertyListing {
+  const key = slugOrId.toLowerCase();
+  const prop = properties.findOne({ slug: key }) || properties.get(slugOrId) || properties.list().find((p) => p.slug.startsWith(key) || key.startsWith(p.slug));
+  if (!prop) throw notFound("Property");
+  const isOwnerSide = viewer && (viewer.role === "super_admin" || (viewer.ownerId && viewer.ownerId === prop.ownerId));
+  if (prop.status !== "published" && !isOwnerSide) throw notFound("Property");
+  return isOwnerSide ? prop : toPublicListing(prop);
+}
+
+export function recordView(id: string): void {
+  const prop = properties.get(id);
+  if (!prop || prop.status !== "published") return;
+  prop.systemMetrics.viewsCount = (prop.systemMetrics.viewsCount || 0) + 1;
+  properties.replace(prop);
+}
+
+export function listForOwner(ownerId: string): OwnerPropertyListing[] {
+  return properties.list({ owner_id: ownerId });
+}
+
+export function listAll(): OwnerPropertyListing[] {
+  return properties.list();
+}
+
+function getOwned(ownerId: string, id: string): OwnerPropertyListing {
+  const prop = properties.get(id);
+  if (!prop || prop.ownerId !== ownerId) throw notFound("Property");
+  return prop;
+}
+
+function validateRooms(rooms: unknown): PropertyRoom[] {
+  const list = v.arr<PropertyRoom>(rooms, "Rooms", 200);
+  return list.map((room, i) => {
+    const r = v.obj(room, `Room ${i + 1}`) as unknown as PropertyRoom;
+    if (!isSafeId(r.id)) r.id = newId("room");
+    r.name = v.str(r.name, `Room ${i + 1} name`, { max: 80 });
+    r.monthlyRent = v.num(r.monthlyRent, `Room ${i + 1} rent`, { min: 0, max: 10_000_000 });
+    r.securityDeposit = v.num(r.securityDeposit ?? 0, `Room ${i + 1} deposit`, { min: 0, max: 10_000_000, required: false });
+    r.beds = v.arr(r.beds, `Room ${i + 1} beds`, 50).map((bed, j) => {
+      const b = v.obj(bed, `Bed ${j + 1}`) as unknown as PropertyRoom["beds"][number];
+      if (!isSafeId(b.id)) b.id = newId("bed");
+      b.bedNumber = v.str(b.bedNumber || `Bed ${j + 1}`, "Bed number", { max: 40 });
+      b.isOccupied = !!b.isOccupied;
+      return b;
+    });
+    r.capacity = r.beds.length || v.num(r.capacity ?? 1, "Capacity", { min: 1, max: 50, required: false });
+    r.occupiedBedsCount = r.beds.filter((b) => b.isOccupied).length;
+    r.availableBedsCount = r.beds.length - r.occupiedBedsCount;
+    return r;
+  });
+}
+
+function uniqueSlug(base: string, excludeId?: string): string {
+  let slug = slugify(base) || "property";
+  let attempt = slug;
+  let n = 0;
+  while (true) {
+    const existing = properties.findOne({ slug: attempt });
+    if (!existing || existing.id === excludeId) return attempt;
+    n += 1;
+    attempt = `${slug}-${1000 + Math.floor(Math.random() * 9000)}`;
+    if (n > 20) attempt = `${slug}-${Date.now().toString(36)}`;
+  }
+}
+
+/**
+ * Creates a listing from a client-built draft. The client is trusted only for content; identity,
+ * verification badges, metrics and status are always set here.
+ */
+export function create(actor: AuthUser, ownerId: string, body: Record<string, unknown>, ctx: EventContext): OwnerPropertyListing {
+  const owner = users.findById(ownerId);
+  if (!owner) throw forbidden("Owner account not found");
+  v.assertDocumentSize(body);
+
+  const draft = v.omitKeys(body as Record<string, unknown>, SYSTEM_CONTROLLED) as Partial<OwnerPropertyListing>;
+  const name = v.str(draft.name || "Untitled Property Listing", "Property name", { max: 120 });
+  const id = isSafeId(body.id) && !properties.exists(body.id as string) ? (body.id as string) : newId("prop");
+
+  const listing: OwnerPropertyListing = {
+    ...(draft as OwnerPropertyListing),
+    id,
+    ownerId,
+    ownerName: owner.fullName,
+    ownerEmail: owner.email,
+    slug: uniqueSlug(typeof draft.slug === "string" && draft.slug ? draft.slug : name),
+    name,
+    type: v.oneOf(draft.type, PROPERTY_TYPES, "Property type", "Co-living"),
+    category: v.oneOf(draft.category, CATEGORIES, "Category", "Co-ed"),
+    status: "draft",
+    completenessScore: 0,
+    isNestinVerified: false,
+    isFeatured: false,
+    isZeroBrokerage: draft.isZeroBrokerage !== false,
+    rooms: validateRooms(draft.rooms || []),
+    gallery: v.arr(draft.gallery, "Gallery", 60) as OwnerPropertyListing["gallery"],
+    amenities: v.arr(draft.amenities, "Amenities", 100) as OwnerPropertyListing["amenities"],
+    nearbyPlaces: v.arr(draft.nearbyPlaces, "Nearby places", 60) as OwnerPropertyListing["nearbyPlaces"],
+    documents: (v.arr(draft.documents, "Documents", 30) as OwnerPropertyListing["documents"]).map((d) => ({ ...d, status: "pending" as const })),
+    tags: v.arr(draft.tags, "Tags", 20).map((t) => String(t).slice(0, 40)),
+    caretaker: { ...(draft.caretaker || { name: "", phone: "", isPubliclyVisible: true }), isIdentityVerified: false, isBackgroundVerified: false },
+    reviews: [],
+    systemMetrics: {
+      averageRating: 0,
+      totalReviews: 0,
+      ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+      totalBookingsCount: 0,
+      viewsCount: 0,
+      createdAt: nowIso(),
+      lastUpdatedAt: nowIso(),
+    },
+  };
+  listing.completenessScore = calculatePropertyCompleteness(listing).score;
+  properties.insert(listing);
+  events.publish("PropertyCreated", "Property", id, { name, ownerId }, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId });
+  return listing;
+}
+
+const OWNER_STATUS_TRANSITIONS: Record<string, string[]> = {
+  draft: ["archived"],
+  rejected: ["draft", "archived"],
+  published: ["archived"],
+  archived: ["draft"],
+  pending_approval: [],
+};
+
+export function update(actor: AuthUser, ownerId: string, id: string, body: Record<string, unknown>, ctx: EventContext): OwnerPropertyListing {
+  const existing = getOwned(ownerId, id);
+  v.assertDocumentSize(body);
+  const patch = v.omitKeys(body, SYSTEM_CONTROLLED.filter((k) => k !== "status")) as Partial<OwnerPropertyListing>;
+
+  // Status is workflow-controlled; owners may only archive/unarchive or move a rejected listing back to draft.
+  let status = existing.status;
+  if (patch.status && patch.status !== existing.status) {
+    if (!OWNER_STATUS_TRANSITIONS[existing.status]?.includes(patch.status)) {
+      throw conflict(`Cannot change status from '${existing.status}' to '${patch.status}'. Use the submit-for-verification workflow.`);
+    }
+    status = patch.status;
+  }
+  delete patch.status;
+
+  if (patch.rooms) patch.rooms = validateRooms(patch.rooms);
+  if (patch.name !== undefined) patch.name = v.str(patch.name, "Property name", { max: 120 });
+  if (patch.type !== undefined) patch.type = v.oneOf(patch.type, PROPERTY_TYPES, "Property type");
+  if (patch.category !== undefined) patch.category = v.oneOf(patch.category, CATEGORIES, "Category");
+  if (patch.caretaker) patch.caretaker = { ...existing.caretaker, ...patch.caretaker, isIdentityVerified: existing.caretaker.isIdentityVerified, isBackgroundVerified: existing.caretaker.isBackgroundVerified };
+  if (patch.documents) {
+    const previous = new Map(existing.documents.map((d) => [d.id, d]));
+    patch.documents = patch.documents.map((d) => ({ ...d, status: previous.get(d.id)?.fileUrl === d.fileUrl ? previous.get(d.id)!.status : "pending" }));
+  }
+  if (patch.slug && patch.slug !== existing.slug) patch.slug = uniqueSlug(patch.slug, id);
+
+  // Editing a published listing's core content sends it back for review so verified badges stay truthful.
+  const contentKeys = ["name", "rooms", "location", "pricing", "coverImage", "gallery", "documents", "caretaker"];
+  const touchesContent = contentKeys.some((k) => k in patch);
+  if (existing.status === "published" && touchesContent && status === "published") status = "pending_approval";
+
+  const merged: OwnerPropertyListing = {
+    ...existing,
+    ...patch,
+    status,
+    systemMetrics: { ...existing.systemMetrics, lastUpdatedAt: nowIso() },
+  };
+  merged.completenessScore = calculatePropertyCompleteness(merged).score;
+  properties.replace(merged);
+  events.publish("PropertyUpdated", "Property", id, { fields: Object.keys(patch), status }, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId });
+  return merged;
+}
+
+export function remove(actor: AuthUser, ownerId: string, id: string, ctx: EventContext): void {
+  getOwned(ownerId, id);
+  const active = bookings.list({ property_id: id }).filter((b) => ["Pending", "Confirmed"].includes(b.bookingStatus));
+  if (active.length) throw conflict(`This property has ${active.length} active booking(s). Cancel or complete them before deleting.`);
+  properties.remove(id);
+  events.publish("PropertyDeleted", "Property", id, {}, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId });
+}
+
+export function submitForVerification(actor: AuthUser, ownerId: string, id: string, ctx: EventContext): { property: OwnerPropertyListing; message: string } {
+  const prop = getOwned(ownerId, id);
+  const { score, missing } = calculatePropertyCompleteness(prop);
+  if (score < 70) {
+    throw badRequest(`Listing is only ${score}% complete. Please provide the required fields before submitting for review.`, { missingFields: missing, score });
+  }
+  if (prop.status === "published") throw conflict("This listing is already published.");
+  prop.status = "pending_approval";
+  prop.rejectionReason = undefined;
+  prop.completenessScore = score;
+  prop.systemMetrics.lastUpdatedAt = nowIso();
+  properties.replace(prop);
+  events.publish("PropertySubmittedForReview", "Property", id, { score }, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId });
+  return { property: prop, message: "Property submitted for verification. Our team reviews listings within 24-48 hours." };
+}
+
+export function adminApprove(actor: AuthUser, id: string, options: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }, ctx: EventContext): OwnerPropertyListing {
+  const prop = properties.get(id);
+  if (!prop) throw notFound("Property");
+  prop.status = "published";
+  prop.isNestinVerified = options.isNestinVerified ?? true;
+  prop.isFeatured = options.isFeatured ?? prop.isFeatured;
+  prop.isZeroBrokerage = options.isZeroBrokerage ?? prop.isZeroBrokerage;
+  prop.rejectionReason = undefined;
+  prop.caretaker = { ...prop.caretaker, isIdentityVerified: true, isBackgroundVerified: true };
+  prop.documents = prop.documents.map((d) => ({ ...d, status: "verified" as const }));
+  prop.systemMetrics = { ...prop.systemMetrics, publishedAt: prop.systemMetrics.publishedAt || nowIso(), lastUpdatedAt: nowIso() };
+  properties.replace(prop);
+  events.publish("PropertyApproved", "Property", id, { ...options }, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId: prop.ownerId });
+  return prop;
+}
+
+export function adminReject(actor: AuthUser, id: string, reason: string, ctx: EventContext): OwnerPropertyListing {
+  const prop = properties.get(id);
+  if (!prop) throw notFound("Property");
+  prop.status = "rejected";
+  prop.rejectionReason = v.str(reason || "Incomplete verification documents or incorrect address details.", "Reason", { max: 1000 });
+  prop.systemMetrics.lastUpdatedAt = nowIso();
+  properties.replace(prop);
+  events.publish("PropertyRejected", "Property", id, { reason: prop.rejectionReason }, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId: prop.ownerId });
+  return prop;
+}
+
+export function adminSetBadges(actor: AuthUser, id: string, badges: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }, ctx: EventContext): OwnerPropertyListing {
+  const prop = properties.get(id);
+  if (!prop) throw notFound("Property");
+  if (badges.isNestinVerified !== undefined) prop.isNestinVerified = !!badges.isNestinVerified;
+  if (badges.isFeatured !== undefined) prop.isFeatured = !!badges.isFeatured;
+  if (badges.isZeroBrokerage !== undefined) prop.isZeroBrokerage = !!badges.isZeroBrokerage;
+  properties.replace(prop);
+  events.publish("PropertyBadgesUpdated", "Property", id, { ...badges }, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId: prop.ownerId });
+  return prop;
+}
+
+/** Marks a bed occupied/vacant and recomputes room and property counters. Used by CRM workflows and the vacancy manager. */
+export function setBedStatus(prop: OwnerPropertyListing, roomId: string, bedId: string, isOccupied: boolean, occupantName?: string): OwnerPropertyListing {
+  let found = false;
+  prop.rooms = prop.rooms.map((room) => {
+    if (room.id !== roomId) return room;
+    const beds = room.beds.map((bed) => {
+      if (bed.id !== bedId) return bed;
+      found = true;
+      return { ...bed, isOccupied, occupantName: isOccupied ? occupantName || "Tenant" : undefined, moveInDate: isOccupied ? bed.moveInDate || nowIso().slice(0, 10) : undefined };
+    });
+    const occupied = beds.filter((b) => b.isOccupied).length;
+    return { ...room, beds, occupiedBedsCount: occupied, availableBedsCount: beds.length - occupied };
+  });
+  if (!found) throw notFound("Bed");
+  const totalBeds = prop.rooms.reduce((acc, r) => acc + r.beds.length, 0);
+  prop.details = { ...prop.details, totalBeds: totalBeds || prop.details.totalBeds, capacity: totalBeds || prop.details.capacity };
+  prop.systemMetrics.lastUpdatedAt = nowIso();
+  return prop;
+}
+
+export function updateBedStatus(actor: AuthUser, ownerId: string, id: string, body: Record<string, unknown>, ctx: EventContext): OwnerPropertyListing {
+  const prop = getOwned(ownerId, id);
+  const roomId = v.str(body.roomId, "Room id", { max: 80 });
+  const bedId = v.str(body.bedId, "Bed id", { max: 80 });
+  const isOccupied = v.bool(body.isOccupied);
+  const occupantName = v.optionalStr(body.occupantName, "Occupant name", 120);
+  const updated = Collection.transaction(() => properties.replace(setBedStatus(prop, roomId, bedId, isOccupied, occupantName)));
+  events.publish("BedStatusChanged", "Property", id, { roomId, bedId, isOccupied }, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId });
+  return updated;
+}
+
+export function addReview(actor: AuthUser, propertyId: string, body: Record<string, unknown>, ctx: EventContext): OwnerPropertyListing {
+  const prop = properties.get(propertyId);
+  if (!prop || prop.status !== "published") throw notFound("Property");
+  const rating = v.num(body.rating, "Rating", { min: 1, max: 5, integer: true });
+  const comment = v.str(body.comment, "Review", { min: 5, max: 2000 });
+  const residentRoom = v.optionalStr(body.residentRoom, "Room", 80) || "Resident";
+  const hasStayed = bookings.list({ tenant_id: actor.id, property_id: propertyId }).some((b) => ["Confirmed", "Completed"].includes(b.bookingStatus));
+
+  const review: PropertyResidentReview = {
+    id: newId("rev"),
+    author: actor.fullName,
+    avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(actor.fullName)}`,
+    rating,
+    date: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    comment,
+    helpfulCount: 0,
+    verifiedResident: hasStayed,
+    residentRoom,
+  };
+  prop.reviews = [review, ...prop.reviews.filter((r) => r.author !== actor.fullName || r.comment !== comment)];
+  const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } as OwnerPropertyListing["systemMetrics"]["ratingBreakdown"];
+  for (const r of prop.reviews) breakdown[Math.min(5, Math.max(1, Math.round(r.rating))) as 1 | 2 | 3 | 4 | 5] += 1;
+  prop.systemMetrics = {
+    ...prop.systemMetrics,
+    averageRating: Number((prop.reviews.reduce((a, r) => a + r.rating, 0) / prop.reviews.length).toFixed(1)),
+    totalReviews: prop.reviews.length,
+    ratingBreakdown: breakdown,
+  };
+  properties.replace(prop);
+  events.publish("ReviewAdded", "Property", propertyId, { rating, verifiedResident: hasStayed }, { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId: prop.ownerId });
+  return toPublicListing(prop);
+}

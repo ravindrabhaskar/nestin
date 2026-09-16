@@ -2,7 +2,11 @@ node_modules/
 build/
 dist/
 coverage/
+data/
+playwright-report/
+test-results/
 .DS_Store
 *.log
-.env*
+.env
+.env.*
 !.env.example

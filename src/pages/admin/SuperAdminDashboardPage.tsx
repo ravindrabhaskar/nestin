@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePropertyListing } from '../../context/PropertyListingContext';
+import { AdminRegistryPanels } from './AdminRegistryPanels';
 import { OwnerPropertyListing, PropertyListingStatus } from '../../types/property';
 import { PropertyDetailsView } from '../../components/property-details/PropertyDetailsView';
 
@@ -48,7 +49,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
     calculateCompleteness,
   } = usePropertyListing();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'verification' | 'properties' | 'owners' | 'users' | 'bookings' | 'settings' | 'audit'>('verification');
+  const [activeTab, setActiveTab] = useState<'overview' | 'verification' | 'properties' | 'owners' | 'users' | 'bookings' | 'inbound' | 'settings' | 'audit'>('verification');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCity, setFilterCity] = useState('all');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -187,8 +188,9 @@ export const SuperAdminDashboardPage: React.FC = () => {
             { id: 'verification', label: 'Verification Desk', icon: ShieldCheck, badge: pendingReviewProperties.length },
             { id: 'properties', label: 'All Properties', icon: Building2, count: totalProperties },
             { id: 'owners', label: 'Owners Registry', icon: Users, count: ownersList.length },
-            { id: 'users', label: 'Tenants & Residents', icon: UserCheck },
+            { id: 'users', label: 'Accounts Registry', icon: UserCheck },
             { id: 'bookings', label: 'Bookings & Escrow', icon: CalendarCheck },
+            { id: 'inbound', label: 'Inbox & Requests', icon: FileCheck },
             { id: 'settings', label: 'System Policies', icon: Settings },
             { id: 'audit', label: 'Security Logs', icon: FileCheck },
           ].map((tab) => {
@@ -698,38 +700,10 @@ export const SuperAdminDashboardPage: React.FC = () => {
         )}
 
         {/* -------------------------------------------------------------
-            TAB 6: AUDIT & SECURITY LOGS
+            TAB 6: REGISTRIES (ACCOUNTS, BOOKINGS, INBOX, AUDIT TRAIL) — live from the admin API
         ------------------------------------------------------------- */}
-        {(activeTab === 'audit' || activeTab === 'users' || activeTab === 'bookings') && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-              <h2 className="text-xl font-black text-white font-heading">
-                {activeTab === 'audit' ? 'Administrative Security Logs' : activeTab === 'users' ? 'Registered Tenants Registry' : 'Escrow & Booking Transactions'}
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Real-time transaction tracking and immutable audit records for the NestIn coliving platform.
-              </p>
-
-              <div className="mt-5 space-y-2">
-                {[
-                  { time: '10 minutes ago', actor: 'Super Admin', action: 'Approved "Banyan Stay Premium PG" with Verified Badge', tag: 'APPROVAL' },
-                  { time: '1 hour ago', actor: 'System Gateway', action: 'Verified GHMC Trade License for "Zolo Stays Gachibowli"', tag: 'VERIFY' },
-                  { time: '3 hours ago', actor: 'Super Admin', action: 'Updated commission parameter for Hyderabad tech corridor', tag: 'CONFIG' },
-                  { time: '5 hours ago', actor: 'Root Sec', action: 'Zero cross-contamination check executed — 100% isolation verified', tag: 'SECURITY' },
-                ].map((log, i) => (
-                  <div key={i} className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800/80 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-3">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 font-mono text-[10px] font-bold">
-                        {log.tag}
-                      </span>
-                      <span className="text-slate-200">{log.action}</span>
-                    </div>
-                    <div className="text-slate-400 font-mono text-[11px]">{log.time}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        {(activeTab === 'audit' || activeTab === 'users' || activeTab === 'bookings' || activeTab === 'inbound') && (
+          <AdminRegistryPanels tab={activeTab} onNotice={showToast} />
         )}
       </main>
 

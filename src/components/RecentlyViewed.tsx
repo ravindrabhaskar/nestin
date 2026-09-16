@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { History, Trash2, ArrowLeft, ArrowRight, Star, MapPin, ShieldCheck, Lock, LogIn } from 'lucide-react';
 import { PropertyListing } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { ALL_PROPERTIES_DATA } from '../data/propertiesData';
+import { usePropertyListing } from '../context/PropertyListingContext';
 
 interface RecentlyViewedProps {
   onSelectProperty: (property: PropertyListing) => void;
@@ -93,7 +93,8 @@ export const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
   };
 
   // When logged out and no local history saved, use sample properties as teaser preview
-  const displayItems = history.length > 0 ? history : ALL_PROPERTIES_DATA.slice(0, 4);
+  const { publishedProperties, toFindPGListing } = usePropertyListing();
+  const displayItems = history.length > 0 ? history : publishedProperties.slice(0, 4).map(toFindPGListing);
 
   // If logged in and history is empty, don't display
   if (isAuthenticated && history.length === 0) return null;

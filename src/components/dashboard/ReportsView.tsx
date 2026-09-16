@@ -56,7 +56,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         month,
         year,
         propertyName: 'All Properties (Consolidated)',
-        ownerName: ownerName || 'Paritala Venkata Vaibhav',
+        ownerName: ownerName || 'Property Owner',
         ownerEmail: ownerEmail || 'owner.partner@nestin.io',
         reportType: 'full',
         includeLedger: true,

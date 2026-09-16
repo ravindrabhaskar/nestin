@@ -17,7 +17,6 @@ import {
   Building2
 } from 'lucide-react';
 import { PropertyListing, ViewMode, FindPGFilterState } from '../types';
-import { GENERATED_PROPERTIES_DATA } from '../data/propertiesData';
 import { usePropertyListing } from '../context/PropertyListingContext';
 import { useAuth } from '../context/AuthContext';
 import { PropertyCard } from './PropertyCard';
@@ -172,11 +171,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
 
   // Filter properties dynamically
   const filteredProperties = useMemo(() => {
-    const canonicalListings = publishedProperties.map(toFindPGListing);
-    const legacyFiltered = GENERATED_PROPERTIES_DATA.filter(
-      (legacy) => !canonicalListings.some((c) => c.id === legacy.id || c.slug === legacy.slug)
-    );
-    let result = [...canonicalListings, ...legacyFiltered];
+    let result = publishedProperties.map(toFindPGListing);
 
     // Search query match
     if (filters.searchQuery.trim()) {
@@ -284,7 +279,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
     });
 
     return result;
-  }, [filters]);
+  }, [filters, publishedProperties, toFindPGListing]);
 
   // Pagination calculation
   const totalItems = filteredProperties.length;
@@ -302,7 +297,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
 
   // Properties matching search query/location without gender filter applied
   const basePropertiesWithoutGender = useMemo(() => {
-    let result = [...GENERATED_PROPERTIES_DATA];
+    let result = publishedProperties.map(toFindPGListing);
 
     if (filters.searchQuery.trim()) {
       const q = filters.searchQuery.toLowerCase().trim();
@@ -324,7 +319,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
     }
 
     return result;
-  }, [filters.searchQuery, filters.maxRent, filters.verifiedOnly]);
+  }, [filters.searchQuery, filters.maxRent, filters.verifiedOnly, publishedProperties, toFindPGListing]);
 
   // Calculate category counts for quick gender filters
   const genderCategoryCounts = useMemo(() => {

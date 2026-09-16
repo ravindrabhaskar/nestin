@@ -10,17 +10,52 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
-import { INITIAL_TENANT_PAYMENTS } from '../data/tenantData';
 import { TenantPaymentItem } from '../types';
+import { ApiClient, tokenStore } from '../lib/apiClient';
+import { useApiResource } from '../hooks/useApiResource';
+import { useAuth } from '../context/AuthContext';
+
+/** Downloads the server-generated receipt with the session token attached. */
+async function downloadReceipt(payment: TenantPaymentItem) {
+  const res = await fetch(`/api/v1/tenant/payments/${payment.id}/receipt`, { headers: { Authorization: `Bearer ${tokenStore.get() || ''}` } });
+  if (!res.ok) throw new Error('Receipt is not available for this payment.');
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${payment.invoiceNumber}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export const TenantPaymentsPage: React.FC = () => {
-  const [payments] = useState<TenantPaymentItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('nestin_tenant_payments');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return INITIAL_TENANT_PAYMENTS;
+  const { user } = useAuth();
+  const { data: payments, setData: setPayments, isLoading } = useApiResource<TenantPaymentItem[]>(() => ApiClient.tenant.payments(), [], {
+    enabled: !!user,
+    key: user?.id,
+    label: 'Could not load your payments',
   });
+  const [payAmount, setPayAmount] = useState('');
+  const [isPaying, setIsPaying] = useState(false);
+  const [payNotice, setPayNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  const handlePayRent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(payAmount);
+    if (!amount || amount <= 0) return;
+    setIsPaying(true);
+    setPayNotice(null);
+    try {
+      const paid = await ApiClient.tenant.pay({ amount, type: 'Rent', paymentMethod: 'UPI / GPay', idempotencyKey: `rent-${user?.id}-${Date.now()}` });
+      setPayments((prev) => [paid, ...prev]);
+      setPayAmount('');
+      setPayNotice({ kind: 'ok', text: `Payment successful. Invoice ${paid.invoiceNumber} generated.` });
+    } catch (err) {
+      setPayNotice({ kind: 'err', text: err instanceof Error ? err.message : 'Payment failed.' });
+    } finally {
+      setIsPaying(false);
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<'All' | 'Paid' | 'Pending' | 'Refunded'>('All');
   const [selectedReceipt, setSelectedReceipt] = useState<TenantPaymentItem | null>(null);
@@ -71,7 +106,42 @@ export const TenantPaymentsPage: React.FC = () => {
       activeNav="/payments"
     >
       <div className="space-y-6">
-        
+
+        {/* PAY RENT ONLINE */}
+        <form onSubmit={handlePayRent} className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 font-heading">Pay rent or dues online</label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black text-slate-500">₹</span>
+              <input
+                type="number"
+                min={1}
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                placeholder="Amount (e.g. 15000)"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#a3e635]/60"
+              />
+            </div>
+            {payNotice && (
+              <p className={`mt-2 text-xs font-semibold ${payNotice.kind === 'ok' ? 'text-emerald-700' : 'text-rose-600'}`}>{payNotice.text}</p>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={isPaying || !payAmount}
+            className="px-5 py-2.5 rounded-xl bg-slate-900 text-[#a3e635] text-xs font-black hover:bg-slate-800 disabled:opacity-50 transition-colors cursor-pointer font-heading flex items-center gap-2"
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>{isPaying ? 'Processing…' : 'Pay via UPI'}</span>
+          </button>
+        </form>
+
+        {isLoading && (
+          <div className="py-10 flex justify-center">
+            <div className="w-8 h-8 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
         {/* FILTER TAB BAR */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-1 flex flex-wrap gap-1 shadow-2xs">
           {(['All', 'Paid', 'Pending', 'Refunded'] as const).map((tab) => {
@@ -110,7 +180,7 @@ export const TenantPaymentsPage: React.FC = () => {
 
         {/* PAYMENTS CONTAINER */}
         <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs">
-          
+
           {/* DESKTOP TABLE */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs font-sans">
@@ -250,6 +320,14 @@ export const TenantPaymentsPage: React.FC = () => {
             </div>
 
             <div className="pt-2 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => downloadReceipt(selectedReceipt).catch((err) => setPayNotice({ kind: 'err', text: err.message }))}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer font-heading"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download</span>
+              </button>
               <button
                 type="button"
                 onClick={() => window.print()}

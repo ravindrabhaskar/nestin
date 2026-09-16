@@ -1,25 +1,27 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  Check,
-  Shield,
-  Laptop,
-  Smartphone,
-  AlertTriangle,
-  ExternalLink,
-} from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Check, Shield, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
+import { SecurityPanel } from '../components/profile/SecurityPanel';
+
+const DEFAULT_SEARCH_PREFS = {
+  city: 'Bangalore',
+  area: 'Koramangala, HSR Layout',
+  budget: '₹10,000 - ₹15,000',
+  roomType: 'Single & Double Sharing',
+  moveInDate: 'Within 15 days',
+  amenities: ['AC', 'Food Included', 'Furnished', 'Attached Bathroom'],
+};
 
 export const TenantSettingsPage: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Determine active tab from URL path or search params
   const searchParams = new URLSearchParams(location.search);
   const queryTab = searchParams.get('tab');
-  
+
   let activeTab: 'notifications' | 'preferences' | 'security' | 'privacy' = 'notifications';
   if (location.pathname.includes('/settings/preferences') || queryTab === 'preferences') {
     activeTab = 'preferences';
@@ -32,70 +34,76 @@ export const TenantSettingsPage: React.FC = () => {
   }
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // 1. NOTIFICATIONS STATE
+  // Settings are stored on the user's profile (server-side), so they follow the account across devices.
+  const ns = user?.notificationSettings;
   const [notifications, setNotifications] = useState({
-    bookingConfirmations: true,
-    bookingUpdates: true,
-    cancellationUpdates: true,
-    visitConfirmations: true,
-    visitReminders: true,
-    visitChanges: true,
-    propertyRecommendations: true,
-    offersAndUpdates: false,
+    bookingConfirmations: ns?.bookingConfirmed ?? true,
+    bookingUpdates: ns?.bookingUpdates ?? true,
+    cancellationUpdates: ns?.bookingCancelled ?? true,
+    visitConfirmations: ns?.visitConfirmation ?? true,
+    visitReminders: ns?.visitReminder ?? true,
+    visitChanges: ns?.visitCancellation ?? true,
+    propertyRecommendations: ns?.newPgRecommendations ?? true,
+    offersAndUpdates: ns?.offers ?? false,
   });
 
-  // 2. SEARCH PREFERENCES STATE
-  const [searchPrefs, setSearchPrefs] = useState(() => {
-    try {
-      const saved = localStorage.getItem('nestin_search_prefs');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return {
-      city: 'Bangalore',
-      area: 'Koramangala, HSR Layout',
-      budget: '₹10,000 - ₹15,000',
-      roomType: 'Single & Double Sharing',
-      moveInDate: 'Within 15 days',
-      amenities: ['AC', 'Food Included', 'Furnished', 'Attached Bathroom'],
-    };
-  });
+  const [searchPrefs, setSearchPrefs] = useState<typeof DEFAULT_SEARCH_PREFS>(() => ({ ...DEFAULT_SEARCH_PREFS, ...((user?.searchPreferences as Partial<typeof DEFAULT_SEARCH_PREFS>) || {}) }));
 
-  // 3. PRIVACY STATE
+  const ps = user?.privacySettings;
   const [privacySettings, setPrivacySettings] = useState({
-    personalizedRecommendations: true,
-    locationRecommendations: true,
-    marketingCommunications: false,
+    personalizedRecommendations: ps?.personalizedRecommendations ?? true,
+    locationRecommendations: ps?.locationBasedRecommendations ?? true,
+    marketingCommunications: ps?.dataSharingPreferences ?? false,
   });
+
+  const save = async (patch: Record<string, unknown>) => {
+    try {
+      await updateUserProfile(patch);
+      showToast('Changes saved successfully.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not save changes.');
+    }
+  };
 
   const handleSaveNotifications = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      localStorage.setItem('nestin_notifications_settings', JSON.stringify(notifications));
-    } catch {}
-    showToast('Changes saved successfully.');
+    void save({
+      notificationSettings: {
+        ...(user?.notificationSettings || {}),
+        bookingConfirmed: notifications.bookingConfirmations,
+        bookingUpdates: notifications.bookingUpdates,
+        bookingCancelled: notifications.cancellationUpdates,
+        visitConfirmation: notifications.visitConfirmations,
+        visitReminder: notifications.visitReminders,
+        visitCancellation: notifications.visitChanges,
+        newPgRecommendations: notifications.propertyRecommendations,
+        offers: notifications.offersAndUpdates,
+        promotions: notifications.offersAndUpdates,
+      },
+    });
   };
 
   const handleSaveSearchPrefs = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      localStorage.setItem('nestin_search_prefs', JSON.stringify(searchPrefs));
-    } catch {}
-    showToast('Changes saved successfully.');
+    void save({ searchPreferences: searchPrefs });
   };
 
   const handleSavePrivacy = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      localStorage.setItem('nestin_privacy_settings', JSON.stringify(privacySettings));
-    } catch {}
-    showToast('Changes saved successfully.');
+    void save({
+      privacySettings: {
+        ...(user?.privacySettings || {}),
+        personalizedRecommendations: privacySettings.personalizedRecommendations,
+        locationBasedRecommendations: privacySettings.locationRecommendations,
+        dataSharingPreferences: privacySettings.marketingCommunications,
+      },
+    });
   };
 
   const toggleAmenity = (amenity: string) => {
@@ -110,14 +118,6 @@ export const TenantSettingsPage: React.FC = () => {
     });
   };
 
-  const handleDeleteAccount = async () => {
-    setDeleteModalOpen(false);
-    try {
-      localStorage.clear();
-    } catch {}
-    await logout();
-    navigate('/');
-  };
 
   // Header texts based on active tab
   const getPageInfo = () => {
@@ -165,7 +165,7 @@ export const TenantSettingsPage: React.FC = () => {
       {activeTab === 'notifications' && (
         <form onSubmit={handleSaveNotifications} className="space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-8">
-            
+
             {/* GROUP 1: BOOKINGS */}
             <div>
               <h3 className="text-sm font-bold font-heading text-slate-900 mb-1">
@@ -395,7 +395,7 @@ export const TenantSettingsPage: React.FC = () => {
       {activeTab === 'preferences' && (
         <form onSubmit={handleSaveSearchPrefs} className="space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-6">
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* PREFERRED CITY */}
               <div>
@@ -527,125 +527,13 @@ export const TenantSettingsPage: React.FC = () => {
       )}
 
       {/* 3. SECURITY TAB */}
-      {activeTab === 'security' && (
-        <div className="space-y-6">
-          
-          {/* GOOGLE ACCOUNT CARD */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs">
-            <h3 className="text-sm font-bold font-heading text-slate-900 mb-1">
-              Google Account
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Your Nestin account is secured through Google.
-            </p>
-
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/70 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 shadow-2xs">
-                  G
-                </div>
-                <div>
-                  <div className="text-xs font-bold font-heading text-slate-900">
-                    Signed in with Google
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    {user?.email || 'priya@gmail.com'}
-                  </div>
-                </div>
-              </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#a3e635]/20 text-[#3d6800] border border-[#a3e635]/40 font-heading">
-                Connected
-              </span>
-            </div>
-          </div>
-
-          {/* ACTIVE SESSIONS & RECENT LOGIN ACTIVITY */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold font-heading text-slate-900">
-                  Active Sessions
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Recent login activity across your devices.
-                </p>
-              </div>
-            </div>
-
-            <div className="divide-y divide-slate-100">
-              <div className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-100 text-slate-600">
-                    <Laptop className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold font-heading text-slate-900 flex items-center gap-2">
-                      <span>Chrome on macOS</span>
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#a3e635]/30 text-[#2d5000]">
-                        Active Now
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-500">Bangalore, India • Current session</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-100 text-slate-600">
-                    <Smartphone className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold font-heading text-slate-900">
-                      Safari on iPhone
-                    </div>
-                    <div className="text-xs text-slate-500">Mumbai, India • 2 days ago</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => showToast('Signed out of other active sessions.')}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200/70 hover:text-slate-900 transition-colors cursor-pointer font-heading"
-              >
-                Sign out of all devices
-              </button>
-            </div>
-          </div>
-
-          {/* DELETE ACCOUNT (SUBTLE AT BOTTOM) */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-bold font-heading text-rose-600">
-                  Delete account
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Delete your Nestin account and personal information.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setDeleteModalOpen(true)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer font-heading shrink-0"
-              >
-                Delete account
-              </button>
-            </div>
-          </div>
-
-        </div>
-      )}
+      {activeTab === 'security' && <SecurityPanel onNotice={showToast} />}
 
       {/* 4. PRIVACY TAB */}
       {activeTab === 'privacy' && (
         <form onSubmit={handleSavePrivacy} className="space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-6">
-            
+
             <div className="divide-y divide-slate-100">
               <div className="py-3.5 flex items-center justify-between gap-4">
                 <div>
@@ -757,42 +645,6 @@ export const TenantSettingsPage: React.FC = () => {
         </form>
       )}
 
-      {/* DELETE ACCOUNT CONFIRMATION MODAL */}
-      {deleteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 font-sans">
-            <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-
-            <div>
-              <h3 className="text-base font-bold font-heading text-slate-900">
-                Delete your account?
-              </h3>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                This action cannot be undone. All your bookings, saved properties, and payment history will be permanently deleted.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setDeleteModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer font-heading"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors cursor-pointer font-heading"
-              >
-                Delete account
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </TenantAccountLayout>
   );
 };

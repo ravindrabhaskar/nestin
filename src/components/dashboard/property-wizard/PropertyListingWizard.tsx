@@ -40,6 +40,7 @@ import {
   PropertyDocument,
 } from '../../../types/property';
 import { usePropertyListing, calculatePropertyCompleteness } from '../../../context/PropertyListingContext';
+import { useAuth } from '../../../context/AuthContext';
 import { PropertyDetailsView } from '../../property-details/PropertyDetailsView';
 
 interface PropertyListingWizardProps {
@@ -76,6 +77,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
 }) => {
   const { properties, createProperty, updateProperty, submitForVerification, calculateInitialMoveIn } =
     usePropertyListing();
+  const { user: wizardUser } = useAuth();
 
   const existingProp = initialData
     ? initialData
@@ -94,10 +96,10 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
 
     return {
       id: `prop-${Date.now()}`,
-      ownerId: 'owner-current',
-      ownerName: 'Paritala Venkata Vaibhav',
-      ownerEmail: 'venkatavaibhavparitala@gmail.com',
-      slug: 'banyan-stay-kukatpally-new',
+      ownerId: wizardUser?.ownerId || wizardUser?.id || 'owner',
+      ownerName: wizardUser?.name || 'Owner',
+      ownerEmail: wizardUser?.email || '',
+      slug: '',
       name: '',
       type: 'Co-living',
       category: 'Co-ed',

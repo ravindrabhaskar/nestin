@@ -1,3 +1,4 @@
+import { ApiClient } from '../lib/apiClient';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
@@ -75,13 +76,14 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
     }
 
     setSubmitting(true);
-
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-      const generatedId = 'NST-' + Math.floor(100000 + Math.random() * 900000);
-      setTicketId(generatedId);
-    }, 1200);
+    ApiClient.public
+      .contact(formData)
+      .then((res) => {
+        setSubmitted(true);
+        setTicketId(res.ticketNumber);
+      })
+      .catch((err) => alert(err instanceof Error ? err.message : 'Could not send your message. Please try again.'))
+      .finally(() => setSubmitting(false));
   };
 
   const handleReset = () => {

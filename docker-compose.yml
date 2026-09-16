@@ -1,104 +1,28 @@
-version: '3.8'
-
 services:
-  # 1. API Gateway Service
-  api-gateway:
-    build:
-      context: .
-      dockerfile: ./services/api-gateway/Dockerfile
+  nestin:
+    build: .
+    image: nestin/app:latest
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - AUTH_SERVICE_URL=http://auth-service:3001
-      - PROPERTY_SERVICE_URL=http://property-service:3002
-      - INVENTORY_SERVICE_URL=http://inventory-service:3003
-      - BOOKING_SERVICE_URL=http://booking-service:3004
-      - CRM_SERVICE_URL=http://crm-service:3005
-      - TENANT_SERVICE_URL=http://tenant-service:3006
-      - PAYMENT_SERVICE_URL=http://payment-service:3007
-      - SUBSCRIPTION_SERVICE_URL=http://subscription-service:3008
-      - DOCUMENT_SERVICE_URL=http://document-service:3009
-      - NOTIFICATION_SERVICE_URL=http://notification-service:3010
-      - RBAC_SERVICE_URL=http://rbac-service:3011
-      - AUDIT_SERVICE_URL=http://audit-service:3012
-    depends_on:
-      - auth-service
-      - property-service
-      - booking-service
+      NODE_ENV: production
+      PORT: 3000
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      TRUST_PROXY: "false"
+      DATABASE_PATH: /data/nestin.db
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-NestIn@2026}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET (>= 32 random characters) in your .env}
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-admin@nestin.io}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:?Set SUPER_ADMIN_PASSWORD in your .env}
+      SUPER_ADMIN_ACCESS_CODE: ${SUPER_ADMIN_ACCESS_CODE:?Set SUPER_ADMIN_ACCESS_CODE in your .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+    volumes:
+      - nestin-data:/data
+    restart: unless-stopped
 
-  # 2. Auth Service
-  auth-service:
-    build:
-      context: .
-      dockerfile: ./services/auth/Dockerfile
-    environment:
-      - PORT=3001
-      - DATABASE_URL=postgres://nestin:secret@auth-db:5432/nestin_auth
-      - JWT_SECRET=nestin-production-auth-jwt-secret-key-2026
-    depends_on:
-      - auth-db
-
-  # 3. Property Service
-  property-service:
-    build:
-      context: .
-      dockerfile: ./services/property-service/Dockerfile
-    environment:
-      - PORT=3002
-      - DATABASE_URL=postgres://nestin:secret@property-db:5432/nestin_properties
-
-  # 4. Booking Service
-  booking-service:
-    build:
-      context: .
-      dockerfile: ./services/booking-service/Dockerfile
-    environment:
-      - PORT=3004
-      - DATABASE_URL=postgres://nestin:secret@booking-db:5432/nestin_bookings
-      - REDIS_URL=redis://redis-broker:6379
-
-  # 5. Payment Service
-  payment-service:
-    build:
-      context: .
-      dockerfile: ./services/payment-service/Dockerfile
-    environment:
-      - PORT=3007
-      - DATABASE_URL=postgres://nestin:secret@payment-db:5432/nestin_payments
-
-  # Database-per-Service Instances
-  auth-db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=nestin
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=nestin_auth
-
-  property-db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=nestin
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=nestin_properties
-
-  booking-db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=nestin
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=nestin_bookings
-
-  payment-db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=nestin
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=nestin_payments
-
-  # Asynchronous Message Broker
-  redis-broker:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+volumes:
+  nestin-data:

@@ -85,6 +85,8 @@ export interface PropertyResidentReview {
 
 export interface OwnerPropertyListing {
   id: string;
+  /** True when this record is a lightweight catalogue projection (reviews, policies, gallery trimmed). */
+  summary?: boolean;
   ownerId: string;
   ownerName: string;
   ownerEmail: string;

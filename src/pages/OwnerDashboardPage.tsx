@@ -231,7 +231,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
     },
   ];
 
-  const displayName = user?.name || 'Paritala Venkata Vaibhav';
+  const displayName = user?.name || 'Owner';
   const initialLetter = displayName.charAt(0).toUpperCase() || 'P';
 
   const handleOpenAddProperty = () => {

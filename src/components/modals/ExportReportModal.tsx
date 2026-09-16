@@ -55,7 +55,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
         month: selectedMonth,
         year: selectedYear,
         propertyName: selectedProperty,
-        ownerName: ownerName || 'Paritala Venkata Vaibhav',
+        ownerName: ownerName || 'Property Owner',
         ownerEmail: ownerEmail || 'owner.partner@nestin.io',
         reportType,
         includeLedger,

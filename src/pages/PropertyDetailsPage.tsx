@@ -4,10 +4,6 @@ import { usePropertyListing } from '../context/PropertyListingContext';
 import { PropertyDetailsView } from '../components/property-details/PropertyDetailsView';
 import { PropertyNotFoundPage } from './PropertyNotFoundPage';
 import { PropertyDetailsSkeleton } from '../components/ui/LoadingSkeleton';
-import {
-  getPropertyBySlug as getLegacyPropertyBySlug,
-  detailedPropertyToOwnerPropertyListing,
-} from '../data/propertyDetailsHelper';
 import { ChevronLeft, Home } from 'lucide-react';
 import { OwnerPropertyListing } from '../types/property';
 
@@ -15,38 +11,49 @@ export const PropertyDetailsPage: React.FC = () => {
   const { slug, propertyId } = useParams<{ slug?: string; propertyId?: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { getPropertyBySlug } = usePropertyListing();
+  const { getPropertyBySlug, fetchPropertyBySlug, isLoading: catalogLoading } = usePropertyListing();
   const [isLoading, setIsLoading] = useState(true);
+  const [fetched, setFetched] = useState<OwnerPropertyListing | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   const effectiveSlug = slug || propertyId || '';
   const actionParam = searchParams.get('action');
   const bookParam = searchParams.get('book');
   const initialOpenBooking = actionParam === 'book' || bookParam === 'true';
 
-  useEffect(() => {
-    // Fast smooth loading feel
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [effectiveSlug]);
+  const cached = effectiveSlug ? getPropertyBySlug(effectiveSlug) : null;
 
-  if (isLoading) {
+  // Deep links may arrive before the catalogue has loaded (or point at a listing outside it), so fall
+  // back to fetching the single listing from the API.
+  useEffect(() => {
+    let active = true;
+    setNotFound(false);
+    setFetched(null);
+    if (cached && !cached.summary) {
+      setIsLoading(false);
+      return;
+    }
+    if (catalogLoading) return;
+    setIsLoading(true);
+    fetchPropertyBySlug(effectiveSlug).then((listing) => {
+      if (!active) return;
+      if (listing) setFetched(listing);
+      else setNotFound(true);
+      setIsLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveSlug, catalogLoading, !!cached, cached?.summary]);
+
+  const property: OwnerPropertyListing | null = (cached && !cached.summary ? cached : fetched) || cached;
+
+  if (isLoading && !property) {
     return <PropertyDetailsSkeleton />;
   }
 
-  // 1. Check canonical properties from context
-  let property: OwnerPropertyListing | null = effectiveSlug ? getPropertyBySlug(effectiveSlug) : null;
-
-  // 2. If not in canonical store, check legacy dataset and convert
-  if (!property && effectiveSlug) {
-    const legacy = getLegacyPropertyBySlug(effectiveSlug);
-    if (legacy) {
-      property = detailedPropertyToOwnerPropertyListing(legacy);
-    }
-  }
-
-  if (!property) {
+  if (!property || notFound) {
     return <PropertyNotFoundPage />;
   }
 

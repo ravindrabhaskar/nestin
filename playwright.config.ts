@@ -1,53 +1,47 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright test configuration for visual regression and end-to-end testing.
- * See https://playwright.dev/docs/test-configuration
+ * End-to-end tests run against the real app (Express + Vite middleware + SQLite). The server is
+ * started with a fresh database seeded with demo data so journeys are deterministic.
  */
 export default defineConfig({
-  testDir: './tests',
-  /* Run tests in files in parallel */
-  fullyParallel: true,
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  testDir: './tests/e2e',
+  globalSetup: './tests/e2e/global-setup.ts',
+  // Visual snapshots are OS/font specific; opt in with VISUAL=true (baselines are committed for win32).
+  testIgnore: process.env.VISUAL === 'true' ? [] : ['**/visual.spec.ts'],
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  workers: 1,
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list'], ['html', { open: 'never' }]],
+  timeout: 60_000,
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3000',
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    baseURL: 'http://localhost:3100',
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
   },
-
-  /* Configure projects for major viewports */
   projects: [
     {
       name: 'desktop-chrome',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 1280, height: 800 },
-      },
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } },
     },
     {
       name: 'mobile-chrome',
-      use: {
-        ...devices['Pixel 5'],
-        viewport: { width: 375, height: 667 },
-      },
+      use: { ...devices['Pixel 5'], viewport: { width: 375, height: 667 } },
+      testMatch: /visual\.spec\.ts/,
     },
   ],
-
-  /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    command: 'npx tsx server.ts',
+    url: 'http://localhost:3100/api/v1/health',
+    reuseExistingServer: false,
+    timeout: 120_000,
+    env: {
+      PORT: '3100',
+      NODE_ENV: 'development',
+      DATABASE_PATH: './data/e2e.db',
+      JWT_SECRET: 'e2e-secret-e2e-secret-e2e-secret-1234567890',
+      DISABLE_HMR: 'true',
+    },
   },
 });

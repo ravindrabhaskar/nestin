@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Sparkles, Building2, User, Phone, Mail, IndianRupee, Calendar, Layers, FileText } from 'lucide-react';
 import { usePropertyListing } from '../../../context/PropertyListingContext';
 import { useCRM } from '../../../context/CRMContext';
+import { useRBAC } from '../../../context/RBACContext';
+import { useAuth } from '../../../context/AuthContext';
 import { LeadSource } from '../../../types/crm';
 
 interface AddLeadModalProps {
@@ -12,6 +14,12 @@ interface AddLeadModalProps {
 export const AddLeadModal: React.FC<AddLeadModalProps> = ({ onClose, onSuccess }) => {
   const { ownerProperties } = usePropertyListing();
   const { createLead } = useCRM();
+  const { employees } = useRBAC();
+  const { user: currentUser } = useAuth();
+  // Assignable staff: active team members from the RBAC directory, with the signed-in user first.
+  const staffOptions = Array.from(
+    new Set([currentUser?.name || 'Owner', ...employees.filter((e) => e.status === 'active').map((e) => e.name)])
+  );
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -266,10 +274,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ onClose, onSuccess }
                 onChange={(e) => setAssignedTo(e.target.value)}
                 className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-[#a3e635]"
               >
-                <option value="Ramesh (Operations)">Ramesh (Operations Head)</option>
-                <option value="Srinivas Rao">Srinivas Rao (Caretaker)</option>
-                <option value="Vikram Joshi">Vikram Joshi (Leasing Manager)</option>
-                <option value="Paritala Venkata Vaibhav">Owner (Direct)</option>
+                {staffOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

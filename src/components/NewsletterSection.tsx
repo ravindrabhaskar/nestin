@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Loader2, Send } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { ApiClient } from '../lib/apiClient';
 
 export const NewsletterSection: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -12,15 +13,18 @@ export const NewsletterSection: React.FC = () => {
     if (!email || !email.includes('@')) return;
 
     setStatus('loading');
-    setTimeout(() => {
-      setStatus('success');
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.8 },
-        colors: ['#063826', '#a3e635', '#ffffff'],
-      });
-    }, 1200);
+    ApiClient.public
+      .newsletter(email)
+      .then(() => {
+        setStatus('success');
+        confetti({
+          particleCount: 80,
+          spread: 60,
+          origin: { y: 0.8 },
+          colors: ['#063826', '#a3e635', '#ffffff'],
+        });
+      })
+      .catch(() => setStatus('idle'));
   };
 
   return (

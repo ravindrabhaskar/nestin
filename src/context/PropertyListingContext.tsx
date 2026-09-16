@@ -1,21 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
-import {
-  OwnerPropertyListing,
-  PropertyListingStatus,
-  PropertyRoom,
-  RoomBed,
-  PropertyResidentReview,
-  PropertyDocument,
-} from '../types/property';
-import { INITIAL_PROPERTIES_SEED } from '../data/canonicalPropertiesSeed';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef, ReactNode } from 'react';
+import { OwnerPropertyListing, PropertyRoom, PropertyResidentReview } from '../types/property';
 import { PropertyListing } from '../types';
+import { calculatePropertyCompleteness } from '../lib/domain/propertyCompleteness';
+import { ApiClient } from '../lib/apiClient';
+import { reportSyncError, syncBus } from '../lib/syncBus';
+import { useAuth } from './AuthContext';
 
 interface PropertyListingContextType {
   properties: OwnerPropertyListing[];
   publishedProperties: OwnerPropertyListing[];
   ownerProperties: OwnerPropertyListing[];
+  isLoading: boolean;
+  refresh: () => Promise<void>;
   getPropertyById: (id: string) => OwnerPropertyListing | null;
   getPropertyBySlug: (slug: string) => OwnerPropertyListing | null;
+  /** Fetches a listing that is not in the local cache (deep links, cross-owner previews). */
+  fetchPropertyBySlug: (slug: string) => Promise<OwnerPropertyListing | null>;
   createProperty: (data: Partial<OwnerPropertyListing>) => string;
   updateProperty: (id: string, updates: Partial<OwnerPropertyListing>) => void;
   deleteProperty: (id: string) => void;
@@ -26,7 +26,8 @@ interface PropertyListingContextType {
   adminRejectProperty: (id: string, reason: string) => void;
   updateBedStatus: (propertyId: string, roomId: string, bedId: string, isOccupied: boolean, occupantName?: string) => void;
   addTenantReview: (propertyId: string, review: Omit<PropertyResidentReview, 'id' | 'date'>) => void;
-  bookRoom: (propertyId: string, roomId: string, tenantName: string) => { success: boolean; bookingNumber: string };
+  /** Tenant books a bed online; returns the server booking (server picks a free bed when none is given). */
+  bookRoom: (propertyId: string, roomId: string, tenantName: string, options?: { bedId?: string; moveInDate?: string; phone?: string; durationMonths?: number }) => Promise<{ success: boolean; bookingNumber: string; bookingId?: string; error?: string }>;
   calculateCompleteness: (property: Partial<OwnerPropertyListing>) => { score: number; missing: string[] };
   calculateInitialMoveIn: (property: OwnerPropertyListing, roomOrPrice?: number | PropertyRoom) => {
     monthlyRent: number;
@@ -36,130 +37,92 @@ interface PropertyListingContextType {
     utilitiesApprox: number;
     totalInitialAmount: number;
   };
-  // Mapping for legacy / Find PG PropertyListing format
   toFindPGListing: (prop: OwnerPropertyListing) => PropertyListing;
 }
 
 const PropertyListingContext = createContext<PropertyListingContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'nestin_canonical_properties_v2';
+export { calculatePropertyCompleteness };
 
-export function calculatePropertyCompleteness(prop: Partial<OwnerPropertyListing>): { score: number; missing: string[] } {
-  const missing: string[] = [];
-  let points = 0;
-  const maxPoints = 100;
+const uid = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
-  // Step 1: Basic Info (15 pts)
-  if (prop.name && prop.name.trim().length > 2) points += 5;
-  else missing.push('Property Name');
-
-  if (prop.type && prop.category) points += 5;
-  else missing.push('Property Type & Category');
-
-  if (prop.shortDescription || prop.longDescription) points += 5;
-  else missing.push('Property Description');
-
-  // Step 2: Photos & Media (20 pts)
-  if (prop.coverImage) points += 10;
-  else missing.push('Cover Image');
-
-  if (prop.gallery && prop.gallery.length >= 3) points += 10;
-  else if (prop.gallery && prop.gallery.length > 0) points += 5;
-  else missing.push('At least 3 Gallery Photos');
-
-  // Step 3 & 4: Rooms & Beds (20 pts)
-  if (prop.rooms && prop.rooms.length > 0) {
-    points += 15;
-    const hasConfiguredBeds = prop.rooms.some((r) => r.beds && r.beds.length > 0);
-    if (hasConfiguredBeds) points += 5;
-  } else {
-    missing.push('Room & Bed Configurations');
-  }
-
-  // Step 5: Pricing (15 pts)
-  if (prop.rooms && prop.rooms.some((r) => r.monthlyRent > 0)) points += 10;
-  else missing.push('Room Pricing & Rates');
-
-  if (prop.pricing?.securityDepositRefundPolicy) points += 5;
-  else missing.push('Deposit Refund Policy');
-
-  // Step 6: Amenities (10 pts)
-  if (prop.amenities && prop.amenities.filter((a) => a.isAvailable).length >= 3) points += 10;
-  else missing.push('At least 3 Amenities');
-
-  // Step 7: Policies (5 pts)
-  if (prop.policies?.curfew || prop.policies?.visitorPolicy || prop.policies?.cancellationPolicy) points += 5;
-  else missing.push('House Rules & Policies');
-
-  // Step 8: Location (10 pts)
-  if (prop.location?.addressLine1 && prop.location?.city && prop.location?.pincode) points += 10;
-  else missing.push('Complete Address & City');
-
-  // Step 10 & 11: Caretaker & Docs (5 pts)
-  if (prop.caretaker?.name && prop.caretaker?.phone) points += 5;
-  else missing.push('Caretaker Contact Information');
-
-  return {
-    score: Math.min(100, Math.round((points / maxPoints) * 100)),
-    missing,
-  };
+/** Merges a list of listings into the cache, replacing by id. */
+function mergeInto(prev: OwnerPropertyListing[], incoming: OwnerPropertyListing[], replaceScope?: (p: OwnerPropertyListing) => boolean): OwnerPropertyListing[] {
+  const base = replaceScope ? prev.filter((p) => !replaceScope(p)) : prev;
+  const map = new Map(base.map((p) => [p.id, p]));
+  for (const p of incoming) map.set(p.id, p);
+  return Array.from(map.values());
 }
 
 export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [properties, setProperties] = useState<OwnerPropertyListing[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch {
-      // ignore
-    }
-    return INITIAL_PROPERTIES_SEED;
-  });
+  const { user, isAuthenticated, isSuperAdmin, isOwner, isEmployee, isLoading: authLoading } = useAuth();
+  const [properties, setProperties] = useState<OwnerPropertyListing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const propertiesRef = useRef(properties);
+  propertiesRef.current = properties;
 
-  // Sync with localStorage
+  const ownerId = isOwner ? user?.id : isEmployee ? user?.ownerId : null;
+
+  const refresh = useCallback(async () => {
+    try {
+      const requests: Promise<OwnerPropertyListing[]>[] = [ApiClient.properties.listPublic()];
+      if (isSuperAdmin) requests.push(ApiClient.admin.properties());
+      else if (ownerId) requests.push(ApiClient.properties.listOwner());
+      const [published, privileged = []] = await Promise.all(requests);
+      // Privileged lists are authoritative for their scope; public listings fill in the rest.
+      setProperties(() => mergeInto(published, privileged, isSuperAdmin ? () => true : (p) => p.ownerId === ownerId));
+    } catch (err) {
+      reportSyncError('Could not load properties', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSuperAdmin, ownerId]);
+
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
-    } catch (e) {
-      console.error('Failed to save canonical properties to localStorage', e);
-    }
-  }, [properties]);
+    if (authLoading) return;
+    void refresh();
+  }, [authLoading, refresh, isAuthenticated]);
 
-  const publishedProperties = useMemo(() => {
-    return properties.filter((p) => p.status === 'published');
-  }, [properties]);
+  const publishedProperties = useMemo(() => properties.filter((p) => p.status === 'published'), [properties]);
+  const ownerProperties = useMemo(() => (ownerId ? properties.filter((p) => p.ownerId === ownerId) : []), [properties, ownerId]);
 
-  const ownerProperties = useMemo(() => {
-    return properties; // Currently active owner
-  }, [properties]);
+  const upsertLocal = useCallback((listing: OwnerPropertyListing) => {
+    setProperties((prev) => mergeInto(prev, [listing]));
+  }, []);
 
-  const getPropertyById = (id: string): OwnerPropertyListing | null => {
-    return properties.find((p) => p.id === id) || null;
-  };
+  const getPropertyById = useCallback((id: string) => properties.find((p) => p.id === id) || null, [properties]);
 
-  const getPropertyBySlug = (slug: string): OwnerPropertyListing | null => {
-    if (!slug) return null;
-    const clean = slug.toLowerCase().trim();
-    return (
-      properties.find((p) => p.slug && p.slug.toLowerCase() === clean) ||
-      properties.find((p) => p.id.toLowerCase() === clean) ||
-      properties.find((p) => {
-        const titleSlug = (p.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        return titleSlug === clean || clean.startsWith(titleSlug) || titleSlug.startsWith(clean);
-      }) ||
-      null
-    );
-  };
+  const getPropertyBySlug = useCallback(
+    (slug: string): OwnerPropertyListing | null => {
+      if (!slug) return null;
+      const clean = slug.toLowerCase().trim();
+      return (
+        properties.find((p) => p.slug && p.slug.toLowerCase() === clean) ||
+        properties.find((p) => p.id.toLowerCase() === clean) ||
+        properties.find((p) => {
+          const titleSlug = (p.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          return titleSlug === clean || clean.startsWith(titleSlug) || titleSlug.startsWith(clean);
+        }) ||
+        null
+      );
+    },
+    [properties]
+  );
 
-  const calculateInitialMoveIn = (
-    prop: OwnerPropertyListing,
-    roomOrPrice?: number | PropertyRoom
-  ) => {
+  const fetchPropertyBySlug = useCallback(
+    async (slug: string) => {
+      try {
+        const listing = await ApiClient.properties.getPublic(slug);
+        if (listing) upsertLocal(listing);
+        return listing || null;
+      } catch {
+        return null;
+      }
+    },
+    [upsertLocal]
+  );
+
+  const calculateInitialMoveIn = (prop: OwnerPropertyListing, roomOrPrice?: number | PropertyRoom) => {
     let monthlyRent = prop.pricing?.minRent || 16500;
     let securityDeposit = 33000;
     let bookingFee = prop.pricing?.bookingFee || 999;
@@ -180,40 +143,29 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
     }
 
     const utilitiesApprox = (prop.pricing?.electricity?.amount || 0) + (prop.pricing?.water?.amount || 0);
-    const totalInitialAmount = monthlyRent + securityDeposit + bookingFee;
-
-    return {
-      monthlyRent,
-      securityDeposit,
-      bookingFee,
-      maintenance,
-      utilitiesApprox,
-      totalInitialAmount,
-    };
+    return { monthlyRent, securityDeposit, bookingFee, maintenance, utilitiesApprox, totalInitialAmount: monthlyRent + securityDeposit + bookingFee };
   };
 
-  const createProperty = (data: Partial<OwnerPropertyListing>): string => {
-    const id = `prop-${Date.now()}`;
+  /** Builds a complete draft listing from partial wizard data (defaults mirror the wizard's suggested values). */
+  const buildDraft = (data: Partial<OwnerPropertyListing>, id: string): OwnerPropertyListing => {
     const slugName = (data.name || 'new-property').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const slug = `${slugName}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const { score } = calculatePropertyCompleteness(data);
-
-    const newProperty: OwnerPropertyListing = {
+    const now = new Date().toISOString();
+    const roomId = uid('room');
+    const draft: OwnerPropertyListing = {
       id,
-      ownerId: 'owner-current',
-      ownerName: 'Paritala Venkata Vaibhav',
-      ownerEmail: 'venkatavaibhavparitala@gmail.com',
-      slug,
+      ownerId: ownerId || 'owner',
+      ownerName: user?.name || 'Owner',
+      ownerEmail: user?.email || '',
+      slug: `${slugName}-${Math.floor(1000 + Math.random() * 9000)}`,
       name: data.name || 'Untitled Property Listing',
       type: data.type || 'Co-living',
       category: data.category || 'Co-ed',
-      status: data.status || 'draft',
-      completenessScore: score,
+      status: 'draft',
+      completenessScore: 0,
       yearEstablished: data.yearEstablished || new Date().getFullYear(),
       floors: data.floors || 3,
-      contactNumber: data.contactNumber || '+91 98765 43210',
-      propertyEmail: data.propertyEmail || 'owner@nestin.io',
+      contactNumber: data.contactNumber || user?.phone || '',
+      propertyEmail: data.propertyEmail || user?.email || '',
       website: data.website || '',
       shortDescription: data.shortDescription || '',
       longDescription: data.longDescription || '',
@@ -221,60 +173,30 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
       isNestinVerified: false,
       isFeatured: false,
       isZeroBrokerage: true,
-      coverImage:
-        data.coverImage ||
-        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=80',
+      coverImage: data.coverImage || 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1200&q=80',
       gallery: data.gallery || [],
       videoTourUrl: data.videoTourUrl || '',
       virtualTour360Url: data.virtualTour360Url || '',
       details: data.details || {
-        totalRooms: 10,
-        totalBeds: 20,
-        totalFloors: 3,
-        capacity: 20,
-        parkingAvailable: true,
-        parkingType: 'Both',
-        powerBackup: '24/7 Generator',
-        waterSupply: '24/7 RO Purified',
-        securityType: 'CCTV & Biometric Access',
-        cctv: true,
-        biometricAccess: true,
-        housekeeping: 'Daily Housekeeping',
-        laundry: 'Washing Machines Available',
+        totalRooms: 10, totalBeds: 20, totalFloors: 3, capacity: 20, parkingAvailable: true, parkingType: 'Both', powerBackup: '24/7 Generator',
+        waterSupply: '24/7 RO Purified', securityType: 'CCTV & Biometric Access', cctv: true, biometricAccess: true, housekeeping: 'Daily Housekeeping', laundry: 'Washing Machines Available',
       },
       rooms: data.rooms || [
         {
-          id: `room-${Date.now()}-1`,
-          name: 'Double Sharing Standard',
-          type: 'Double Sharing',
-          sharingTypeSlug: 'double-sharing',
-          floor: 1,
-          sizeSqFt: 220,
-          capacity: 2,
-          availableBedsCount: 2,
-          occupiedBedsCount: 0,
-          bathroomType: 'Attached Bathroom',
-          hasAC: true,
-          furnishing: 'Fully Furnished',
-          monthlyRent: 15000,
-          securityDeposit: 30000,
-          bookingFee: 999,
-          maintenance: 800,
+          id: roomId, name: 'Double Sharing Standard', type: 'Double Sharing', sharingTypeSlug: 'double-sharing', floor: 1, sizeSqFt: 220, capacity: 2,
+          availableBedsCount: 2, occupiedBedsCount: 0, bathroomType: 'Attached Bathroom', hasAC: true, furnishing: 'Fully Furnished',
+          monthlyRent: 15000, securityDeposit: 30000, bookingFee: 999, maintenance: 800,
           beds: [
-            { id: `bed-${Date.now()}-1a`, bedNumber: 'Bed 101-A', isOccupied: false },
-            { id: `bed-${Date.now()}-1b`, bedNumber: 'Bed 101-B', isOccupied: false },
+            { id: uid('bed'), bedNumber: 'Bed 101-A', isOccupied: false },
+            { id: uid('bed'), bedNumber: 'Bed 101-B', isOccupied: false },
           ],
         },
       ],
       pricing: data.pricing || {
-        minRent: 15000,
-        securityDepositRefundPolicy: '100% Refundable in 15 days upon notice',
-        electricity: { type: 'Metered', amount: 1200, label: '₹1200/mo approx' },
-        water: { type: 'Included', amount: 200, label: 'Included' },
-        foodMess: { type: 'Included', mealsPerDay: 3, label: 'Included (3 Meals/day)' },
-        laundryAndHousekeeping: { type: 'Included', label: 'Included' },
-        maintenance: { type: 'Included', amount: 800, label: '₹800/month included' },
-        bookingFee: 999,
+        minRent: 15000, securityDepositRefundPolicy: '100% Refundable in 15 days upon notice',
+        electricity: { type: 'Metered', amount: 1200, label: '₹1200/mo approx' }, water: { type: 'Included', amount: 200, label: 'Included' },
+        foodMess: { type: 'Included', mealsPerDay: 3, label: 'Included (3 Meals/day)' }, laundryAndHousekeeping: { type: 'Included', label: 'Included' },
+        maintenance: { type: 'Included', amount: 800, label: '₹800/month included' }, bookingFee: 999,
       },
       amenities: data.amenities || [
         { id: 'am-1', name: 'High-Speed Wi-Fi', category: 'Connectivity', iconKey: 'wifi', isAvailable: true, subtext: '200 Mbps' },
@@ -283,279 +205,170 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
         { id: 'am-4', name: 'Power Backup', category: 'Utilities', iconKey: 'power', isAvailable: true, subtext: '24/7' },
       ],
       policies: data.policies || {
-        curfew: 'Entry gate locks at 11:00 PM. Late entry permitted with prior notice.',
-        visitorPolicy: 'Visitors permitted in common lounge 9 AM - 8 PM.',
-        smokingAndAlcohol: 'Strictly zero smoking or alcohol on premises.',
-        cancellationPolicy: '30 days notice required prior to vacating.',
-        noticePeriod: '30 Days',
-        petPolicy: 'No pets allowed.',
-        guestPolicy: 'Day visitors allowed in reception lounge.',
-        ageRestrictions: '18 - 35 Years',
-        genderPolicy: 'Co-ed Living',
+        curfew: 'Entry gate locks at 11:00 PM. Late entry permitted with prior notice.', visitorPolicy: 'Visitors permitted in common lounge 9 AM - 8 PM.',
+        smokingAndAlcohol: 'Strictly zero smoking or alcohol on premises.', cancellationPolicy: '30 days notice required prior to vacating.', noticePeriod: '30 Days',
+        petPolicy: 'No pets allowed.', guestPolicy: 'Day visitors allowed in reception lounge.', ageRestrictions: '18 - 35 Years', genderPolicy: 'Co-ed Living',
         additionalRules: ['Maintain cleanliness in common spaces.'],
       },
       location: data.location || {
-        addressLine1: 'Main Road, Near Metro',
-        area: 'Madhapur',
-        city: 'Hyderabad',
-        state: 'Telangana',
-        pincode: '500081',
-        latitude: 17.4483,
-        longitude: 78.3748,
-        formattedAddress: 'Main Road, Madhapur, Hyderabad, Telangana - 500081',
-        distanceLabel: '5.0 km away',
-        moveInAvailabilityLabel: 'Available now',
+        addressLine1: '', area: '', city: '', state: '', pincode: '', latitude: 17.4483, longitude: 78.3748, formattedAddress: '', distanceLabel: '', moveInAvailabilityLabel: 'Available now',
       },
-      nearbyPlaces: data.nearbyPlaces || [
-        { id: 'nb-1', category: 'Metro', name: 'Madhapur Metro Station', distanceKm: 0.5, travelTime: '6 mins walk', travelMode: 'walk' },
-        { id: 'nb-2', category: 'Hospital', name: 'Medicover Hospital', distanceKm: 1.2, travelTime: '5 mins ride', travelMode: 'ride' },
-      ],
-      caretaker: data.caretaker || {
-        name: 'Care Host',
-        phone: '+91 98765 43210',
-        isIdentityVerified: false,
-        isBackgroundVerified: false,
-        isPubliclyVisible: true,
-      },
+      nearbyPlaces: data.nearbyPlaces || [],
+      caretaker: data.caretaker || { name: '', phone: '', isIdentityVerified: false, isBackgroundVerified: false, isPubliclyVisible: true },
       documents: data.documents || [],
-      systemMetrics: {
-        averageRating: 0,
-        totalReviews: 0,
-        ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-        totalBookingsCount: 0,
-        viewsCount: 1,
-        createdAt: new Date().toISOString(),
-        lastUpdatedAt: new Date().toISOString(),
-      },
+      systemMetrics: { averageRating: 0, totalReviews: 0, ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }, totalBookingsCount: 0, viewsCount: 0, createdAt: now, lastUpdatedAt: now },
       reviews: [],
     };
+    draft.completenessScore = calculatePropertyCompleteness(draft).score;
+    return draft;
+  };
 
-    setProperties((prev) => [newProperty, ...prev]);
+  const createProperty = (data: Partial<OwnerPropertyListing>): string => {
+    const id = uid('prop');
+    const draft = buildDraft(data, id);
+    setProperties((prev) => [draft, ...prev]);
+    ApiClient.properties.create(draft as unknown as Record<string, unknown>)
+      .then(upsertLocal)
+      .catch((err) => {
+        setProperties((prev) => prev.filter((p) => p.id !== id));
+        reportSyncError('Could not create the listing', err);
+      });
     return id;
   };
 
   const updateProperty = (id: string, updates: Partial<OwnerPropertyListing>) => {
-    setProperties((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        const merged = { ...p, ...updates, systemMetrics: { ...p.systemMetrics, lastUpdatedAt: new Date().toISOString() } };
-        const { score } = calculatePropertyCompleteness(merged);
-        merged.completenessScore = score;
-        return merged;
+    const current = propertiesRef.current.find((p) => p.id === id);
+    if (!current) return;
+    const optimistic = { ...current, ...updates, systemMetrics: { ...current.systemMetrics, lastUpdatedAt: new Date().toISOString() } };
+    optimistic.completenessScore = calculatePropertyCompleteness(optimistic).score;
+    upsertLocal(optimistic);
+    ApiClient.properties.update(id, updates as Record<string, unknown>)
+      .then((saved) => {
+        upsertLocal(saved);
+        if (saved.status === 'pending_approval' && current.status === 'published') {
+          syncBus.publish('info', 'Your published listing was updated and sent for re-verification.');
+        }
       })
-    );
+      .catch((err) => {
+        upsertLocal(current);
+        reportSyncError('Could not save listing changes', err);
+      });
   };
 
   const deleteProperty = (id: string) => {
+    const current = propertiesRef.current.find((p) => p.id === id);
     setProperties((prev) => prev.filter((p) => p.id !== id));
+    ApiClient.properties.remove(id).catch((err) => {
+      if (current) upsertLocal(current);
+      reportSyncError('Could not delete the listing', err);
+    });
   };
 
   const duplicateProperty = (id: string): string => {
-    const orig = properties.find((p) => p.id === id);
+    const orig = propertiesRef.current.find((p) => p.id === id);
     if (!orig) return '';
-    const newId = `prop-${Date.now()}`;
-    const newSlug = `${orig.slug}-copy-${Math.floor(100 + Math.random() * 900)}`;
-
+    const newId = uid('prop');
     const duplicated: OwnerPropertyListing = {
       ...orig,
       id: newId,
-      slug: newSlug,
+      slug: `${orig.slug}-copy-${Math.floor(100 + Math.random() * 900)}`,
       name: `${orig.name} (Copy)`,
       status: 'draft',
       isNestinVerified: false,
       isFeatured: false,
-      systemMetrics: {
-        averageRating: 0,
-        totalReviews: 0,
-        ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-        totalBookingsCount: 0,
-        viewsCount: 0,
-        createdAt: new Date().toISOString(),
-        lastUpdatedAt: new Date().toISOString(),
-      },
+      rooms: orig.rooms.map((r) => ({ ...r, id: uid('room'), beds: r.beds.map((b) => ({ ...b, id: uid('bed'), isOccupied: false, occupantName: undefined })), occupiedBedsCount: 0, availableBedsCount: r.beds.length })),
+      systemMetrics: { averageRating: 0, totalReviews: 0, ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }, totalBookingsCount: 0, viewsCount: 0, createdAt: new Date().toISOString(), lastUpdatedAt: new Date().toISOString() },
       reviews: [],
     };
-
     setProperties((prev) => [duplicated, ...prev]);
+    ApiClient.properties.create(duplicated as unknown as Record<string, unknown>)
+      .then(upsertLocal)
+      .catch((err) => {
+        setProperties((prev) => prev.filter((p) => p.id !== newId));
+        reportSyncError('Could not duplicate the listing', err);
+      });
     return newId;
   };
 
-  const archiveProperty = (id: string) => {
-    updateProperty(id, { status: 'archived' });
-  };
+  const archiveProperty = (id: string) => updateProperty(id, { status: 'archived' });
 
   const submitForVerification = (id: string): { success: boolean; message: string; missingFields?: string[] } => {
-    const prop = properties.find((p) => p.id === id);
+    const prop = propertiesRef.current.find((p) => p.id === id);
     if (!prop) return { success: false, message: 'Property not found' };
-
     const { score, missing } = calculatePropertyCompleteness(prop);
     if (score < 70) {
-      return {
-        success: false,
-        message: `Listing is only ${score}% complete. Please provide required fields before submitting for review.`,
-        missingFields: missing,
-      };
+      return { success: false, message: `Listing is only ${score}% complete. Please provide required fields before submitting for review.`, missingFields: missing };
     }
-
-    updateProperty(id, {
-      status: 'pending_approval',
-      rejectionReason: undefined,
-    });
-
-    return {
-      success: true,
-      message: 'Property successfully submitted for verification & review!',
-    };
+    upsertLocal({ ...prop, status: 'pending_approval', rejectionReason: undefined });
+    ApiClient.properties.submit(id)
+      .then((res) => upsertLocal(res.property))
+      .catch((err) => {
+        upsertLocal(prop);
+        reportSyncError('Could not submit the listing for verification', err);
+      });
+    return { success: true, message: 'Property successfully submitted for verification & review!' };
   };
 
-  const adminApproveProperty = (
-    id: string,
-    options?: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }
-  ) => {
-    updateProperty(id, {
-      status: 'published',
-      isNestinVerified: options?.isNestinVerified ?? true,
-      isFeatured: options?.isFeatured ?? false,
-      isZeroBrokerage: options?.isZeroBrokerage ?? true,
-      rejectionReason: undefined,
-      caretaker: {
-        ...properties.find((p) => p.id === id)?.caretaker!,
-        isIdentityVerified: true,
-        isBackgroundVerified: true,
-        isPubliclyVisible: true,
-      },
-      documents: properties
-        .find((p) => p.id === id)
-        ?.documents.map((d) => ({ ...d, status: 'verified' as const })) || [],
-      systemMetrics: {
-        ...properties.find((p) => p.id === id)?.systemMetrics!,
-        publishedAt: new Date().toISOString(),
-        lastUpdatedAt: new Date().toISOString(),
-      },
+  const adminApproveProperty = (id: string, options?: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }) => {
+    const prop = propertiesRef.current.find((p) => p.id === id);
+    if (prop) upsertLocal({ ...prop, status: 'published', isNestinVerified: options?.isNestinVerified ?? true, isFeatured: options?.isFeatured ?? prop.isFeatured, rejectionReason: undefined });
+    ApiClient.admin.approveProperty(id, options).then(upsertLocal).catch((err) => {
+      if (prop) upsertLocal(prop);
+      reportSyncError('Could not approve the listing', err);
     });
   };
 
   const adminRejectProperty = (id: string, reason: string) => {
-    updateProperty(id, {
-      status: 'rejected',
-      rejectionReason: reason || 'Incomplete verification documents or incorrect address details.',
+    const prop = propertiesRef.current.find((p) => p.id === id);
+    if (prop) upsertLocal({ ...prop, status: 'rejected', rejectionReason: reason });
+    ApiClient.admin.rejectProperty(id, reason).then(upsertLocal).catch((err) => {
+      if (prop) upsertLocal(prop);
+      reportSyncError('Could not reject the listing', err);
     });
   };
 
-  const updateBedStatus = (
-    propertyId: string,
-    roomId: string,
-    bedId: string,
-    isOccupied: boolean,
-    occupantName?: string
-  ) => {
-    setProperties((prev) =>
-      prev.map((prop) => {
-        if (prop.id !== propertyId) return prop;
-        const updatedRooms = prop.rooms.map((room) => {
-          if (room.id !== roomId) return room;
-          const updatedBeds = room.beds.map((bed) => {
-            if (bed.id !== bedId) return bed;
-            return {
-              ...bed,
-              isOccupied,
-              occupantName: isOccupied ? occupantName || 'Tenant' : undefined,
-            };
-          });
-          const occCount = updatedBeds.filter((b) => b.isOccupied).length;
-          const availCount = updatedBeds.length - occCount;
-          return {
-            ...room,
-            beds: updatedBeds,
-            occupiedBedsCount: occCount,
-            availableBedsCount: availCount,
-          };
-        });
-
-        // Recalculate property overview details
-        const totalBeds = updatedRooms.reduce((acc, r) => acc + r.beds.length, 0);
-        const occupiedBeds = updatedRooms.reduce((acc, r) => acc + r.occupiedBedsCount, 0);
-
-        return {
-          ...prop,
-          rooms: updatedRooms,
-          details: {
-            ...prop.details,
-            totalBeds: totalBeds || prop.details.totalBeds,
-            capacity: totalBeds || prop.details.capacity,
-          },
-        };
-      })
-    );
+  const updateBedStatus = (propertyId: string, roomId: string, bedId: string, isOccupied: boolean, occupantName?: string) => {
+    const prop = propertiesRef.current.find((p) => p.id === propertyId);
+    if (!prop) return;
+    const rooms = prop.rooms.map((room) => {
+      if (room.id !== roomId) return room;
+      const beds = room.beds.map((bed) => (bed.id === bedId ? { ...bed, isOccupied, occupantName: isOccupied ? occupantName || 'Tenant' : undefined } : bed));
+      const occ = beds.filter((b) => b.isOccupied).length;
+      return { ...room, beds, occupiedBedsCount: occ, availableBedsCount: beds.length - occ };
+    });
+    upsertLocal({ ...prop, rooms });
+    ApiClient.properties.setBed(propertyId, { roomId, bedId, isOccupied, occupantName }).then(upsertLocal).catch((err) => {
+      upsertLocal(prop);
+      reportSyncError('Could not update bed status', err);
+    });
   };
 
   const addTenantReview = (propertyId: string, review: Omit<PropertyResidentReview, 'id' | 'date'>) => {
-    setProperties((prev) =>
-      prev.map((prop) => {
-        if (prop.id !== propertyId) return prop;
-        const newReview: PropertyResidentReview = {
-          ...review,
-          id: `rev-${Date.now()}`,
-          date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-        };
-        const allReviews = [newReview, ...prop.reviews];
-        const avg = Number((allReviews.reduce((acc, r) => acc + r.rating, 0) / allReviews.length).toFixed(1));
-
-        return {
-          ...prop,
-          reviews: allReviews,
-          systemMetrics: {
-            ...prop.systemMetrics,
-            averageRating: avg,
-            totalReviews: allReviews.length,
-          },
-        };
-      })
-    );
+    ApiClient.properties.addReview(propertyId, { rating: review.rating, comment: review.comment, residentRoom: review.residentRoom })
+      .then(upsertLocal)
+      .catch((err) => reportSyncError('Could not publish your review', err));
   };
 
-  const bookRoom = (propertyId: string, roomId: string, tenantName: string) => {
-    const prop = properties.find((p) => p.id === propertyId);
-    if (!prop) return { success: false, bookingNumber: '' };
-
-    const targetRoom = prop.rooms.find((r) => r.id === roomId) || prop.rooms[0];
-    if (!targetRoom) return { success: false, bookingNumber: '' };
-
-    // Find first available bed
-    const availableBed = targetRoom.beds.find((b) => !b.isOccupied) || targetRoom.beds[0];
-    if (availableBed) {
-      updateBedStatus(propertyId, targetRoom.id, availableBed.id, true, tenantName);
+  const bookRoom = async (propertyId: string, roomId: string, tenantName: string, options: { bedId?: string; moveInDate?: string; phone?: string; durationMonths?: number } = {}) => {
+    try {
+      const res = await ApiClient.tenant.createBooking({
+        propertyId,
+        roomId: roomId || undefined,
+        bedId: options.bedId,
+        tenantName,
+        tenantPhone: options.phone,
+        moveInDate: options.moveInDate || new Date().toISOString().slice(0, 10),
+        durationMonths: options.durationMonths,
+      });
+      return { success: true, bookingNumber: res.booking.bookingNumber as string, bookingId: res.booking.id as string };
+    } catch (err) {
+      return { success: false, bookingNumber: '', error: err instanceof Error ? err.message : 'Booking failed' };
     }
-
-    const bookingNumber = `NST-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    // Update property stats
-    setProperties((prev) =>
-      prev.map((p) =>
-        p.id === propertyId
-          ? {
-              ...p,
-              systemMetrics: {
-                ...p.systemMetrics,
-                totalBookingsCount: p.systemMetrics.totalBookingsCount + 1,
-              },
-            }
-          : p
-      )
-    );
-
-    return { success: true, bookingNumber };
   };
 
-  const toFindPGListing = (prop: OwnerPropertyListing): PropertyListing => {
-    const minRent =
-      prop.rooms && prop.rooms.length > 0
-        ? Math.min(...prop.rooms.map((r) => r.monthlyRent))
-        : prop.pricing?.minRent || 15000;
-
+  const toFindPGListing = useCallback((prop: OwnerPropertyListing): PropertyListing => {
+    const minRent = prop.rooms && prop.rooms.length > 0 ? Math.min(...prop.rooms.map((r) => r.monthlyRent)) : prop.pricing?.minRent || 15000;
     const availableBeds = prop.rooms.reduce((acc, r) => acc + r.availableBedsCount, 0);
-    const availableLabel = availableBeds > 0 ? `${availableBeds} beds available` : 'Available now';
-
     return {
       id: prop.id,
       slug: prop.slug,
@@ -568,31 +381,27 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
       longitude: prop.location.longitude,
       price: minRent,
       rent: minRent,
-      rating: prop.systemMetrics.averageRating || 4.8,
-      reviewsCount: prop.systemMetrics.totalReviews || 120,
-      reviews: prop.systemMetrics.totalReviews || 120,
+      rating: prop.systemMetrics.averageRating || 0,
+      reviewsCount: prop.systemMetrics.totalReviews || 0,
+      reviews: prop.systemMetrics.totalReviews || 0,
       verified: prop.isNestinVerified,
       featured: prop.isFeatured,
       gender: prop.category === 'Men' ? 'Boys' : prop.category === 'Women' ? 'Girls' : 'Co-living',
       sharing: prop.rooms.map((r) => r.type.replace(' Sharing', '')),
       food: prop.pricing.foodMess.type === 'Included',
       amenities: prop.amenities.filter((a) => a.isAvailable).map((a) => a.name),
-      available: availableLabel,
+      available: availableBeds > 0 ? `${availableBeds} beds available` : 'Waitlist only',
       distance: prop.location.distanceLabel || 'Near Transit',
       image: prop.coverImage,
       images: prop.gallery.map((g) => g.url),
       description: prop.shortDescription || prop.longDescription,
-      caretaker: {
-        name: prop.caretaker.name,
-        phone: prop.caretaker.phone,
-        verified: prop.caretaker.isIdentityVerified,
-      },
+      caretaker: { name: prop.caretaker.name, phone: prop.caretaker.phone, verified: prop.caretaker.isIdentityVerified },
       type: prop.type === 'Co-living' ? 'Private Room' : prop.type === 'Hostel' ? 'Shared Room' : 'Studio PG',
       tags: prop.tags,
       occupancy: prop.rooms.map((r) => r.type).join(' · '),
       location: prop.location.formattedAddress,
     };
-  };
+  }, []);
 
   return (
     <PropertyListingContext.Provider
@@ -600,8 +409,11 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
         properties,
         publishedProperties,
         ownerProperties,
+        isLoading,
+        refresh,
         getPropertyById,
         getPropertyBySlug,
+        fetchPropertyBySlug,
         createProperty,
         updateProperty,
         deleteProperty,

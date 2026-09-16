@@ -1,23 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { ApiClient } from '../lib/apiClient';
-import {
-  UserLivingPreferences,
-  UserNotificationSettings,
-  UserPrivacySettings,
-  TenantDocument,
-} from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ApiClient, ApiError, tokenStore } from '../lib/apiClient';
+import { UserLivingPreferences, UserNotificationSettings, UserPrivacySettings, TenantDocument } from '../types';
+import { DEFAULT_LIVING_PREFERENCES, DEFAULT_NOTIFICATION_SETTINGS, DEFAULT_PRIVACY_SETTINGS } from '../lib/domain/defaults';
+import { requestGoogleCredential } from '../lib/googleIdentity';
 
-export type AppUserRole =
-  | 'SUPER_ADMIN'
-  | 'OWNER'
-  | 'EMPLOYEE'
-  | 'TENANT'
-  | 'USER'
-  | 'tenant'
-  | 'owner'
-  | 'super_admin'
-  | 'employee'
-  | 'user';
+export { DEFAULT_LIVING_PREFERENCES, DEFAULT_NOTIFICATION_SETTINGS, DEFAULT_PRIVACY_SETTINGS };
+
+export type AppUserRole = 'super_admin' | 'owner' | 'employee' | 'tenant';
 
 export interface UserSessionRecord {
   id: string;
@@ -44,126 +33,22 @@ export interface UserProfile {
   language?: string;
   role: AppUserRole;
   roles?: AppUserRole[];
+  ownerId?: string | null;
+  employeeId?: string;
+  permissions?: Record<string, boolean>;
   authProvider?: string;
   createdAt?: string;
   livingPreferences?: UserLivingPreferences;
   notificationSettings?: UserNotificationSettings;
   privacySettings?: UserPrivacySettings;
+  searchPreferences?: Record<string, unknown>;
   documents?: TenantDocument[];
   activeSessions?: UserSessionRecord[];
 }
 
-export const DEFAULT_LIVING_PREFERENCES: UserLivingPreferences = {
-  preferredCity: 'Hyderabad',
-  preferredArea: 'Kukatpally / Hitec City',
-  preferredPgType: 'Co-Living',
-  preferredRoomType: ['Single', 'Double'],
-  budgetMin: 6000,
-  budgetMax: 16000,
-  genderPreference: 'Co-Living',
-  foodPreference: 'Food Included',
-  moveInDate: '2026-09-01',
-  acPreference: 'AC',
-  attachedBathroom: true,
-  furnishing: 'Fully Furnished',
-  selectedAmenities: [
-    'High-Speed WiFi',
-    'Daily Housekeeping',
-    'Power Backup',
-    'Washing Machine',
-    'RO Drinking Water',
-    'CCTV Security',
-  ],
-};
-
-export const DEFAULT_NOTIFICATION_SETTINGS: UserNotificationSettings = {
-  // Booking Notifications
-  bookingConfirmed: true,
-  bookingCancelled: true,
-  bookingUpdates: true,
-  // Payment Notifications
-  paymentConfirmation: true,
-  paymentReminders: true,
-  refundUpdates: true,
-  // Visit Notifications
-  visitConfirmation: true,
-  visitReminder: true,
-  visitCancellation: true,
-  // Property Notifications
-  newPgRecommendations: true,
-  savedPgUpdates: true,
-  priceChanges: true,
-  availabilityAlerts: true,
-  // Marketing
-  offers: false,
-  promotions: false,
-  nestinUpdates: true,
-  // Channels
-  emailNotifications: true,
-  pushNotifications: true,
-  whatsAppNotifications: true,
-};
-
-export const DEFAULT_PRIVACY_SETTINGS: UserPrivacySettings = {
-  profileVisibility: 'verified_only',
-  personalizedRecommendations: true,
-  locationBasedRecommendations: true,
-  dataSharingPreferences: true,
-};
-
-export const DEFAULT_DOCUMENTS: TenantDocument[] = [
-  {
-    id: 'doc-01',
-    name: 'Government ID (Aadhaar / Passport)',
-    type: 'govt_id',
-    documentNumber: 'XXXX-XXXX-4821',
-    fileName: 'aadhaar_card_masked.pdf',
-    fileSize: '1.2 MB',
-    uploadedAt: '12 Aug 2026',
-    status: 'verified',
-  },
-  {
-    id: 'doc-02',
-    name: 'College / Employee ID Card',
-    type: 'student_id',
-    documentNumber: 'EMP-98214',
-    fileName: 'company_id_badge.jpg',
-    fileSize: '840 KB',
-    uploadedAt: '14 Aug 2026',
-    status: 'verified',
-  },
-  {
-    id: 'doc-03',
-    name: 'Current Address Proof (Utility / Rent Agreement)',
-    type: 'address_proof',
-    documentNumber: 'EL-0921849',
-    fileName: 'electricity_bill_latest.pdf',
-    fileSize: '950 KB',
-    uploadedAt: '18 Aug 2026',
-    status: 'in_review',
-  },
-];
-
-export const DEFAULT_SESSIONS: UserSessionRecord[] = [
-  {
-    id: 'sess-current',
-    device: 'MacBook Pro (macOS 15.4)',
-    browser: 'Chrome 128.0',
-    location: 'Hyderabad, Telangana, IN',
-    ip: '49.204.128.45',
-    lastActive: 'Active Now',
-    isCurrent: true,
-  },
-  {
-    id: 'sess-mobile',
-    device: 'iPhone 15 Pro (iOS 18.2)',
-    browser: 'Safari Mobile',
-    location: 'Bengaluru, Karnataka, IN',
-    ip: '157.48.21.90',
-    lastActive: '2 hours ago',
-    isCurrent: false,
-  },
-];
+/** Kept for backwards compatibility with components that render an empty sessions list. */
+export const DEFAULT_SESSIONS: UserSessionRecord[] = [];
+export const DEFAULT_DOCUMENTS: TenantDocument[] = [];
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -173,20 +58,22 @@ interface AuthContextType {
   isEmployee: boolean;
   isTenant: boolean;
   isLoading: boolean;
-  login: (userData?: Partial<UserProfile> | { email: string; password?: string; role?: string }) => Promise<UserProfile | null> | void;
-  loginWithGoogle: (role?: AppUserRole) => Promise<void>;
-  loginWithEmail: (email: string, pass: string, role?: AppUserRole) => Promise<void>;
+  googleEnabled: boolean;
+  demoMode: boolean;
+  hasPermission: (permissionId: string) => boolean;
+  /** Demo convenience: signs in with the demo account for the given role (only when the server is in demo mode). */
+  login: (userData?: { email?: string; password?: string; role?: string }) => Promise<UserProfile | null>;
+  loginWithGoogle: (role?: 'tenant' | 'owner') => Promise<UserProfile>;
+  loginWithEmail: (email: string, pass: string, role?: 'tenant' | 'owner') => Promise<UserProfile>;
   loginAsSuperAdmin: (credentials: { email: string; accessCode?: string; password?: string }) => Promise<{ success: boolean; error?: string }>;
-  signupWithEmail: (params: {
-    fullName: string;
-    email: string;
-    password: string;
-    phone?: string;
-    city?: string;
-    role?: AppUserRole;
-  }) => Promise<void>;
-  updateUserProfile: (data: Partial<UserProfile>) => Promise<void> | void;
-  updateUser?: (data: Partial<UserProfile>) => Promise<void> | void;
+  signupWithEmail: (params: { fullName: string; email: string; password: string; phone?: string; city?: string; role?: 'tenant' | 'owner' }) => Promise<UserProfile>;
+  updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
+  updateUser: (data: Partial<UserProfile>) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  revokeSession: (sessionId: string) => Promise<void>;
+  revokeOtherSessions: () => Promise<void>;
+  deleteAccount: (password?: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
   authModalOpen: boolean;
   setAuthModalOpen: (open: boolean) => void;
@@ -198,378 +85,269 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * Normalizes backend AuthUser and session payload into the frontend UserProfile format
- */
-function normalizeAuthUser(apiUser: any, session?: any): UserProfile {
-  const assignedRole = apiUser.role || 'tenant';
-  const isOwner = assignedRole.toLowerCase() === 'owner';
+const DEMO_ACCOUNTS: Record<string, { email: string; password: string }> = {
+  owner: { email: 'owner@nestin.com', password: 'NestIn@2026' },
+  tenant: { email: 'tenant@nestin.com', password: 'NestIn@2026' },
+  employee: { email: 'staff@nestin.com', password: 'NestIn@2026' },
+};
 
+function normalizeAuthUser(apiUser: any): UserProfile {
+  const role = String(apiUser.role || 'tenant').toLowerCase() as AppUserRole;
   return {
-    id: apiUser.id || 'usr-' + Date.now(),
-    name: apiUser.fullName || apiUser.name || (isOwner ? 'Paritala Venkata Vaibhav' : 'Ananya Rao'),
-    email: apiUser.email || (isOwner ? 'venkatavaibhavparitala@gmail.com' : 'ananya.rao@example.com'),
-    phone: apiUser.phone || '+91 98765 43210',
-    avatar: apiUser.avatar !== undefined ? apiUser.avatar : (isOwner ? '' : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'),
-    city: apiUser.city || (isOwner ? 'Hyderabad' : 'Bengaluru'),
-    dob: apiUser.dob || '1999-05-14',
-    gender: apiUser.gender || (isOwner ? 'Male' : 'Female'),
-    occupation: apiUser.occupation || 'Working Professional',
-    collegeOrCompany: apiUser.collegeOrCompany || (isOwner ? 'NestIn Living Properties' : 'Cognizant Technology Solutions'),
-    bio: apiUser.bio || (isOwner ? 'Owner & Operator at NestIn Living Properties.' : 'Software Engineer relocating to Hitec City. Looking for quiet, verified coliving space.'),
-    language: apiUser.language || 'English (India)',
-    role: assignedRole,
-    roles: apiUser.roles || [assignedRole],
-    authProvider: apiUser.authProvider || 'email',
-    createdAt: apiUser.createdAt || '2026-06-10T10:00:00Z',
+    id: apiUser.id,
+    name: apiUser.fullName || apiUser.name || apiUser.email,
+    email: apiUser.email,
+    phone: apiUser.phone,
+    avatar: apiUser.avatar,
+    city: apiUser.city,
+    dob: apiUser.dob,
+    gender: apiUser.gender,
+    occupation: apiUser.occupation,
+    collegeOrCompany: apiUser.collegeOrCompany,
+    bio: apiUser.bio,
+    language: apiUser.language,
+    role,
+    roles: apiUser.roles || [role],
+    ownerId: apiUser.ownerId ?? null,
+    employeeId: apiUser.employeeId,
+    permissions: apiUser.permissions,
+    authProvider: apiUser.authProvider,
+    createdAt: apiUser.createdAt,
     livingPreferences: apiUser.livingPreferences || DEFAULT_LIVING_PREFERENCES,
     notificationSettings: apiUser.notificationSettings || DEFAULT_NOTIFICATION_SETTINGS,
     privacySettings: apiUser.privacySettings || DEFAULT_PRIVACY_SETTINGS,
-    documents: apiUser.documents || DEFAULT_DOCUMENTS,
-    activeSessions: apiUser.activeSessions || (session ? [session] : DEFAULT_SESSIONS),
+    searchPreferences: apiUser.searchPreferences,
+    documents: apiUser.documents || [],
+    activeSessions: apiUser.activeSessions || [],
   };
 }
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // User state is strictly in-memory and initialized to null.
-  // Sensitive authorization state is NEVER read from LocalStorage to prevent client-side bypasses.
-  const [user, setUser] = useState<UserProfile | null>(null);
+function friendlyError(err: unknown, fallback: string): Error {
+  if (err instanceof ApiError) return new Error(err.message);
+  if (err instanceof Error) return err;
+  return new Error(fallback);
+}
 
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // User state is in-memory only and always derived from a backend-validated session token.
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
+  const pendingActionRef = useRef<(() => void) | null>(null);
 
   const isAuthenticated = !!user;
+  const role = user?.role;
+  const isSuperAdmin = role === 'super_admin';
+  const isOwner = role === 'owner';
+  const isEmployee = role === 'employee';
+  const isTenant = role === 'tenant';
 
-  // Normalized Role Assertions (strictly derived from in-memory verified backend user)
-  const normalizedRole = (user?.role || 'tenant').toLowerCase();
-  const isSuperAdmin = normalizedRole === 'super_admin' || user?.role === 'SUPER_ADMIN';
-  const isOwner = normalizedRole === 'owner' || user?.role === 'OWNER';
-  const isEmployee = normalizedRole === 'employee' || user?.role === 'EMPLOYEE';
-  const isTenant = !isSuperAdmin && !isOwner && !isEmployee;
-
-  // Validate session & token on initial application load strictly with independent Auth Service
-  useEffect(() => {
-    let isMounted = true;
-
-    const validateInitialSession = async () => {
-      // Proactively scrub any legacy or untrusted user profile state from LocalStorage
-      try {
-        localStorage.removeItem('nestin_user');
-      } catch {
-        // Ignore storage errors
-      }
-
-      const storedToken = localStorage.getItem('nestin_auth_token');
-
-      // If no backend token exists, the user is unauthenticated
-      if (!storedToken) {
-        if (isMounted) {
-          setUser(null);
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      try {
-        // Call the independent Auth Service's REST API endpoint for cryptographic JWT validation
-        const result = await ApiClient.auth.validateToken(storedToken);
-
-        if (isMounted) {
-          if (result && result.valid && result.user) {
-            const formattedUser = normalizeAuthUser(result.user, result.session);
-            setUser(formattedUser);
-          } else {
-            // Token is invalid, expired, or revoked
-            localStorage.removeItem('nestin_auth_token');
-            setUser(null);
-          }
-        }
-      } catch (err) {
-        console.warn('Backend JWT validation failed. Revoking authorization session:', err);
-        // Under no circumstances should we fall back to LocalStorage unverified profile!
-        try {
-          localStorage.removeItem('nestin_auth_token');
-        } catch {
-          // ignore
-        }
-        if (isMounted) {
-          setUser(null);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    validateInitialSession();
-
-    return () => {
-      isMounted = false;
-    };
+  const applySession = useCallback((response: { user: any; token: string }) => {
+    tokenStore.set(response.token);
+    const profile = normalizeAuthUser(response.user);
+    setUser(profile);
+    setAuthModalOpen(false);
+    setAuthMessage(null);
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    if (action) setTimeout(action, 150);
+    return profile;
   }, []);
 
-  const login = async (userData?: Partial<UserProfile> | { email: string; password?: string; role?: string }) => {
-    const assignedRole = (userData?.role || 'tenant').toLowerCase();
-    const email = userData?.email || (assignedRole === 'owner' ? 'venkatavaibhavparitala@gmail.com' : 'tenant@nestin.com');
-    const password = (userData as any)?.password || 'NestIn@2026';
+  const clearSession = useCallback(() => {
+    tokenStore.clear();
+    setUser(null);
+  }, []);
 
-    setIsLoading(true);
+  // Validate the stored token with the server on load; never trust client-side state alone.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const cfg = await ApiClient.auth.config();
+        if (mounted) {
+          setGoogleClientId(cfg.googleClientId);
+          setDemoMode(!!cfg.demoMode);
+        }
+      } catch {
+        // server unreachable — the UI still renders in a logged-out state
+      }
+      if (!tokenStore.get()) {
+        if (mounted) setIsLoading(false);
+        return;
+      }
+      try {
+        const result = await ApiClient.auth.validateToken();
+        if (mounted) setUser(result?.valid && result.user ? normalizeAuthUser(result.user) : null);
+      } catch {
+        if (mounted) clearSession();
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    })();
+    const unsubscribe = tokenStore.onUnauthorized(() => {
+      if (mounted) setUser(null);
+    });
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [clearSession]);
+
+  const loginWithEmail = useCallback(
+    async (email: string, password: string) => {
+      setIsLoading(true);
+      try {
+        const response = await ApiClient.auth.login({ email, password });
+        return applySession(response);
+      } catch (err) {
+        throw friendlyError(err, 'Login failed. Please verify your email and password.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [applySession]
+  );
+
+  const login = useCallback(
+    async (userData?: { email?: string; password?: string; role?: string }) => {
+      const demo = DEMO_ACCOUNTS[(userData?.role || 'tenant').toLowerCase()] || DEMO_ACCOUNTS.tenant;
+      const email = userData?.email || demo.email;
+      const password = userData?.password || demo.password;
+      setIsLoading(true);
+      try {
+        return applySession(await ApiClient.auth.login({ email, password }));
+      } catch (err) {
+        throw friendlyError(err, 'Login failed.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [applySession]
+  );
+
+  const loginWithGoogle = useCallback(
+    async (roleParam: 'tenant' | 'owner' = 'tenant') => {
+      if (!googleClientId) {
+        throw new Error('Google Sign-In is not configured for this deployment yet. Please continue with email and password.');
+      }
+      setIsLoading(true);
+      try {
+        const credential = await requestGoogleCredential(googleClientId);
+        return applySession(await ApiClient.auth.google({ credential, role: roleParam }));
+      } catch (err) {
+        throw friendlyError(err, 'Google authentication failed.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [applySession, googleClientId]
+  );
+
+  const signupWithEmail = useCallback(
+    async (params: { fullName: string; email: string; password: string; phone?: string; city?: string; role?: 'tenant' | 'owner' }) => {
+      setIsLoading(true);
+      try {
+        return applySession(await ApiClient.auth.register({ ...params, role: params.role === 'owner' ? 'owner' : 'tenant' }));
+      } catch (err) {
+        throw friendlyError(err, 'Registration failed. Please check your details.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [applySession]
+  );
+
+  const loginAsSuperAdmin = useCallback(
+    async (credentials: { email: string; accessCode?: string; password?: string }) => {
+      setIsLoading(true);
+      try {
+        const response = await ApiClient.auth.adminLogin({ email: credentials.email, password: credentials.password || '', accessCode: credentials.accessCode || '' });
+        if (String(response.user?.role).toLowerCase() !== 'super_admin') {
+          return { success: false, error: 'Access denied: the account does not have Super Administrator privileges.' };
+        }
+        applySession(response);
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: friendlyError(err, 'Super admin authentication failed.').message };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [applySession]
+  );
+
+  const refreshUser = useCallback(async () => {
+    if (!tokenStore.get()) return;
     try {
-      // Obtain backend-issued cryptographic JWT from the Auth Service
-      const response = await ApiClient.auth.login({ email, password, role: assignedRole });
-      if (!response || !response.token || !response.user) {
-        throw new Error('Authentication failed: No valid token issued by backend Auth Service.');
-      }
-
-      // Persist ONLY the backend-issued JWT
-      localStorage.setItem('nestin_auth_token', response.token);
-      localStorage.removeItem('nestin_user');
-
-      const verifiedUser = normalizeAuthUser(response.user, response.session);
-      setUser(verifiedUser);
-
-      setAuthModalOpen(false);
-      setAuthMessage(null);
-
-      if (pendingAction) {
-        const act = pendingAction;
-        setPendingAction(null);
-        setTimeout(() => act(), 150);
-      }
-      return verifiedUser;
-    } catch (err: any) {
-      console.error('Login error:', err);
-      localStorage.removeItem('nestin_auth_token');
-      localStorage.removeItem('nestin_user');
-      setUser(null);
-      throw err;
-    } finally {
-      setIsLoading(false);
+      setUser(normalizeAuthUser(await ApiClient.auth.me()));
+    } catch {
+      // handled by the unauthorized listener when the session is gone
     }
-  };
+  }, []);
 
-  const loginWithGoogle = async (roleParam: AppUserRole = 'tenant') => {
-    const isOwnerRole = roleParam === 'owner' || roleParam === 'OWNER';
-    const email = isOwnerRole ? 'venkatavaibhavparitala@gmail.com' : 'ananya.rao@example.com';
-    const fullName = isOwnerRole ? 'Paritala Venkata Vaibhav' : 'Ananya Rao';
-    const avatarUrl = isOwnerRole ? '' : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
-
-    setIsLoading(true);
-    try {
-      // Call Auth Service Google OAuth REST endpoint
-      const response = await ApiClient.auth.google({
-        email,
-        fullName,
-        avatarUrl,
-        role: isOwnerRole ? 'owner' : 'tenant',
-        googleToken: `google-oauth-token-${Date.now()}`,
-      });
-
-      if (!response || !response.token || !response.user) {
-        throw new Error('Backend failed to issue a valid JWT for Google authentication.');
-      }
-
-      localStorage.setItem('nestin_auth_token', response.token);
-      localStorage.removeItem('nestin_user');
-
-      const formatted = normalizeAuthUser(response.user, response.session);
-      setUser(formatted);
-
-      setAuthModalOpen(false);
-      setAuthMessage(null);
-
-      if (pendingAction) {
-        const act = pendingAction;
-        setPendingAction(null);
-        setTimeout(() => act(), 150);
-      }
-    } catch (err: any) {
-      console.error('Auth Service Google login error:', err);
-      localStorage.removeItem('nestin_auth_token');
-      localStorage.removeItem('nestin_user');
-      setUser(null);
-      throw new Error(err?.message || 'Google authentication failed.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loginWithEmail = async (emailStr: string, passStr: string, roleParam: AppUserRole = 'tenant') => {
-    const assignedRole = (roleParam || 'tenant').toLowerCase() as 'owner' | 'tenant';
-    
-    setIsLoading(true);
-    try {
-      // Call Auth Service Login REST endpoint
-      const response = await ApiClient.auth.login({
-        email: emailStr,
-        password: passStr,
-        role: assignedRole,
-      });
-
-      if (!response || !response.token || !response.user) {
-        throw new Error('Backend failed to issue an authorization token.');
-      }
-
-      localStorage.setItem('nestin_auth_token', response.token);
-      localStorage.removeItem('nestin_user');
-
-      const formatted = normalizeAuthUser(response.user, response.session);
-      setUser(formatted);
-
-      setAuthModalOpen(false);
-      setAuthMessage(null);
-
-      if (pendingAction) {
-        const act = pendingAction;
-        setPendingAction(null);
-        setTimeout(() => act(), 150);
-      }
-    } catch (err: any) {
-      console.error('Auth Service email login error:', err);
-      localStorage.removeItem('nestin_auth_token');
-      localStorage.removeItem('nestin_user');
-      setUser(null);
-      throw new Error(err?.message || 'Login failed. Please verify your email and password.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signupWithEmail = async (params: {
-    fullName: string;
-    email: string;
-    password: string;
-    phone?: string;
-    city?: string;
-    role?: AppUserRole;
-  }) => {
-    const assignedRole = (params.role || 'tenant').toLowerCase() as 'owner' | 'tenant';
-
-    setIsLoading(true);
-    try {
-      // Call Auth Service Register REST endpoint
-      const response = await ApiClient.auth.register({
-        email: params.email,
-        password: params.password,
-        fullName: params.fullName,
-        phone: params.phone,
-        city: params.city || (assignedRole === 'owner' ? 'Hyderabad' : 'Bengaluru'),
-        role: assignedRole,
-      });
-
-      if (!response || !response.token || !response.user) {
-        throw new Error('Backend registration did not return a valid authorization token.');
-      }
-
-      localStorage.setItem('nestin_auth_token', response.token);
-      localStorage.removeItem('nestin_user');
-
-      const formatted = normalizeAuthUser(response.user, response.session);
-      setUser(formatted);
-
-      setAuthModalOpen(false);
-      setAuthMessage(null);
-
-      if (pendingAction) {
-        const act = pendingAction;
-        setPendingAction(null);
-        setTimeout(() => act(), 150);
-      }
-    } catch (err: any) {
-      console.error('Auth Service signup error:', err);
-      localStorage.removeItem('nestin_auth_token');
-      localStorage.removeItem('nestin_user');
-      setUser(null);
-      throw new Error(err?.message || 'Registration failed. Please check your details.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loginAsSuperAdmin = async (credentials: { email: string; accessCode?: string; password?: string }) => {
-    setIsLoading(true);
-    try {
-      // Authenticate against backend Auth Service endpoint
-      const response = await ApiClient.auth.login({
-        email: credentials.email,
-        password: credentials.password || credentials.accessCode || 'Admin@NestIn2026',
-        role: 'super_admin',
-      });
-
-      if (!response || !response.token || !response.user) {
-        return {
-          success: false,
-          error: 'Administrator authentication failed. Backend did not issue an authorization token.',
-        };
-      }
-
-      // Strictly verify that the backend issued a super_admin role
-      const assignedRole = (response.user.role || '').toLowerCase();
-      if (assignedRole !== 'super_admin') {
-        localStorage.removeItem('nestin_auth_token');
-        localStorage.removeItem('nestin_user');
-        setUser(null);
-        return {
-          success: false,
-          error: 'Access denied: The account does not have Super Administrator privileges.',
-        };
-      }
-
-      // Store ONLY backend token
-      localStorage.setItem('nestin_auth_token', response.token);
-      localStorage.removeItem('nestin_user');
-
-      const adminUser = normalizeAuthUser(response.user, response.session);
-      setUser(adminUser);
-      return { success: true };
-    } catch (err: any) {
-      console.error('Auth Service super admin login error:', err);
-      localStorage.removeItem('nestin_auth_token');
-      localStorage.removeItem('nestin_user');
-      setUser(null);
-      return { success: false, error: err?.message || 'Super admin authentication failed.' };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateUserProfile = async (data: Partial<UserProfile>) => {
+  const updateUserProfile = useCallback(async (data: Partial<UserProfile>) => {
     if (!user) return;
+    const { activeSessions: _s, documents: _d, permissions: _p, role: _r, id: _i, email: _e, ...patch } = data;
+    // Optimistic update, then reconcile with the server's canonical profile.
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
     try {
-      // Update in Auth Service REST API
-      const updated = await ApiClient.auth.updateProfile(data);
-      if (updated) {
-        setUser((prev) => (prev ? { ...prev, ...updated } : null));
-      } else {
-        setUser((prev) => (prev ? { ...prev, ...data } : null));
-      }
-    } catch (e) {
-      console.warn('Auth Service profile update notice:', e);
-      setUser((prev) => (prev ? { ...prev, ...data } : null));
+      const updated = await ApiClient.auth.updateProfile({ ...patch, fullName: patch.name });
+      setUser(normalizeAuthUser(updated));
+    } catch (err) {
+      await refreshUser();
+      throw friendlyError(err, 'Could not save your profile.');
     }
-  };
+  }, [user, refreshUser]);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    try {
+      await ApiClient.auth.changePassword({ currentPassword, newPassword });
+      await refreshUser();
+    } catch (err) {
+      throw friendlyError(err, 'Could not change your password.');
+    }
+  }, [refreshUser]);
+
+  const revokeSession = useCallback(async (sessionId: string) => {
+    await ApiClient.auth.revokeSession(sessionId);
+    await refreshUser();
+  }, [refreshUser]);
+
+  const revokeOtherSessions = useCallback(async () => {
+    const sessions = await ApiClient.auth.getSessions();
+    await Promise.all(sessions.filter((s) => !s.isCurrent).map((s) => ApiClient.auth.revokeSession(s.id)));
+    await refreshUser();
+  }, [refreshUser]);
 
   const logout = useCallback(async () => {
     try {
-      await ApiClient.auth.logout();
-    } catch (e) {
-      console.warn('Auth Service logout notice:', e);
+      if (tokenStore.get()) await ApiClient.auth.logout();
+    } catch {
+      // token may already be invalid
     } finally {
-      setUser(null);
-      localStorage.removeItem('nestin_auth_token');
-      localStorage.removeItem('nestin_user');
+      clearSession();
     }
-  }, []);
+  }, [clearSession]);
+
+  const deleteAccount = useCallback(async (password?: string) => {
+    try {
+      await ApiClient.auth.deleteAccount(password);
+    } catch (err) {
+      throw friendlyError(err, 'Could not delete your account.');
+    }
+    clearSession();
+  }, [clearSession]);
 
   const requireAuth = useCallback(
     (action: () => void, customMessage = 'Please log in or create an account to continue.') => {
       if (isAuthenticated) {
         action();
       } else {
-        setPendingAction(() => action);
+        pendingActionRef.current = action;
         setAuthMessage(customMessage);
         setAuthModalOpen(true);
       }
@@ -577,35 +355,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [isAuthenticated]
   );
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated,
-        isSuperAdmin,
-        isOwner,
-        isEmployee,
-        isTenant,
-        isLoading,
-        login,
-        loginWithGoogle,
-        loginWithEmail,
-        loginAsSuperAdmin,
-        signupWithEmail,
-        updateUserProfile,
-        updateUser: updateUserProfile,
-        logout,
-        authModalOpen,
-        setAuthModalOpen,
-        authMessage,
-        setAuthMessage,
-        requireAuth,
-        setPendingAction,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const setPendingAction = useCallback((action: (() => void) | null) => {
+    pendingActionRef.current = action;
+  }, []);
+
+  const hasPermission = useCallback(
+    (permissionId: string) => {
+      if (!user) return false;
+      if (user.role === 'owner' || user.role === 'super_admin') return true;
+      return !!user.permissions?.[permissionId];
+    },
+    [user]
   );
+
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      isAuthenticated,
+      isSuperAdmin,
+      isOwner,
+      isEmployee,
+      isTenant,
+      isLoading,
+      googleEnabled: !!googleClientId,
+      demoMode,
+      hasPermission,
+      login,
+      loginWithGoogle,
+      loginWithEmail,
+      loginAsSuperAdmin,
+      signupWithEmail,
+      updateUserProfile,
+      updateUser: updateUserProfile,
+      changePassword,
+      revokeSession,
+      revokeOtherSessions,
+      deleteAccount,
+      refreshUser,
+      logout,
+      authModalOpen,
+      setAuthModalOpen,
+      authMessage,
+      setAuthMessage,
+      requireAuth,
+      setPendingAction,
+    }),
+    [user, isAuthenticated, isSuperAdmin, isOwner, isEmployee, isTenant, isLoading, googleClientId, demoMode, hasPermission, login, loginWithGoogle, loginWithEmail, loginAsSuperAdmin, signupWithEmail, updateUserProfile, changePassword, revokeSession, revokeOtherSessions, deleteAccount, refreshUser, logout, authModalOpen, authMessage, requireAuth, setPendingAction]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

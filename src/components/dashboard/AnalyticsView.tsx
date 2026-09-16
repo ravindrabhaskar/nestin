@@ -54,7 +54,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         month: 'August',
         year: 2026,
         propertyName: 'All Properties (Consolidated)',
-        ownerName: ownerName || 'Paritala Venkata Vaibhav',
+        ownerName: ownerName || 'Property Owner',
         ownerEmail: ownerEmail || 'owner.partner@nestin.io',
         reportType: 'occupancy',
         includeLedger: true,

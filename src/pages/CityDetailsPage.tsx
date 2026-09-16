@@ -29,7 +29,7 @@ import {
 import { INDIAN_CITIES_DATA } from '../data/citiesData';
 import { LazyImage } from '../components/LazyImage';
 import { InteractiveMap } from '../components/InteractiveMap';
-import { GENERATED_PROPERTIES_DATA } from '../data/propertiesData';
+import { usePropertyListing } from '../context/PropertyListingContext';
 
 export const CityDetailsPage: React.FC = () => {
   const { citySlug } = useParams<{ citySlug: string }>();
@@ -50,12 +50,14 @@ export const CityDetailsPage: React.FC = () => {
   }, [citySlug]);
 
   // Filter properties in this city
+  const { publishedProperties, toFindPGListing } = usePropertyListing();
+  const allListings = useMemo(() => publishedProperties.map(toFindPGListing), [publishedProperties, toFindPGListing]);
   const cityProperties = useMemo(() => {
-    return GENERATED_PROPERTIES_DATA.filter((p) =>
+    return allListings.filter((p) =>
       p.city.toLowerCase().includes(city.name.toLowerCase()) ||
       city.name.toLowerCase().includes(p.city.toLowerCase())
     );
-  }, [city]);
+  }, [city, allListings]);
 
   const handleExplorePGs = () => {
     navigate(`/find-pg?city=${encodeURIComponent(city.name)}`);
@@ -431,7 +433,7 @@ export const CityDetailsPage: React.FC = () => {
 
           <div className="h-[400px] rounded-2xl overflow-hidden border border-white/10">
             <InteractiveMap
-              properties={cityProperties.length > 0 ? cityProperties : GENERATED_PROPERTIES_DATA.slice(0, 10)}
+              properties={cityProperties.length > 0 ? cityProperties : allListings.slice(0, 10)}
               onSelectProperty={(prop) => {
                 navigate(`/properties/${prop.slug || prop.id}`);
               }}
