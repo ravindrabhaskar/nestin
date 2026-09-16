@@ -1,0 +1,6 @@
+{
+  "name": "NestIn - Find Your Space",
+  "description": "Modern student and co-living accommodation platform for discovering verified hostels and PGs across top Indian cities, with a dedicated Owner Portal and management suite.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
