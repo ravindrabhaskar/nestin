@@ -41,6 +41,7 @@ import {
 } from '../../../types/property';
 import { usePropertyListing, calculatePropertyCompleteness } from '../../../context/PropertyListingContext';
 import { useAuth } from '../../../context/AuthContext';
+import { uploadFile } from '../../../lib/apiClient';
 import { PropertyDetailsView } from '../../property-details/PropertyDetailsView';
 
 interface PropertyListingWizardProps {
@@ -78,6 +79,20 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
   const { properties, createProperty, updateProperty, submitForVerification, calculateInitialMoveIn } =
     usePropertyListing();
   const { user: wizardUser } = useAuth();
+
+  /** Uploads listing photos to the platform's storage and returns their public URLs. */
+  const uploadPhotos = async (files: FileList | null): Promise<string[]> => {
+    if (!files || files.length === 0) return [];
+    const urls: string[] = [];
+    for (const file of Array.from(files).slice(0, 10)) {
+      try {
+        urls.push((await uploadFile(file, 'property')).url);
+      } catch (err) {
+        notify(err instanceof Error ? err.message : `Could not upload ${file.name}`);
+      }
+    }
+    return urls;
+  };
 
   const existingProp = initialData
     ? initialData
@@ -520,7 +535,23 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                     placeholder="Enter image URL or select from uploads"
                     className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-medium"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <label className="px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 cursor-pointer">
+                      Upload cover photo
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const [url] = await uploadPhotos(e.target.files);
+                          if (url) {
+                            setFormData((prev) => ({ ...prev, coverImage: url }));
+                            notify('Cover photo uploaded.');
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
                     <button
                       type="button"
                       onClick={() =>
@@ -558,23 +589,43 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                 <label className="text-xs font-bold text-slate-800">
                   Property Gallery Photos ({formData.gallery.length})
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newPhoto: PropertyMediaItem = {
-                      id: `g-${Date.now()}`,
-                      url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85',
-                      title: 'Double Occupancy Bedroom View',
-                      category: 'Bedrooms',
-                    };
-                    setFormData({ ...formData, gallery: [...formData.gallery, newPhoto] });
-                    notify('Photo added to gallery!');
-                  }}
-                  className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Photo</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <label className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer hover:bg-slate-800">
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Upload Photos</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const urls = await uploadPhotos(e.target.files);
+                        if (urls.length) {
+                          const added: PropertyMediaItem[] = urls.map((url, i) => ({ id: `g-${Date.now()}-${i}`, url, title: 'Property photo', category: 'Other' }));
+                          setFormData((prev) => ({ ...prev, gallery: [...prev.gallery, ...added] }));
+                          notify(`${urls.length} photo${urls.length > 1 ? 's' : ''} added to gallery.`);
+                        }
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newPhoto: PropertyMediaItem = {
+                        id: `g-${Date.now()}`,
+                        url: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85',
+                        title: 'Double Occupancy Bedroom View',
+                        category: 'Bedrooms',
+                      };
+                      setFormData({ ...formData, gallery: [...formData.gallery, newPhoto] });
+                      notify('Sample photo added to gallery.');
+                    }}
+                    className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-200"
+                  >
+                    Add sample
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -983,7 +1034,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
       // -------------------------------------------------------------
       // STEP 5 — PRICING & MOVE-IN CHARGES
       // -------------------------------------------------------------
-      case 5:
+      case 5: {
         const moveInExample = calculateInitialMoveIn(formData);
         return (
           <div className="space-y-6">
@@ -1075,6 +1126,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
       // -------------------------------------------------------------
       // STEP 6 — AMENITIES & FACILITIES
       // -------------------------------------------------------------
+      }
       case 6:
         return (
           <div className="space-y-6">
@@ -1669,7 +1721,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-between overflow-hidden font-sans" data-lenis-prevent="true">
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-between overflow-hidden font-sans" data-lenis-prevent="true">
       {/* Toast Notice */}
       {wizardNotice && (
         <div className="fixed top-6 right-6 z-50 bg-slate-950 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
@@ -1680,7 +1732,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
 
       {/* FULLSCREEN LIVE TENANT PREVIEW MODAL */}
       {showLivePreview && (
-        <div className="fixed inset-0 z-50 bg-white overflow-y-auto" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-white overflow-y-auto" data-lenis-prevent="true">
           <PropertyDetailsView
             property={formData}
             isPreviewMode={true}

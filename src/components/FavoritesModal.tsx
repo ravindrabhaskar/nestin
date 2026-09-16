@@ -27,7 +27,7 @@ export const FavoritesModal: React.FC<FavoritesModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[90] flex items-center justify-end sm:p-4 overflow-hidden">
+      <div role="dialog" aria-modal="true" className="fixed inset-0 z-[90] flex items-center justify-end sm:p-4 overflow-hidden">
         {/* BACKDROP */}
         <motion.div
           initial={{ opacity: 0 }}

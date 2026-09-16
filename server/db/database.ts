@@ -1,7 +1,7 @@
-import { DatabaseSync, StatementSync } from "node:sqlite";
-import fs from "node:fs";
-import path from "node:path";
-import { config } from "../config.js";
+import { DatabaseSync, StatementSync } from 'node:sqlite';
+import fs from 'node:fs';
+import path from 'node:path';
+import { config } from '../config.js';
 
 /**
  * Persistence layer built on Node's built-in SQLite (no native add-ons to compile).
@@ -16,13 +16,13 @@ let db: DatabaseSync | null = null;
 
 export function getDb(): DatabaseSync {
   if (db) return db;
-  if (config.databasePath !== ":memory:") {
+  if (config.databasePath !== ':memory:') {
     fs.mkdirSync(path.dirname(config.databasePath), { recursive: true });
   }
   db = new DatabaseSync(config.databasePath);
-  db.exec("PRAGMA journal_mode = WAL;");
-  db.exec("PRAGMA foreign_keys = ON;");
-  db.exec("PRAGMA busy_timeout = 5000;");
+  db.exec('PRAGMA journal_mode = WAL;');
+  db.exec('PRAGMA foreign_keys = ON;');
+  db.exec('PRAGMA busy_timeout = 5000;');
   migrate(db);
   return db;
 }
@@ -36,7 +36,7 @@ export function closeDb(): void {
 
 /** Resets the in-memory database (tests only). */
 export function resetDbForTests(): void {
-  if (config.databasePath !== ":memory:") throw new Error("resetDbForTests is only allowed with an in-memory database");
+  if (config.databasePath !== ':memory:') throw new Error('resetDbForTests is only allowed with an in-memory database');
   closeDb();
 }
 
@@ -154,7 +154,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_tenant ON documents(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_documents_owner ON documents(owner_id);
 
 CREATE TABLE IF NOT EXISTS support_tickets (
-  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, status TEXT NOT NULL,
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, owner_id TEXT, status TEXT NOT NULL,
   data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_tickets_tenant ON support_tickets(tenant_id);
@@ -182,6 +182,24 @@ CREATE TABLE IF NOT EXISTS audit_events (
 CREATE INDEX IF NOT EXISTS idx_audit_events_created ON audit_events(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_events_owner ON audit_events(owner_id);
 
+CREATE TABLE IF NOT EXISTS files (
+  id TEXT PRIMARY KEY, key TEXT NOT NULL UNIQUE, uploader_id TEXT NOT NULL, owner_id TEXT, purpose TEXT NOT NULL, is_public INTEGER NOT NULL DEFAULT 0,
+  data TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_files_uploader ON files(uploader_id);
+
+CREATE TABLE IF NOT EXISTS auth_tokens (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK (kind IN ('reset','verify')),
+  token_hash TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, used_at TEXT, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_user ON auth_tokens(user_id, kind);
+
+CREATE TABLE IF NOT EXISTS outbox (
+  id TEXT PRIMARY KEY, channel TEXT NOT NULL CHECK (channel IN ('email','whatsapp')), recipient TEXT NOT NULL, status TEXT NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_outbox_created ON outbox(created_at);
+
 CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY, value TEXT NOT NULL
 );
@@ -189,6 +207,12 @@ CREATE TABLE IF NOT EXISTS meta (
 
 function migrate(database: DatabaseSync): void {
   database.exec(SCHEMA);
+  // Additive column migrations for databases created by earlier versions.
+  const ticketCols = (database.prepare('PRAGMA table_info(support_tickets)').all() as Array<{ name: string }>).map(
+    (c) => c.name
+  );
+  if (!ticketCols.includes('owner_id')) database.exec('ALTER TABLE support_tickets ADD COLUMN owner_id TEXT');
+  database.exec('CREATE INDEX IF NOT EXISTS idx_tickets_owner ON support_tickets(owner_id)');
 }
 
 export const nowIso = () => new Date().toISOString();
@@ -239,9 +263,15 @@ export class Collection<T extends { id: string }> {
   insert(doc: T): T {
     const cols = this.spec.columns(doc);
     const ts = nowIso();
-    const names = ["id", ...Object.keys(cols), "data", "created_at", ...(this.spec.hasUpdatedAt ? ["updated_at"] : [])];
-    const values: Scalar[] = [doc.id, ...Object.values(cols), JSON.stringify(doc), ts, ...(this.spec.hasUpdatedAt ? [ts] : [])];
-    const sql = `INSERT INTO ${this.spec.table} (${names.join(",")}) VALUES (${names.map(() => "?").join(",")})`;
+    const names = ['id', ...Object.keys(cols), 'data', 'created_at', ...(this.spec.hasUpdatedAt ? ['updated_at'] : [])];
+    const values: Scalar[] = [
+      doc.id,
+      ...Object.values(cols),
+      JSON.stringify(doc),
+      ts,
+      ...(this.spec.hasUpdatedAt ? [ts] : []),
+    ];
+    const sql = `INSERT INTO ${this.spec.table} (${names.join(',')}) VALUES (${names.map(() => '?').join(',')})`;
     this.prepare(sql).run(...values);
     return doc;
   }
@@ -249,9 +279,18 @@ export class Collection<T extends { id: string }> {
   /** Full replacement of the stored document; indexed columns are re-derived. */
   replace(doc: T): T {
     const cols = this.spec.columns(doc);
-    const sets = [...Object.keys(cols).map((c) => `${c} = ?`), "data = ?", ...(this.spec.hasUpdatedAt ? ["updated_at = ?"] : [])];
-    const values: Scalar[] = [...Object.values(cols), JSON.stringify(doc), ...(this.spec.hasUpdatedAt ? [nowIso()] : []), doc.id];
-    this.prepare(`UPDATE ${this.spec.table} SET ${sets.join(", ")} WHERE id = ?`).run(...values);
+    const sets = [
+      ...Object.keys(cols).map((c) => `${c} = ?`),
+      'data = ?',
+      ...(this.spec.hasUpdatedAt ? ['updated_at = ?'] : []),
+    ];
+    const values: Scalar[] = [
+      ...Object.values(cols),
+      JSON.stringify(doc),
+      ...(this.spec.hasUpdatedAt ? [nowIso()] : []),
+      doc.id,
+    ];
+    this.prepare(`UPDATE ${this.spec.table} SET ${sets.join(', ')} WHERE id = ?`).run(...values);
     return doc;
   }
 
@@ -270,9 +309,9 @@ export class Collection<T extends { id: string }> {
    */
   list(where: Record<string, Scalar | undefined> = {}, opts: { limit?: number; orderBy?: string } = {}): T[] {
     const entries = Object.entries(where).filter(([, v]) => v !== undefined && v !== null);
-    const clause = entries.length ? `WHERE ${entries.map(([k]) => `${k} = ?`).join(" AND ")}` : "";
-    const order = opts.orderBy || "created_at DESC";
-    const limit = opts.limit ? `LIMIT ${Math.max(1, Math.floor(opts.limit))}` : "";
+    const clause = entries.length ? `WHERE ${entries.map(([k]) => `${k} = ?`).join(' AND ')}` : '';
+    const order = opts.orderBy || 'created_at DESC';
+    const limit = opts.limit ? `LIMIT ${Math.max(1, Math.floor(opts.limit))}` : '';
     const rows = this.prepare(`SELECT data FROM ${this.spec.table} ${clause} ORDER BY ${order} ${limit}`).all(
       ...entries.map(([, v]) => v as Scalar)
     );
@@ -285,31 +324,35 @@ export class Collection<T extends { id: string }> {
 
   count(where: Record<string, Scalar | undefined> = {}): number {
     const entries = Object.entries(where).filter(([, v]) => v !== undefined && v !== null);
-    const clause = entries.length ? `WHERE ${entries.map(([k]) => `${k} = ?`).join(" AND ")}` : "";
-    const row = this.prepare(`SELECT COUNT(*) AS n FROM ${this.spec.table} ${clause}`).get(...entries.map(([, v]) => v as Scalar)) as { n: number };
+    const clause = entries.length ? `WHERE ${entries.map(([k]) => `${k} = ?`).join(' AND ')}` : '';
+    const row = this.prepare(`SELECT COUNT(*) AS n FROM ${this.spec.table} ${clause}`).get(
+      ...entries.map(([, v]) => v as Scalar)
+    ) as { n: number };
     return Number(row.n);
   }
 
   /** Runs `fn` inside a transaction (SQLite is single-writer so this is also our concurrency guard). */
   static transaction<R>(fn: () => R): R {
     const database = getDb();
-    database.exec("BEGIN IMMEDIATE");
+    database.exec('BEGIN IMMEDIATE');
     try {
       const result = fn();
-      database.exec("COMMIT");
+      database.exec('COMMIT');
       return result;
     } catch (err) {
-      database.exec("ROLLBACK");
+      database.exec('ROLLBACK');
       throw err;
     }
   }
 }
 
 export function getMeta(key: string): string | null {
-  const row = getDb().prepare("SELECT value FROM meta WHERE key = ?").get(key) as { value: string } | undefined;
+  const row = getDb().prepare('SELECT value FROM meta WHERE key = ?').get(key) as { value: string } | undefined;
   return row?.value ?? null;
 }
 
 export function setMeta(key: string, value: string): void {
-  getDb().prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(key, value);
+  getDb()
+    .prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
+    .run(key, value);
 }

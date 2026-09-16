@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ApiClient, ApiError, tokenStore } from '../lib/apiClient';
 import { UserLivingPreferences, UserNotificationSettings, UserPrivacySettings, TenantDocument } from '../types';
-import { DEFAULT_LIVING_PREFERENCES, DEFAULT_NOTIFICATION_SETTINGS, DEFAULT_PRIVACY_SETTINGS } from '../lib/domain/defaults';
+import {
+  DEFAULT_LIVING_PREFERENCES,
+  DEFAULT_NOTIFICATION_SETTINGS,
+  DEFAULT_PRIVACY_SETTINGS,
+} from '../lib/domain/defaults';
 import { requestGoogleCredential } from '../lib/googleIdentity';
 
 export { DEFAULT_LIVING_PREFERENCES, DEFAULT_NOTIFICATION_SETTINGS, DEFAULT_PRIVACY_SETTINGS };
@@ -44,6 +48,7 @@ export interface UserProfile {
   searchPreferences?: Record<string, unknown>;
   documents?: TenantDocument[];
   activeSessions?: UserSessionRecord[];
+  emailVerified?: boolean;
 }
 
 /** Kept for backwards compatibility with components that render an empty sessions list. */
@@ -65,8 +70,19 @@ interface AuthContextType {
   login: (userData?: { email?: string; password?: string; role?: string }) => Promise<UserProfile | null>;
   loginWithGoogle: (role?: 'tenant' | 'owner') => Promise<UserProfile>;
   loginWithEmail: (email: string, pass: string, role?: 'tenant' | 'owner') => Promise<UserProfile>;
-  loginAsSuperAdmin: (credentials: { email: string; accessCode?: string; password?: string }) => Promise<{ success: boolean; error?: string }>;
-  signupWithEmail: (params: { fullName: string; email: string; password: string; phone?: string; city?: string; role?: 'tenant' | 'owner' }) => Promise<UserProfile>;
+  loginAsSuperAdmin: (credentials: {
+    email: string;
+    accessCode?: string;
+    password?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  signupWithEmail: (params: {
+    fullName: string;
+    email: string;
+    password: string;
+    phone?: string;
+    city?: string;
+    role?: 'tenant' | 'owner';
+  }) => Promise<UserProfile>;
   updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
   updateUser: (data: Partial<UserProfile>) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -119,6 +135,7 @@ function normalizeAuthUser(apiUser: any): UserProfile {
     searchPreferences: apiUser.searchPreferences,
     documents: apiUser.documents || [],
     activeSessions: apiUser.activeSessions || [],
+    emailVerified: apiUser.emailVerified !== false,
   };
 }
 
@@ -232,7 +249,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = useCallback(
     async (roleParam: 'tenant' | 'owner' = 'tenant') => {
       if (!googleClientId) {
-        throw new Error('Google Sign-In is not configured for this deployment yet. Please continue with email and password.');
+        throw new Error(
+          'Google Sign-In is not configured for this deployment yet. Please continue with email and password.'
+        );
       }
       setIsLoading(true);
       try {
@@ -248,10 +267,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const signupWithEmail = useCallback(
-    async (params: { fullName: string; email: string; password: string; phone?: string; city?: string; role?: 'tenant' | 'owner' }) => {
+    async (params: {
+      fullName: string;
+      email: string;
+      password: string;
+      phone?: string;
+      city?: string;
+      role?: 'tenant' | 'owner';
+    }) => {
       setIsLoading(true);
       try {
-        return applySession(await ApiClient.auth.register({ ...params, role: params.role === 'owner' ? 'owner' : 'tenant' }));
+        return applySession(
+          await ApiClient.auth.register({ ...params, role: params.role === 'owner' ? 'owner' : 'tenant' })
+        );
       } catch (err) {
         throw friendlyError(err, 'Registration failed. Please check your details.');
       } finally {
@@ -265,7 +293,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async (credentials: { email: string; accessCode?: string; password?: string }) => {
       setIsLoading(true);
       try {
-        const response = await ApiClient.auth.adminLogin({ email: credentials.email, password: credentials.password || '', accessCode: credentials.accessCode || '' });
+        const response = await ApiClient.auth.adminLogin({
+          email: credentials.email,
+          password: credentials.password || '',
+          accessCode: credentials.accessCode || '',
+        });
         if (String(response.user?.role).toLowerCase() !== 'super_admin') {
           return { success: false, error: 'Access denied: the account does not have Super Administrator privileges.' };
         }
@@ -289,33 +321,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const updateUserProfile = useCallback(async (data: Partial<UserProfile>) => {
-    if (!user) return;
-    const { activeSessions: _s, documents: _d, permissions: _p, role: _r, id: _i, email: _e, ...patch } = data;
-    // Optimistic update, then reconcile with the server's canonical profile.
-    setUser((prev) => (prev ? { ...prev, ...patch } : prev));
-    try {
-      const updated = await ApiClient.auth.updateProfile({ ...patch, fullName: patch.name });
-      setUser(normalizeAuthUser(updated));
-    } catch (err) {
-      await refreshUser();
-      throw friendlyError(err, 'Could not save your profile.');
-    }
-  }, [user, refreshUser]);
+  const updateUserProfile = useCallback(
+    async (data: Partial<UserProfile>) => {
+      if (!user) return;
+      const { activeSessions: _s, documents: _d, permissions: _p, role: _r, id: _i, email: _e, ...patch } = data;
+      // Optimistic update, then reconcile with the server's canonical profile.
+      setUser((prev) => (prev ? { ...prev, ...patch } : prev));
+      try {
+        const updated = await ApiClient.auth.updateProfile({ ...patch, fullName: patch.name });
+        setUser(normalizeAuthUser(updated));
+      } catch (err) {
+        await refreshUser();
+        throw friendlyError(err, 'Could not save your profile.');
+      }
+    },
+    [user, refreshUser]
+  );
 
-  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    try {
-      await ApiClient.auth.changePassword({ currentPassword, newPassword });
-      await refreshUser();
-    } catch (err) {
-      throw friendlyError(err, 'Could not change your password.');
-    }
-  }, [refreshUser]);
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      try {
+        await ApiClient.auth.changePassword({ currentPassword, newPassword });
+        await refreshUser();
+      } catch (err) {
+        throw friendlyError(err, 'Could not change your password.');
+      }
+    },
+    [refreshUser]
+  );
 
-  const revokeSession = useCallback(async (sessionId: string) => {
-    await ApiClient.auth.revokeSession(sessionId);
-    await refreshUser();
-  }, [refreshUser]);
+  const revokeSession = useCallback(
+    async (sessionId: string) => {
+      await ApiClient.auth.revokeSession(sessionId);
+      await refreshUser();
+    },
+    [refreshUser]
+  );
 
   const revokeOtherSessions = useCallback(async () => {
     const sessions = await ApiClient.auth.getSessions();
@@ -333,14 +374,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [clearSession]);
 
-  const deleteAccount = useCallback(async (password?: string) => {
-    try {
-      await ApiClient.auth.deleteAccount(password);
-    } catch (err) {
-      throw friendlyError(err, 'Could not delete your account.');
-    }
-    clearSession();
-  }, [clearSession]);
+  const deleteAccount = useCallback(
+    async (password?: string) => {
+      try {
+        await ApiClient.auth.deleteAccount(password);
+      } catch (err) {
+        throw friendlyError(err, 'Could not delete your account.');
+      }
+      clearSession();
+    },
+    [clearSession]
+  );
 
   const requireAuth = useCallback(
     (action: () => void, customMessage = 'Please log in or create an account to continue.') => {
@@ -400,7 +444,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       requireAuth,
       setPendingAction,
     }),
-    [user, isAuthenticated, isSuperAdmin, isOwner, isEmployee, isTenant, isLoading, googleClientId, demoMode, hasPermission, login, loginWithGoogle, loginWithEmail, loginAsSuperAdmin, signupWithEmail, updateUserProfile, changePassword, revokeSession, revokeOtherSessions, deleteAccount, refreshUser, logout, authModalOpen, authMessage, requireAuth, setPendingAction]
+    [
+      user,
+      isAuthenticated,
+      isSuperAdmin,
+      isOwner,
+      isEmployee,
+      isTenant,
+      isLoading,
+      googleClientId,
+      demoMode,
+      hasPermission,
+      login,
+      loginWithGoogle,
+      loginWithEmail,
+      loginAsSuperAdmin,
+      signupWithEmail,
+      updateUserProfile,
+      changePassword,
+      revokeSession,
+      revokeOtherSessions,
+      deleteAccount,
+      refreshUser,
+      logout,
+      authModalOpen,
+      authMessage,
+      requireAuth,
+      setPendingAction,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

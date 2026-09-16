@@ -29,12 +29,14 @@ import {
   Briefcase,
   FileDown,
   Eye,
-  ShieldCheck
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePropertyListing } from '../context/PropertyListingContext';
 import { OwnerPropertyListing } from '../types/property';
 import { ExportReportModal } from '../components/modals/ExportReportModal';
+import { SupportDesk } from '../components/support/SupportDesk';
+import { ApiClient } from '../lib/apiClient';
 import { ReportsView } from '../components/dashboard/ReportsView';
 import { AnalyticsView } from '../components/dashboard/AnalyticsView';
 import { OwnerPropertiesInventoryView } from '../components/dashboard/OwnerPropertiesInventoryView';
@@ -133,6 +135,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
         { name: 'Bookings', icon: CalendarCheck },
         { name: 'Visitors', icon: UserCheck },
         { name: 'Customers', icon: Users },
+        { name: 'Support', icon: LifeBuoy },
       ],
     },
     {
@@ -256,8 +259,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
 
       {/* MOBILE SIDEBAR BACKDROP */}
       {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-40 bg-black/60 md:hidden"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
@@ -348,6 +350,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
                           Analytics: '/owner/analytics',
                           Employees: '/owner/employees',
                           'Roles & Permissions': '/owner/roles-permissions',
+                          Support: '/owner/support',
                         };
                         if (routeMap[item.name]) {
                           navigate(routeMap[item.name]);
@@ -572,6 +575,8 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
             />
           ) : activeNav === 'Roles & Permissions' ? (
             <RolesManagementView />
+          ) : activeNav === 'Support' ? (
+            <SupportDesk fetchTickets={ApiClient.crm.supportTickets} reply={ApiClient.crm.replySupport} resolve={ApiClient.crm.resolveSupport} onNotice={showToast} />
           ) : (
             <>
               {/* MONTHLY ACCOUNTING PDF DOWNLOAD BANNER */}
@@ -796,7 +801,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
 
       {/* TENANT PREVIEW MODAL */}
       {previewProperty && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col overflow-hidden" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col overflow-hidden" data-lenis-prevent="true">
           <div className="flex-1 overflow-y-auto bg-[#FAF9F5]" data-lenis-prevent="true">
             <PropertyDetailsView
               property={previewProperty}

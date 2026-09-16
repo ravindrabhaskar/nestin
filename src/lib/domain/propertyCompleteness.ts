@@ -4,7 +4,10 @@ import type { OwnerPropertyListing } from '../../types/property';
  * Listing completeness score (0-100) and the list of missing sections. Shared by the owner
  * dashboard (progress UI) and the API server (submission gate), so both agree on the rules.
  */
-export function calculatePropertyCompleteness(prop: Partial<OwnerPropertyListing>): { score: number; missing: string[] } {
+export function calculatePropertyCompleteness(prop: Partial<OwnerPropertyListing>): {
+  score: number;
+  missing: string[];
+} {
   const missing: string[] = [];
   let points = 0;
   const maxPoints = 100;

@@ -57,7 +57,7 @@ export const Modals: React.FC<ModalsProps> = ({
       {/* SELECTED CITY PREVIEW MODAL */}
       <AnimatePresence>
         {selectedCity && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

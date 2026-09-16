@@ -42,7 +42,8 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
       return;
     }
     let mounted = true;
-    ApiClient.tenant.wishlist()
+    ApiClient.tenant
+      .wishlist()
       .then((listings) => {
         if (mounted) setWishlist(listings.map(toFindPGListing));
       })
@@ -53,7 +54,10 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, user?.id]);
 
-  const showQuickLoginToast = useCallback((property: PropertyListing) => setQuickLoginToast({ isOpen: true, property }), []);
+  const showQuickLoginToast = useCallback(
+    (property: PropertyListing) => setQuickLoginToast({ isOpen: true, property }),
+    []
+  );
   const hideQuickLoginToast = useCallback(() => setQuickLoginToast((prev) => ({ ...prev, isOpen: false })), []);
 
   const addToWishlist = useCallback(
@@ -100,12 +104,34 @@ export const WishlistProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const clearWishlist = useCallback(() => {
     setWishlist([]);
-    if (isAuthenticated) ApiClient.tenant.clearWishlist().catch((err) => reportSyncError('Could not clear saved properties', err));
+    if (isAuthenticated)
+      ApiClient.tenant.clearWishlist().catch((err) => reportSyncError('Could not clear saved properties', err));
   }, [isAuthenticated]);
 
   const value = useMemo(
-    () => ({ wishlist, addToWishlist, removeFromWishlist, toggleWishlist, isWishlisted, clearWishlist, wishlistCount: wishlist.length, quickLoginToast, showQuickLoginToast, hideQuickLoginToast }),
-    [wishlist, addToWishlist, removeFromWishlist, toggleWishlist, isWishlisted, clearWishlist, quickLoginToast, showQuickLoginToast, hideQuickLoginToast]
+    () => ({
+      wishlist,
+      addToWishlist,
+      removeFromWishlist,
+      toggleWishlist,
+      isWishlisted,
+      clearWishlist,
+      wishlistCount: wishlist.length,
+      quickLoginToast,
+      showQuickLoginToast,
+      hideQuickLoginToast,
+    }),
+    [
+      wishlist,
+      addToWishlist,
+      removeFromWishlist,
+      toggleWishlist,
+      isWishlisted,
+      clearWishlist,
+      quickLoginToast,
+      showQuickLoginToast,
+      hideQuickLoginToast,
+    ]
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;

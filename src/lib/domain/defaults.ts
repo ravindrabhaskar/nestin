@@ -15,7 +15,14 @@ export const DEFAULT_LIVING_PREFERENCES: UserLivingPreferences = {
   acPreference: 'AC',
   attachedBathroom: true,
   furnishing: 'Fully Furnished',
-  selectedAmenities: ['High-Speed WiFi', 'Daily Housekeeping', 'Power Backup', 'Washing Machine', 'RO Drinking Water', 'CCTV Security'],
+  selectedAmenities: [
+    'High-Speed WiFi',
+    'Daily Housekeeping',
+    'Power Backup',
+    'Washing Machine',
+    'RO Drinking Water',
+    'CCTV Security',
+  ],
 };
 
 export const DEFAULT_NOTIFICATION_SETTINGS: UserNotificationSettings = {

@@ -59,9 +59,17 @@ async function request<T>(method: string, path: string, body?: unknown, opts: { 
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
   } catch {
-    throw new ApiError(0, 'NETWORK_ERROR', 'Unable to reach the NestIn server. Please check your connection and try again.');
+    throw new ApiError(
+      0,
+      'NETWORK_ERROR',
+      'Unable to reach the NestIn server. Please check your connection and try again.'
+    );
   }
 
   const payload = await res.json().catch(() => ({}));
@@ -90,18 +98,38 @@ export const http = {
 // ---------------------------------------------------------------------------------------------
 
 export const ApiClient = {
-  health: () => http.get<{ status: string; version: string; googleSignIn: boolean; demoData: boolean }>('/health', { auth: false }),
+  health: () =>
+    http.get<{ status: string; version: string; googleSignIn: boolean; demoData: boolean }>('/health', { auth: false }),
 
   auth: {
-    config: () => http.get<{ googleClientId: string | null; demoMode: boolean }>('/auth/config', { auth: false }),
-    register: (data: { email: string; password: string; fullName: string; phone?: string; city?: string; role?: 'tenant' | 'owner' }) => http.post<any>('/auth/register', data, { auth: false }),
+    config: () =>
+      http.get<{ googleClientId: string | null; demoMode: boolean; razorpayKeyId: string | null }>('/auth/config', {
+        auth: false,
+      }),
+    forgotPassword: (email: string) =>
+      http.post<{ sent: boolean }>('/auth/forgot-password', { email }, { auth: false }),
+    resetPassword: (token: string, newPassword: string) =>
+      http.post<{ reset: boolean }>('/auth/reset-password', { token, newPassword }, { auth: false }),
+    verifyEmail: (token: string) => http.post<any>('/auth/verify-email', { token }, { auth: false }),
+    resendVerification: () => http.post<{ sent: boolean }>('/auth/resend-verification'),
+    register: (data: {
+      email: string;
+      password: string;
+      fullName: string;
+      phone?: string;
+      city?: string;
+      role?: 'tenant' | 'owner';
+    }) => http.post<any>('/auth/register', data, { auth: false }),
     login: (data: { email: string; password: string }) => http.post<any>('/auth/login', data, { auth: false }),
-    adminLogin: (data: { email: string; password: string; accessCode: string }) => http.post<any>('/auth/admin/login', data, { auth: false }),
-    google: (data: { credential: string; role?: 'tenant' | 'owner' }) => http.post<any>('/auth/google', data, { auth: false }),
+    adminLogin: (data: { email: string; password: string; accessCode: string }) =>
+      http.post<any>('/auth/admin/login', data, { auth: false }),
+    google: (data: { credential: string; role?: 'tenant' | 'owner' }) =>
+      http.post<any>('/auth/google', data, { auth: false }),
     validateToken: () => http.post<{ valid: boolean; user: any }>('/auth/validate-token'),
     me: () => http.get<any>('/auth/me'),
     updateProfile: (data: Record<string, unknown>) => http.put<any>('/auth/profile', data),
-    changePassword: (data: { currentPassword?: string; newPassword: string }) => http.post<{ changed: boolean }>('/auth/change-password', data),
+    changePassword: (data: { currentPassword?: string; newPassword: string }) =>
+      http.post<{ changed: boolean }>('/auth/change-password', data),
     getSessions: () => http.get<any[]>('/auth/sessions'),
     revokeSession: (id: string) => http.delete<{ revoked: boolean }>(`/auth/sessions/${id}`),
     logout: () => http.post<{ loggedOut: boolean }>('/auth/logout'),
@@ -120,51 +148,80 @@ export const ApiClient = {
     },
     cities: () => http.get<any[]>('/properties/public/cities', { auth: false }),
     getPublic: (slugOrId: string) => http.get<any>(`/properties/public/${encodeURIComponent(slugOrId)}`),
-    addReview: (id: string, data: { rating: number; comment: string; residentRoom?: string }) => http.post<any>(`/properties/public/${id}/reviews`, data),
+    addReview: (id: string, data: { rating: number; comment: string; residentRoom?: string }) =>
+      http.post<any>(`/properties/public/${id}/reviews`, data),
     listOwner: () => http.get<any[]>('/properties/owner'),
     create: (data: Record<string, unknown>) => http.post<any>('/properties/owner', data),
     update: (id: string, data: Record<string, unknown>) => http.put<any>(`/properties/owner/${id}`, data),
     remove: (id: string) => http.delete<{ deleted: boolean }>(`/properties/owner/${id}`),
     submit: (id: string) => http.post<{ property: any; message: string }>(`/properties/owner/${id}/submit`),
-    setBed: (id: string, data: { roomId: string; bedId: string; isOccupied: boolean; occupantName?: string }) => http.patch<any>(`/properties/owner/${id}/beds`, data),
+    setBed: (id: string, data: { roomId: string; bedId: string; isOccupied: boolean; occupantName?: string }) =>
+      http.patch<any>(`/properties/owner/${id}/beds`, data),
   },
 
   crm: {
     snapshot: () => http.get<any>('/crm/snapshot'),
+    supportTickets: () => http.get<any[]>('/crm/support'),
+    replySupport: (id: string, message: string) => http.post<any>(`/crm/support/${id}/messages`, { message }),
+    resolveSupport: (id: string) => http.post<any>(`/crm/support/${id}/resolve`),
     upsert: (kind: 'leads' | 'visitors' | 'customers', doc: { id?: string } & Record<string, unknown>) =>
       doc.id ? http.put<any>(`/crm/${kind}/${doc.id}`, doc) : http.post<any>(`/crm/${kind}`, doc),
-    remove: (kind: 'leads' | 'visitors' | 'customers', id: string) => http.delete<{ deleted: boolean }>(`/crm/${kind}/${id}`),
-    addCustomerPayment: (customerId: string, data: Record<string, unknown>) => http.post<any>(`/crm/customers/${customerId}/payments`, data),
-    moveOut: (customerId: string, data: { moveOutDate: string; reason?: string }) => http.post<any>(`/crm/customers/${customerId}/move-out`, data),
+    remove: (kind: 'leads' | 'visitors' | 'customers', id: string) =>
+      http.delete<{ deleted: boolean }>(`/crm/${kind}/${id}`),
+    addCustomerPayment: (customerId: string, data: Record<string, unknown>) =>
+      http.post<any>(`/crm/customers/${customerId}/payments`, data),
+    moveOut: (customerId: string, data: { moveOutDate: string; reason?: string }) =>
+      http.post<any>(`/crm/customers/${customerId}/move-out`, data),
     createBooking: (data: Record<string, unknown>) => http.post<any>('/crm/bookings', data),
     updateBooking: (id: string, data: Record<string, unknown>) => http.put<any>(`/crm/bookings/${id}`, data),
-    approveBooking: (id: string, data?: { customerId?: string }) => http.post<any>(`/crm/bookings/${id}/approve`, data || {}),
+    approveBooking: (id: string, data?: { customerId?: string }) =>
+      http.post<any>(`/crm/bookings/${id}/approve`, data || {}),
     rejectBooking: (id: string, reason: string) => http.post<any>(`/crm/bookings/${id}/reject`, { reason }),
     cancelBooking: (id: string, reason: string) => http.post<any>(`/crm/bookings/${id}/cancel`, { reason }),
     completeMoveIn: (id: string) => http.post<any>(`/crm/bookings/${id}/complete-move-in`),
     logActivity: (data: { action: string; description: string; type: string }) => http.post<any>('/crm/activity', data),
-    createNotification: (data: { title: string; message: string; type: string; linkTo?: string }) => http.post<any>('/crm/notifications', data),
+    createNotification: (data: { title: string; message: string; type: string; linkTo?: string }) =>
+      http.post<any>('/crm/notifications', data),
     markNotificationRead: (id: string | 'all') => http.put<{ read: boolean }>(`/crm/notifications/${id}/read`),
   },
 
   rbac: {
     snapshot: () => http.get<any>('/rbac/snapshot'),
     catalog: () => http.get<any[]>('/rbac/catalog'),
-    upsertRole: (doc: { id?: string } & Record<string, unknown>) => (doc.id ? http.put<any>(`/rbac/roles/${doc.id}`, doc) : http.post<any>('/rbac/roles', doc)),
+    upsertRole: (doc: { id?: string } & Record<string, unknown>) =>
+      doc.id ? http.put<any>(`/rbac/roles/${doc.id}`, doc) : http.post<any>('/rbac/roles', doc),
     deleteRole: (id: string) => http.delete<{ deleted: boolean }>(`/rbac/roles/${id}`),
-    upsertEmployee: (doc: { id?: string } & Record<string, unknown>) => (doc.id ? http.put<any>(`/rbac/employees/${doc.id}`, doc) : http.post<any>('/rbac/employees', doc)),
-    resetEmployeePassword: (id: string) => http.post<{ temporaryPassword: string }>(`/rbac/employees/${id}/reset-password`),
+    upsertEmployee: (doc: { id?: string } & Record<string, unknown>) =>
+      doc.id ? http.put<any>(`/rbac/employees/${doc.id}`, doc) : http.post<any>('/rbac/employees', doc),
+    resetEmployeePassword: (id: string) =>
+      http.post<{ temporaryPassword: string }>(`/rbac/employees/${id}/reset-password`),
     deleteEmployee: (id: string) => http.delete<{ deleted: boolean }>(`/rbac/employees/${id}`),
     logAudit: (data: Record<string, unknown>) => http.post<any>('/rbac/audit', data),
   },
 
   tenant: {
     bookings: () => http.get<any[]>('/tenant/bookings'),
-    createBooking: (data: Record<string, unknown>) => http.post<{ booking: any; tenantBooking: any }>('/tenant/bookings', data),
+    createBooking: (data: Record<string, unknown>) =>
+      http.post<{ booking: any; tenantBooking: any }>('/tenant/bookings', data),
     cancelBooking: (id: string, reason?: string) => http.post<any>(`/tenant/bookings/${id}/cancel`, { reason }),
     scheduleVisit: (data: Record<string, unknown>) => http.post<any>('/tenant/visits', data),
     payments: () => http.get<any[]>('/tenant/payments'),
-    pay: (data: { amount: number; type?: string; paymentMethod?: string; bookingId?: string; idempotencyKey?: string }) => http.post<any>('/tenant/payments', data),
+    pay: (data: {
+      amount: number;
+      type?: string;
+      paymentMethod?: string;
+      bookingId?: string;
+      idempotencyKey?: string;
+    }) => http.post<any>('/tenant/payments', data),
+    checkout: (data: { amount?: number; type?: string; bookingId?: string; paymentId?: string }) =>
+      http.post<CheckoutOrder>('/tenant/payments/checkout', data),
+    completeCheckout: (data: {
+      paymentId: string;
+      paymentMethod?: string;
+      razorpay_order_id?: string;
+      razorpay_payment_id?: string;
+      razorpay_signature?: string;
+    }) => http.post<any>('/tenant/payments/checkout/complete', data),
     documents: () => http.get<any[]>('/tenant/documents'),
     addDocument: (data: Record<string, unknown>) => http.post<any>('/tenant/documents', data),
     deleteDocument: (id: string) => http.delete<{ deleted: boolean }>(`/tenant/documents/${id}`),
@@ -173,8 +230,10 @@ export const ApiClient = {
     replyTicket: (id: string, message: string) => http.post<any>(`/tenant/support/${id}/messages`, { message }),
     resolveTicket: (id: string) => http.post<any>(`/tenant/support/${id}/resolve`),
     wishlist: () => http.get<any[]>('/tenant/wishlist'),
-    saveToWishlist: (propertyId: string) => http.put<{ saved: boolean; propertyIds: string[] }>(`/tenant/wishlist/${propertyId}`),
-    removeFromWishlist: (propertyId: string) => http.delete<{ saved: boolean; propertyIds: string[] }>(`/tenant/wishlist/${propertyId}`),
+    saveToWishlist: (propertyId: string) =>
+      http.put<{ saved: boolean; propertyIds: string[] }>(`/tenant/wishlist/${propertyId}`),
+    removeFromWishlist: (propertyId: string) =>
+      http.delete<{ saved: boolean; propertyIds: string[] }>(`/tenant/wishlist/${propertyId}`),
     clearWishlist: () => http.delete<{ cleared: boolean }>('/tenant/wishlist'),
     notifications: () => http.get<any[]>('/tenant/notifications'),
     markNotificationRead: (id: string | 'all') => http.put<{ read: boolean }>(`/tenant/notifications/${id}/read`),
@@ -182,12 +241,25 @@ export const ApiClient = {
 
   admin: {
     stats: () => http.get<any>('/admin/stats'),
+    support: () => http.get<any[]>('/admin/support'),
+    replySupport: (id: string, message: string) => http.post<any>(`/admin/support/${id}/messages`, { message }),
+    resolveSupport: (id: string) => http.post<any>(`/admin/support/${id}/resolve`),
+    outbox: () => http.get<any[]>('/admin/outbox'),
+    integrations: () =>
+      http.get<{ messaging: { email: string; whatsapp: string }; storage: string; payments: string }>(
+        '/admin/integrations'
+      ),
     users: (role?: string) => http.get<any[]>(`/admin/users${role ? `?role=${role}` : ''}`),
-    setUserStatus: (id: string, status: 'active' | 'suspended') => http.put<any>(`/admin/users/${id}/status`, { status }),
+    setUserStatus: (id: string, status: 'active' | 'suspended') =>
+      http.put<any>(`/admin/users/${id}/status`, { status }),
     properties: () => http.get<any[]>('/admin/properties'),
-    approveProperty: (id: string, options?: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }) => http.post<any>(`/admin/properties/${id}/approve`, options || {}),
+    approveProperty: (
+      id: string,
+      options?: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }
+    ) => http.post<any>(`/admin/properties/${id}/approve`, options || {}),
     rejectProperty: (id: string, reason: string) => http.post<any>(`/admin/properties/${id}/reject`, { reason }),
-    setBadges: (id: string, badges: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }) => http.patch<any>(`/admin/properties/${id}/badges`, badges),
+    setBadges: (id: string, badges: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }) =>
+      http.patch<any>(`/admin/properties/${id}/badges`, badges),
     bookings: () => http.get<any[]>('/admin/bookings'),
     inbound: (kind?: string) => http.get<any[]>(`/admin/inbound${kind ? `?kind=${kind}` : ''}`),
     updateInbound: (id: string, status: string) => http.put<any>(`/admin/inbound/${id}`, { status }),
@@ -202,14 +274,65 @@ export const ApiClient = {
   },
 
   public: {
-    contact: (data: Record<string, unknown>) => http.post<{ ticketNumber: string; id: string }>('/public/contact', data, { auth: false }),
-    ownerDemo: (data: Record<string, unknown>) => http.post<{ id: string }>('/public/owner-demo', data, { auth: false }),
+    contact: (data: Record<string, unknown>) =>
+      http.post<{ ticketNumber: string; id: string }>('/public/contact', data, { auth: false }),
+    ownerDemo: (data: Record<string, unknown>) =>
+      http.post<{ id: string }>('/public/owner-demo', data, { auth: false }),
     newsletter: (email: string) => http.post<{ subscribed: boolean }>('/public/newsletter', { email }, { auth: false }),
   },
 
   audit: {
-    getLogs: (limit = 50, eventType?: string) => http.get<any[]>(`/audit/logs?limit=${limit}${eventType ? `&eventType=${encodeURIComponent(eventType)}` : ''}`),
+    getLogs: (limit = 50, eventType?: string) =>
+      http.get<any[]>(`/audit/logs?limit=${limit}${eventType ? `&eventType=${encodeURIComponent(eventType)}` : ''}`),
   },
 };
+
+export interface CheckoutOrder {
+  simulated: boolean;
+  paymentId: string;
+  orderId?: string;
+  amount: number;
+  currency: 'INR';
+  keyId?: string;
+  description: string;
+  prefill: { name: string; email: string; contact?: string };
+}
+
+export interface UploadedFile {
+  id: string;
+  key: string;
+  url: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+  sizeLabel: string;
+}
+
+/** Multipart upload; returns the URL to reference from profiles, listings or documents. */
+export async function uploadFile(file: File, purpose: 'avatar' | 'property' | 'document'): Promise<UploadedFile> {
+  const form = new FormData();
+  form.append('purpose', purpose);
+  form.append('file', file, file.name);
+  const token = tokenStore.get();
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/files`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', 'Upload failed: unable to reach the server.');
+  }
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok || payload.success === false) {
+    throw new ApiError(
+      res.status,
+      payload.error?.code || `HTTP_${res.status}`,
+      payload.error?.message || `Upload failed (${res.status})`
+    );
+  }
+  return payload.data as UploadedFile;
+}
 
 export type Api = typeof ApiClient;

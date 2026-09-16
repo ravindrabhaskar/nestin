@@ -49,7 +49,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
     calculateCompleteness,
   } = usePropertyListing();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'verification' | 'properties' | 'owners' | 'users' | 'bookings' | 'inbound' | 'settings' | 'audit'>('verification');
+  const [activeTab, setActiveTab] = useState<'overview' | 'verification' | 'properties' | 'owners' | 'users' | 'bookings' | 'inbound' | 'support' | 'outbox' | 'settings' | 'audit'>('verification');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCity, setFilterCity] = useState('all');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -191,6 +191,8 @@ export const SuperAdminDashboardPage: React.FC = () => {
             { id: 'users', label: 'Accounts Registry', icon: UserCheck },
             { id: 'bookings', label: 'Bookings & Escrow', icon: CalendarCheck },
             { id: 'inbound', label: 'Inbox & Requests', icon: FileCheck },
+            { id: 'support', label: 'Support Desk', icon: UserCheck },
+            { id: 'outbox', label: 'Messaging', icon: FileCheck },
             { id: 'settings', label: 'System Policies', icon: Settings },
             { id: 'audit', label: 'Security Logs', icon: FileCheck },
           ].map((tab) => {
@@ -702,7 +704,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
         {/* -------------------------------------------------------------
             TAB 6: REGISTRIES (ACCOUNTS, BOOKINGS, INBOX, AUDIT TRAIL) — live from the admin API
         ------------------------------------------------------------- */}
-        {(activeTab === 'audit' || activeTab === 'users' || activeTab === 'bookings' || activeTab === 'inbound') && (
+        {(activeTab === 'audit' || activeTab === 'users' || activeTab === 'bookings' || activeTab === 'inbound' || activeTab === 'support' || activeTab === 'outbox') && (
           <AdminRegistryPanels tab={activeTab} onNotice={showToast} />
         )}
       </main>
@@ -711,7 +713,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
           AUDIT & APPROVAL MODAL
       ------------------------------------------------------------- */}
       {selectedPropertyForAudit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs font-sans" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs font-sans" data-lenis-prevent="true">
           <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto" data-lenis-prevent="true">
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
@@ -877,7 +879,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
           TENANT PREVIEW MODAL
       ------------------------------------------------------------- */}
       {previewProperty && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col overflow-hidden" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col overflow-hidden" data-lenis-prevent="true">
           <div className="p-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 text-white text-xs">
             <div className="flex items-center gap-2">
               <span className="font-heading font-black text-rose-400">ADMIN PREVIEW MODE:</span>

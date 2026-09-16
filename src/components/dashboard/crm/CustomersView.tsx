@@ -446,7 +446,7 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
 
       {/* 5. CUSTOMER PROFILE DRAWER / MODAL */}
       {activeCustomer && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
             {/* Top Bar */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -788,7 +788,7 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
 
       {/* Log Payment Modal */}
       {showLogPaymentModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-sm font-black font-heading text-slate-900">Record Rent / Deposit Payment</h3>
             <form onSubmit={handleLogPaymentSubmit} className="space-y-3">
@@ -851,7 +851,7 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
 
       {/* Upload Document Modal */}
       {showAddDocModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-sm font-black font-heading text-slate-900">Upload Resident Document</h3>
             <form onSubmit={handleAddDocSubmit} className="space-y-3">
@@ -915,7 +915,7 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
 
       {/* Move out modal */}
       {showMoveOutModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-sm font-black font-heading text-slate-900">Record Tenant Move-out</h3>
             <p className="text-xs text-slate-500">

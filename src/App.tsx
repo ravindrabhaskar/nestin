@@ -32,6 +32,7 @@ import { PropertyNotFoundPage } from './pages/PropertyNotFoundPage';
 import { CitiesPage } from './pages/CitiesPage';
 import { CityDetailsPage } from './pages/CityDetailsPage';
 import { AuthCallback } from './pages/AuthCallback';
+import { ResetPasswordPage, VerifyEmailPage } from './pages/AccountRecoveryPages';
 import { ForOwnersPage } from './pages/ForOwnersPage';
 import { SyncNoticeToast } from './components/SyncNoticeToast';
 const OwnerDashboardPage = lazy(() => import('./pages/OwnerDashboardPage').then((m) => ({ default: m.OwnerDashboardPage })));
@@ -113,7 +114,8 @@ function AppInner() {
   const isDetailsPage = location.pathname.startsWith('/properties/') || location.pathname.startsWith('/property/');
   const isOwnerDashboard = location.pathname.startsWith('/owner');
   const isAdminPage = location.pathname.startsWith('/admin');
-  const hideGlobalChrome = isDetailsPage || isOwnerDashboard || isAdminPage;
+  const isRecoveryPage = location.pathname.startsWith('/reset-password') || location.pathname.startsWith('/verify-email');
+  const hideGlobalChrome = isDetailsPage || isOwnerDashboard || isAdminPage || isRecoveryPage;
 
   return (
     <WishlistProvider>
@@ -233,6 +235,8 @@ function AppInner() {
 
               {/* Supabase OAuth Redirect Callback */}
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
 
               {/* For Owners & Owner Dashboard Routes */}
               <Route path="/for-owners" element={<ForOwnersPage />} />
@@ -249,6 +253,7 @@ function AppInner() {
               <Route path="/owner/employees" element={<ProtectedOwnerRoute><OwnerDashboardPage initialNav="Employees" /></ProtectedOwnerRoute>} />
               <Route path="/owner/roles-permissions" element={<ProtectedOwnerRoute><OwnerDashboardPage initialNav="Roles & Permissions" /></ProtectedOwnerRoute>} />
               <Route path="/owner/roles" element={<Navigate to="/owner/roles-permissions" replace />} />
+              <Route path="/owner/support" element={<ProtectedOwnerRoute><OwnerDashboardPage initialNav="Support" /></ProtectedOwnerRoute>} />
 
               {/* Super Admin Management Console (Strictly Isolated) */}
               <Route path="/admin/login" element={<SuperAdminLoginPage />} />

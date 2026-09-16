@@ -5,7 +5,11 @@ import { reportSyncError } from '../lib/syncBus';
  * Loads a resource from the API and exposes local state for optimistic edits.
  * `enabled` gates the fetch (e.g. until auth has resolved); `key` re-runs it when it changes.
  */
-export function useApiResource<T>(fetcher: () => Promise<T>, initial: T, options: { enabled?: boolean; key?: string; label?: string } = {}) {
+export function useApiResource<T>(
+  fetcher: () => Promise<T>,
+  initial: T,
+  options: { enabled?: boolean; key?: string; label?: string } = {}
+) {
   const { enabled = true, key = '', label = 'Could not load data' } = options;
   const [data, setData] = useState<T>(initial);
   const [isLoading, setIsLoading] = useState<boolean>(enabled);

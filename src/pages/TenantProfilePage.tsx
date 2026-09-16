@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Camera, Check, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
+import { uploadFile } from '../lib/apiClient';
 
 export const TenantProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -60,20 +61,19 @@ export const TenantProfilePage: React.FC = () => {
     showToast('Changes saved successfully.');
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setAvatar(reader.result);
-        if (!isEditing && updateUser) {
-          updateUser({ avatar: reader.result });
-          showToast('Profile photo updated.');
-        }
+    try {
+      const uploaded = await uploadFile(file, 'avatar');
+      setAvatar(uploaded.url);
+      if (!isEditing && updateUser) {
+        await updateUser({ avatar: uploaded.url });
+        showToast('Profile photo updated.');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not upload the photo.');
+    }
   };
 
   const handleRemovePhoto = () => {

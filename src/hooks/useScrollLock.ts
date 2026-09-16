@@ -48,4 +48,3 @@ export function useScrollLock(isLocked: boolean = false) {
     };
   }, [isLocked]);
 }
-

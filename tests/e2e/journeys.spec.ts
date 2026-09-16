@@ -54,7 +54,11 @@ test.describe('Marketing site & marketplace', () => {
     await page.locator('textarea[name="message"]').fill('Hello from the end-to-end suite.');
     const [resp] = await Promise.all([
       page.waitForResponse((r) => r.url().includes('/api/v1/public/contact')),
-      page.locator('form').filter({ has: page.locator('textarea[name="message"]') }).locator('button[type="submit"]').click(),
+      page
+        .locator('form')
+        .filter({ has: page.locator('textarea[name="message"]') })
+        .locator('button[type="submit"]')
+        .click(),
     ]);
     expect(resp.status()).toBe(201);
     await expect(page.getByText(/NST-\d{6}/)).toBeVisible();

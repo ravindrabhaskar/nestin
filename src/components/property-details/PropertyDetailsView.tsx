@@ -1247,7 +1247,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 1. BOOK MOVE-IN MODAL */}
       {showBookingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 border border-slate-200 shadow-2xl animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-lg font-black text-slate-950 font-heading">
@@ -1332,7 +1332,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 2. SCHEDULE VISIT MODAL */}
       {showScheduleVisitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 border border-slate-200 shadow-2xl animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-lg font-black text-slate-950 font-heading">
@@ -1412,7 +1412,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 3. CALL MODAL */}
       {showCallModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 border border-slate-200 shadow-2xl text-center">
             <div className="w-12 h-12 rounded-full bg-[#ecfccb] text-[#4d7c0f] flex items-center justify-center mx-auto">
               <Phone className="w-6 h-6" />
@@ -1447,7 +1447,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 4. CHAT HOST MODAL */}
       {showChatModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="text-base font-black text-slate-950 font-heading">
@@ -1486,7 +1486,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 5. WRITE REVIEW MODAL */}
       {showReviewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="text-base font-black text-slate-950 font-heading">
@@ -1564,7 +1564,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 6. ALL PHOTOS GALLERY FULLSCREEN MODAL */}
       {showGalleryModal && (
-        <div className="fixed inset-0 z-50 bg-black/95 p-4 sm:p-8 flex flex-col justify-between" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/95 p-4 sm:p-8 flex flex-col justify-between" data-lenis-prevent="true">
           <div className="flex items-center justify-between text-white pb-4">
             <h3 className="text-base sm:text-lg font-black font-heading">
               {property.name} — Photos ({allPhotos.length})
@@ -1590,7 +1590,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 7. VIDEO TOUR MODAL */}
       {showVideoModal && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" data-lenis-prevent="true">
           <div className="bg-slate-950 rounded-3xl max-w-3xl w-full p-5 border border-white/10 space-y-3">
             <div className="flex items-center justify-between text-white">
               <h3 className="text-sm font-black uppercase tracking-wider text-[#a3e635]">Video Tour Walkthrough</h3>
@@ -1614,7 +1614,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 8. 360 TOUR MODAL */}
       {showTour360Modal && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" data-lenis-prevent="true">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" data-lenis-prevent="true">
           <div className="bg-slate-950 rounded-3xl max-w-4xl w-full p-5 border border-white/10 space-y-3">
             <div className="flex items-center justify-between text-white">
               <h3 className="text-sm font-black uppercase tracking-wider text-[#a3e635]">360° Virtual Tour Experience</h3>

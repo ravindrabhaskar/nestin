@@ -10,7 +10,13 @@ declare global {
       accounts: {
         id: {
           initialize: (config: Record<string, unknown>) => void;
-          prompt: (listener?: (notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean; getNotDisplayedReason?: () => string }) => void) => void;
+          prompt: (
+            listener?: (notification: {
+              isNotDisplayed: () => boolean;
+              isSkippedMoment: () => boolean;
+              getNotDisplayedReason?: () => string;
+            }) => void
+          ) => void;
           renderButton: (el: HTMLElement, options: Record<string, unknown>) => void;
           cancel: () => void;
         };
@@ -75,16 +81,20 @@ export async function requestGoogleCredential(clientId: string): Promise<string>
 
     // Explicit button overlay: the most reliable path across browsers and cookie settings.
     overlay.setAttribute('role', 'dialog');
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.55);backdrop-filter:blur(4px)';
+    overlay.style.cssText =
+      'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.55);backdrop-filter:blur(4px)';
     const card = document.createElement('div');
-    card.style.cssText = 'background:#fff;border-radius:20px;padding:28px 28px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;font-family:Inter,system-ui,sans-serif;max-width:340px;width:90%';
-    card.innerHTML = '<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:6px">Continue with Google</div><div style="font-size:12px;color:#64748b;margin-bottom:18px">Choose the Google account you want to use for NestIn.</div>';
+    card.style.cssText =
+      'background:#fff;border-radius:20px;padding:28px 28px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;font-family:Inter,system-ui,sans-serif;max-width:340px;width:90%';
+    card.innerHTML =
+      '<div style="font-weight:800;font-size:16px;color:#0f172a;margin-bottom:6px">Continue with Google</div><div style="font-size:12px;color:#64748b;margin-bottom:18px">Choose the Google account you want to use for NestIn.</div>';
     const buttonHost = document.createElement('div');
     buttonHost.style.cssText = 'display:flex;justify-content:center';
     const cancel = document.createElement('button');
     cancel.type = 'button';
     cancel.textContent = 'Cancel';
-    cancel.style.cssText = 'margin-top:16px;background:none;border:none;color:#64748b;font-size:12px;font-weight:600;cursor:pointer';
+    cancel.style.cssText =
+      'margin-top:16px;background:none;border:none;color:#64748b;font-size:12px;font-weight:600;cursor:pointer';
     cancel.onclick = () => finish(() => reject(new Error('Google sign-in was cancelled.')));
     card.appendChild(buttonHost);
     card.appendChild(cancel);

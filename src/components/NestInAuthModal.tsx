@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { NestInLogo } from './NestInLogo';
 import { useAuth } from '../context/AuthContext';
+import { ApiClient } from '../lib/apiClient';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 
@@ -48,6 +49,22 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [infoMsg, setInfoMsg] = useState('');
+
+  const handleForgotPassword = async () => {
+    setErrorMsg('');
+    setInfoMsg('');
+    if (!email) {
+      setErrorMsg('Enter your email address first, then click "Forgot password?".');
+      return;
+    }
+    try {
+      await ApiClient.auth.forgotPassword(email);
+      setInfoMsg(`If an account exists for ${email}, a reset link has been sent. Check your inbox.`);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Could not send the reset email.');
+    }
+  };
 
   // Manual form state
   const [fullName, setFullName] = useState('');
@@ -140,7 +157,7 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -341,6 +358,11 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                   {errorMsg}
                 </div>
               )}
+              {infoMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl">
+                  {infoMsg}
+                </div>
+              )}
 
               {/* Email / Pass Form */}
               <form onSubmit={handleEmailAuth} className="space-y-3">
@@ -379,7 +401,14 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Password</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700">Password</label>
+                    {mode === 'login' && (
+                      <button type="button" onClick={handleForgotPassword} className="text-[11px] font-bold text-slate-500 hover:text-slate-900 cursor-pointer">
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input

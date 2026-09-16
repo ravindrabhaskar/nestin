@@ -1,6 +1,6 @@
-import { EventEmitter } from "node:events";
-import { auditEvents } from "../db/repositories.js";
-import { newId } from "./ids.js";
+import { EventEmitter } from 'node:events';
+import { auditEvents } from '../db/repositories.js';
+import { newId } from './ids.js';
 
 export interface DomainEvent<T = Record<string, unknown>> {
   id: string;
@@ -33,9 +33,15 @@ class DomainEventBus {
    * Persists the event to the audit trail synchronously, then dispatches to subscribers on the next tick
    * so publishers never block on side effects (notifications, etc.).
    */
-  publish<T extends Record<string, unknown>>(type: string, aggregateType: string, aggregateId: string, payload: T, ctx: EventContext = {}): DomainEvent<T> {
+  publish<T extends Record<string, unknown>>(
+    type: string,
+    aggregateType: string,
+    aggregateId: string,
+    payload: T,
+    ctx: EventContext = {}
+  ): DomainEvent<T> {
     const event: DomainEvent<T> = {
-      id: newId("evt"),
+      id: newId('evt'),
       type,
       aggregateType,
       aggregateId,
@@ -49,7 +55,7 @@ class DomainEventBus {
     auditEvents.insert({ ...event, payload: redact(payload) });
     setImmediate(() => {
       this.emitter.emit(type, event);
-      this.emitter.emit("*", event);
+      this.emitter.emit('*', event);
     });
     return event;
   }
@@ -61,12 +67,12 @@ class DomainEventBus {
   }
 }
 
-const SENSITIVE_KEYS = new Set(["password", "passwordHash", "token", "accessCode", "secret", "otp"]);
+const SENSITIVE_KEYS = new Set(['password', 'passwordHash', 'token', 'accessCode', 'secret', 'otp']);
 
 function redact<T extends Record<string, unknown>>(payload: T): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(payload)) {
-    out[k] = SENSITIVE_KEYS.has(k) ? "[redacted]" : v;
+    out[k] = SENSITIVE_KEYS.has(k) ? '[redacted]' : v;
   }
   return out;
 }

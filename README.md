@@ -78,12 +78,14 @@ All endpoints live under `/api/v1` and return `{ success, data | error, metadata
 
 | Area | Highlights |
 |---|---|
-| `auth` | `POST register/login/google`, `POST admin/login`, `GET me`, `PUT profile`, `POST change-password`, `GET/DELETE sessions`, `POST logout`, `DELETE account` |
+| `auth` | `POST register/login/google`, `POST admin/login`, `POST forgot-password|reset-password|verify-email|resend-verification`, `GET me`, `PUT profile`, `POST change-password`, `GET/DELETE sessions`, `POST logout`, `DELETE account` |
 | `properties` | `GET public` (card projection, filters), `GET public/:slug`, `POST public/:id/reviews`; owner: `GET/POST owner`, `PUT/DELETE owner/:id`, `POST owner/:id/submit`, `PATCH owner/:id/beds` |
-| `crm` | `GET snapshot`; `POST/PUT/DELETE leads|visitors|customers`; bookings `POST`, `PUT :id`, `POST :id/approve|reject|cancel|complete-move-in`; `POST customers/:id/payments|move-out`; activity & notifications |
+| `crm` | `GET snapshot`; support desk (`GET support`, `POST support/:id/messages|resolve`); `POST/PUT/DELETE leads|visitors|customers`; bookings `POST`, `PUT :id`, `POST :id/approve|reject|cancel|complete-move-in`; `POST customers/:id/payments|move-out`; activity & notifications |
 | `rbac` | `GET catalog|snapshot`; roles `POST/PUT/DELETE`; employees `POST/PUT/DELETE`, `POST :id/reset-password`; `POST audit` |
-| `tenant` | bookings (`GET`, `POST`, `POST :id/cancel`), `POST visits`, payments (`GET`, `POST`, receipt), documents, support tickets, wishlist, notifications |
-| `admin` | `GET stats|users|properties|bookings|inbound|audit`, `PUT users/:id/status`, `POST properties/:id/approve|reject`, `PATCH properties/:id/badges`, `PUT inbound/:id` |
+| `tenant` | bookings (`GET`, `POST`, `POST :id/cancel`), `POST visits`, payments (`GET`, `POST checkout`, `POST checkout/complete`, receipt), documents, support tickets, wishlist, notifications |
+| `files` | `POST` multipart upload (`purpose`: avatar, property, document); `GET :key` authenticated access to private files |
+| `webhooks` | `POST razorpay` (raw body, HMAC verified, idempotent) |
+| `admin` | `GET stats|users|properties|bookings|inbound|audit|support|outbox|integrations`, `PUT users/:id/status`, `POST properties/:id/approve|reject`, `PATCH properties/:id/badges`, `PUT inbound/:id` |
 | `public` | `POST contact|owner-demo|newsletter` (rate limited) |
 
 Authorization: `Authorization: Bearer <jwt>`. Tokens are bound to a server session; logout, password change, staff deactivation and account suspension revoke them immediately. Auth routes are rate limited per IP + email.
@@ -101,19 +103,31 @@ Copy `.env.example` to `.env`. Everything is optional in development; production
 | `DATABASE_PATH` | SQLite file (default `./data/nestin.db`; `/data/nestin.db` in Docker) |
 | `SEED_DEMO_DATA` | `false` for a clean production database |
 | `GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` | Enables "Continue with Google" (Google Identity Services; verified server-side) |
-| `RAZORPAY_*` | Reserved for the payment gateway integration; without keys online payments are recorded as simulated |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Live Razorpay checkout (orders + signature verification + webhook at `/api/v1/webhooks/razorpay`). Without keys, payments run through the same UI as simulated successes. |
+| `STORAGE_DRIVER`, `S3_*` | Uploads (listing photos, avatars, KYC documents). Local disk by default; any S3-compatible bucket when set. Private files are served only through authenticated/presigned URLs. |
+| `EMAIL_PROVIDER`, `RESEND_API_KEY` / `SENDGRID_API_KEY`, `EMAIL_FROM` | Transactional email (booking updates, password reset, email verification, rent reminders). Default `log` records to the admin Outbox without sending. |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` | WhatsApp notifications for users who opt in. |
+| `RENT_DUE_DAY`, `DISABLE_JOBS` | Monthly rent-reminder job (in-process scheduler, idempotent per month). |
+| `DOMAIN` | Public hostname for the production stack (Caddy issues TLS automatically). |
 | `CORS_ORIGINS`, `TRUST_PROXY` | When the API is called from another origin / behind a proxy |
 
 ---
 
 ## Deployment
 
+**Single server with automatic HTTPS** (recommended):
+
 ```bash
-cp .env.example .env    # set JWT_SECRET, SUPER_ADMIN_*, optionally SEED_DEMO_DATA=false
-docker compose up -d --build
+cp .env.example .env
+# set DOMAIN, JWT_SECRET, SUPER_ADMIN_*, SEED_DEMO_DATA=false and any providers (Razorpay, S3, email, WhatsApp, Google)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-The container runs as a non-root user, exposes `:3000`, persists the database in the `nestin-data` volume and reports health at `/api/v1/health`. Put it behind TLS (Caddy/nginx/Cloud load balancer) and set `TRUST_PROXY=true`.
+This starts the app plus Caddy, which obtains a Let's Encrypt certificate for `DOMAIN` and proxies to the app. Uploads and the SQLite database live in the `nestin-data` volume (back it up). Point your DNS A/AAAA record at the server before starting.
+
+**Without the proxy** (behind your own load balancer): `docker compose up -d --build` exposes `:3000`; set `TRUST_PROXY=true` and `APP_URL` to the public URL.
+
+After the first start, open `/admin/login` with your `SUPER_ADMIN_*` credentials; the **Messaging** tab shows which integrations are active and every email/WhatsApp the platform tried to send.
 
 ---
 

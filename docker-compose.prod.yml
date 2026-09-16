@@ -1,0 +1,46 @@
+# Production stack: app + Caddy (automatic TLS). Usage:
+#   cp .env.example .env   # set DOMAIN, JWT_SECRET, SUPER_ADMIN_*, SEED_DEMO_DATA=false, providers
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  nestin:
+    ports: []            # only reachable through Caddy
+    expose:
+      - "3000"
+    environment:
+      TRUST_PROXY: "true"
+      APP_URL: https://${DOMAIN:?Set DOMAIN in .env}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-}
+      EMAIL_FROM: ${EMAIL_FROM:-NestIn <no-reply@${DOMAIN}>}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - nestin
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -59,7 +59,9 @@ interface CRMContextType {
   customers: CustomerItem[];
   getCustomerById: (id: string) => CustomerItem | null;
   findCustomerByContact: (phone: string, email?: string) => CustomerItem | null;
-  createCustomer: (customer: Omit<CustomerItem, 'id' | 'createdAt' | 'timeline' | 'documents' | 'paymentHistory' | 'visitHistory'>) => { customerId: string; isDuplicate: boolean };
+  createCustomer: (
+    customer: Omit<CustomerItem, 'id' | 'createdAt' | 'timeline' | 'documents' | 'paymentHistory' | 'visitHistory'>
+  ) => { customerId: string; isDuplicate: boolean };
   updateCustomer: (id: string, updates: Partial<CustomerItem>) => void;
   addCustomerDocument: (customerId: string, doc: Omit<CustomerDocumentItem, 'id' | 'uploadedAt'>) => void;
   verifyCustomerDocument: (customerId: string, docId: string, status: 'verified' | 'rejected') => void;
@@ -87,7 +89,8 @@ const getFormattedNow = () => {
   };
 };
 
-const replaceById = <T extends { id: string }>(list: T[], item: T): T[] => (list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [item, ...list]);
+const replaceById = <T extends { id: string }>(list: T[], item: T): T[] =>
+  list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [item, ...list];
 
 export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, isOwner, isEmployee, isSuperAdmin, isLoading: authLoading } = useAuth();
@@ -164,7 +167,8 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const { date, time } = getFormattedNow();
     const local: OwnerCRMNotification = { ...notif, id: uid('ntf'), timestamp: `${date}, ${time}`, isRead: false };
     setNotifications((prev) => [local, ...prev]);
-    ApiClient.crm.createNotification(notif)
+    ApiClient.crm
+      .createNotification(notif)
       .then((saved) => setNotifications((prev) => prev.map((n) => (n.id === local.id ? saved : n))))
       .catch(() => undefined);
   }, []);
@@ -180,8 +184,15 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   /** Persists a full lead/visitor/customer document; restores the previous version on failure. */
-  const persist = <T extends { id: string }>(kind: 'leads' | 'visitors' | 'customers', doc: T, previous: T | null, setter: React.Dispatch<React.SetStateAction<T[]>>, label: string) => {
-    ApiClient.crm.upsert(kind, doc as unknown as { id?: string } & Record<string, unknown>)
+  const persist = <T extends { id: string }>(
+    kind: 'leads' | 'visitors' | 'customers',
+    doc: T,
+    previous: T | null,
+    setter: React.Dispatch<React.SetStateAction<T[]>>,
+    label: string
+  ) => {
+    ApiClient.crm
+      .upsert(kind, doc as unknown as { id?: string } & Record<string, unknown>)
       .then((saved: T) => setter((prev) => replaceById(prev, saved)))
       .catch((err) => {
         setter((prev) => (previous ? replaceById(prev, previous) : prev.filter((x) => x.id !== doc.id)));
@@ -189,7 +200,12 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       });
   };
 
-  const applyWorkflowResult = (result: { booking?: BookingItem; customer?: CustomerItem; lead?: LeadItem | null; property?: unknown }) => {
+  const applyWorkflowResult = (result: {
+    booking?: BookingItem;
+    customer?: CustomerItem;
+    lead?: LeadItem | null;
+    property?: unknown;
+  }) => {
     if (result.booking) setBookings((prev) => replaceById(prev, result.booking!));
     if (result.customer) setCustomers((prev) => replaceById(prev, result.customer!));
     if (result.lead) setLeads((prev) => replaceById(prev, result.lead!));
@@ -217,16 +233,32 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...data,
       id,
       createdAt: new Date().toISOString(),
-      timeline: [{ id: uid('lact'), action: 'Lead Created', description: `New lead created from ${data.source} for ${data.propertyName || 'Property'}.`, date, time, user: actorName, type: 'lead' }],
+      timeline: [
+        {
+          id: uid('lact'),
+          action: 'Lead Created',
+          description: `New lead created from ${data.source} for ${data.propertyName || 'Property'}.`,
+          date,
+          time,
+          user: actorName,
+          type: 'lead',
+        },
+      ],
     };
     setLeads((prev) => [newLead, ...prev]);
     persist('leads', newLead, null, setLeads, 'Could not save the lead');
     addAuditLog('Lead Created', `Added new lead: ${data.fullName} (${data.phone})`, 'lead');
-    addNotification({ title: 'New Lead Added', message: `${data.fullName} registered interest for ${data.propertyName}.`, type: 'lead', linkTo: '/owner/leads' });
+    addNotification({
+      title: 'New Lead Added',
+      message: `${data.fullName} registered interest for ${data.propertyName}.`,
+      type: 'lead',
+      linkTo: '/owner/leads',
+    });
     return id;
   };
 
-  const updateLead = (id: string, updates: Partial<LeadItem>) => mutateLead(id, (l) => ({ ...l, ...updates }), 'Could not update the lead');
+  const updateLead = (id: string, updates: Partial<LeadItem>) =>
+    mutateLead(id, (l) => ({ ...l, ...updates }), 'Could not update the lead');
 
   const updateLeadStage = (id: string, stage: LeadStage, note?: string) => {
     const { date, time } = getFormattedNow();
@@ -236,7 +268,18 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...l,
         stage,
         lastContactDate: new Date().toISOString().split('T')[0],
-        timeline: [{ id: uid('lact'), action: 'Stage Changed', description: `Stage moved from "${l.stage}" to "${stage}". ${note ? `Note: ${note}` : ''}`, date, time, user: actorName, type: 'lead' }, ...l.timeline],
+        timeline: [
+          {
+            id: uid('lact'),
+            action: 'Stage Changed',
+            description: `Stage moved from "${l.stage}" to "${stage}". ${note ? `Note: ${note}` : ''}`,
+            date,
+            time,
+            user: actorName,
+            type: 'lead',
+          },
+          ...l.timeline,
+        ],
       }),
       'Could not update the lead stage'
     );
@@ -261,7 +304,10 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       (l) => ({
         ...l,
         notes: l.notes ? `${l.notes}\n[${date}]: ${noteText}` : noteText,
-        timeline: [{ id: uid('lact'), action: 'Note Added', description: noteText, date, time, user: actorName, type: 'lead' }, ...l.timeline],
+        timeline: [
+          { id: uid('lact'), action: 'Note Added', description: noteText, date, time, user: actorName, type: 'lead' },
+          ...l.timeline,
+        ],
       }),
       'Could not save the note'
     );
@@ -276,7 +322,18 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...l,
         stage: l.stage === 'New' ? 'Contacted' : l.stage,
         lastContactDate: new Date().toISOString().split('T')[0],
-        timeline: [{ id: uid('lact'), action: actionLabel, description: notes || `${actionLabel} to prospect ${l.fullName} (${l.phone}).`, date, time, user: actorName, type: 'lead' }, ...l.timeline],
+        timeline: [
+          {
+            id: uid('lact'),
+            action: actionLabel,
+            description: notes || `${actionLabel} to prospect ${l.fullName} (${l.phone}).`,
+            date,
+            time,
+            user: actorName,
+            type: 'lead',
+          },
+          ...l.timeline,
+        ],
       }),
       'Could not log the contact'
     );
@@ -290,7 +347,17 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...d,
       id: uid('lead'),
       createdAt: new Date().toISOString(),
-      timeline: [{ id: uid('lact'), action: 'Lead Imported', description: `Batch CSV import from ${d.source}.`, date, time, user: 'CSV Bulk Importer', type: 'lead' }],
+      timeline: [
+        {
+          id: uid('lact'),
+          action: 'Lead Imported',
+          description: `Batch CSV import from ${d.source}.`,
+          date,
+          time,
+          user: 'CSV Bulk Importer',
+          type: 'lead',
+        },
+      ],
     }));
     setLeads((prev) => [...created, ...prev]);
     for (const lead of created) persist('leads', lead, null, setLeads, `Could not import lead ${lead.fullName}`);
@@ -319,7 +386,17 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...data,
       id,
       createdAt: new Date().toISOString(),
-      timeline: [{ id: uid('vact'), action: 'Visit Scheduled', description: `Visit scheduled for ${data.visitDate} at ${data.visitTime} (${data.numberOfVisitors} visitor(s)).`, date, time, user: actorName, type: 'visit' }],
+      timeline: [
+        {
+          id: uid('vact'),
+          action: 'Visit Scheduled',
+          description: `Visit scheduled for ${data.visitDate} at ${data.visitTime} (${data.numberOfVisitors} visitor(s)).`,
+          date,
+          time,
+          user: actorName,
+          type: 'visit',
+        },
+      ],
     };
     setVisitors((prev) => [newVisitor, ...prev]);
     persist('visitors', newVisitor, null, setVisitors, 'Could not schedule the visit');
@@ -331,27 +408,60 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           ...l,
           stage: 'Visit Scheduled',
           visitorId: id,
-          timeline: [{ id: uid('lact'), action: 'Visit Scheduled', description: `Walkthrough booked for ${data.visitDate} at ${data.visitTime} at ${data.propertyName}.`, date, time, user: actorName, type: 'visit' }, ...l.timeline],
+          timeline: [
+            {
+              id: uid('lact'),
+              action: 'Visit Scheduled',
+              description: `Walkthrough booked for ${data.visitDate} at ${data.visitTime} at ${data.propertyName}.`,
+              date,
+              time,
+              user: actorName,
+              type: 'visit',
+            },
+            ...l.timeline,
+          ],
         }),
         'Could not link the visit to the lead'
       );
     }
     addAuditLog('Visit Scheduled', `Scheduled visit with ${data.visitorName} on ${data.visitDate}`, 'visit');
-    addNotification({ title: 'Visit Scheduled', message: `${data.visitorName} will visit ${data.propertyName} on ${data.visitDate} at ${data.visitTime}.`, type: 'visit', linkTo: '/owner/visitors' });
+    addNotification({
+      title: 'Visit Scheduled',
+      message: `${data.visitorName} will visit ${data.propertyName} on ${data.visitDate} at ${data.visitTime}.`,
+      type: 'visit',
+      linkTo: '/owner/visitors',
+    });
     return id;
   };
 
-  const updateVisitor = (id: string, updates: Partial<VisitorItem>) => mutateVisitor(id, (v) => ({ ...v, ...updates }), 'Could not update the visit');
+  const updateVisitor = (id: string, updates: Partial<VisitorItem>) =>
+    mutateVisitor(id, (v) => ({ ...v, ...updates }), 'Could not update the visit');
 
   const updateVisitorStatus = (id: string, status: VisitorStatus, note?: string) => {
     const { date, time } = getFormattedNow();
     const visitor = visitorsRef.current.find((v) => v.id === id);
     mutateVisitor(
       id,
-      (v) => ({ ...v, status, timeline: [{ id: uid('vact'), action: `Status Updated to ${status}`, description: note || `Visit status updated to ${status}.`, date, time, user: actorName, type: 'visit' }, ...v.timeline] }),
+      (v) => ({
+        ...v,
+        status,
+        timeline: [
+          {
+            id: uid('vact'),
+            action: `Status Updated to ${status}`,
+            description: note || `Visit status updated to ${status}.`,
+            date,
+            time,
+            user: actorName,
+            type: 'visit',
+          },
+          ...v.timeline,
+        ],
+      }),
       'Could not update the visit status'
     );
-    if (status === 'Completed' && visitor?.leadId) updateLeadStage(visitor.leadId, 'Visited', 'Walkthrough completed by visitor.');
+    if (status === 'Completed' && visitor?.leadId)
+      updateLeadStage(visitor.leadId, 'Visited', 'Walkthrough completed by visitor.');
     addAuditLog('Visit Status Updated', `Visitor ${visitor?.visitorName || id} status set to ${status}`, 'visit');
   };
 
@@ -392,13 +502,24 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     persist('customers', updated, current, setCustomers, label);
   };
 
-  const createCustomer = (data: Omit<CustomerItem, 'id' | 'createdAt' | 'timeline' | 'documents' | 'paymentHistory' | 'visitHistory'>) => {
+  const createCustomer = (
+    data: Omit<CustomerItem, 'id' | 'createdAt' | 'timeline' | 'documents' | 'paymentHistory' | 'visitHistory'>
+  ) => {
     const existing = findCustomerByContact(data.phone, data.email);
     if (existing) {
       updateCustomer(existing.id, {
-        propertyId: data.propertyId, propertyName: data.propertyName, roomId: data.roomId, roomName: data.roomName, roomType: data.roomType,
-        bedId: data.bedId, bedNumber: data.bedNumber, moveInDate: data.moveInDate, expectedMoveOutDate: data.expectedMoveOutDate,
-        monthlyRent: data.monthlyRent, securityDeposit: data.securityDeposit, tenantStatus: data.tenantStatus || 'Upcoming',
+        propertyId: data.propertyId,
+        propertyName: data.propertyName,
+        roomId: data.roomId,
+        roomName: data.roomName,
+        roomType: data.roomType,
+        bedId: data.bedId,
+        bedNumber: data.bedNumber,
+        moveInDate: data.moveInDate,
+        expectedMoveOutDate: data.expectedMoveOutDate,
+        monthlyRent: data.monthlyRent,
+        securityDeposit: data.securityDeposit,
+        tenantStatus: data.tenantStatus || 'Upcoming',
       });
       return { customerId: existing.id, isDuplicate: true };
     }
@@ -411,7 +532,17 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       documents: [],
       paymentHistory: [],
       visitHistory: [],
-      timeline: [{ id: uid('cact'), action: 'Customer Onboarded', description: `Resident account initialized for ${data.propertyName} (${data.roomName}).`, date, time, user: actorName, type: 'customer' }],
+      timeline: [
+        {
+          id: uid('cact'),
+          action: 'Customer Onboarded',
+          description: `Resident account initialized for ${data.propertyName} (${data.roomName}).`,
+          date,
+          time,
+          user: actorName,
+          type: 'customer',
+        },
+      ],
     };
     setCustomers((prev) => [newCustomer, ...prev]);
     persist('customers', newCustomer, null, setCustomers, 'Could not create the customer');
@@ -419,7 +550,8 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { customerId, isDuplicate: false };
   };
 
-  const updateCustomer = (id: string, updates: Partial<CustomerItem>) => mutateCustomer(id, (c) => ({ ...c, ...updates }), 'Could not update the customer');
+  const updateCustomer = (id: string, updates: Partial<CustomerItem>) =>
+    mutateCustomer(id, (c) => ({ ...c, ...updates }), 'Could not update the customer');
 
   const addCustomerDocument = (customerId: string, doc: Omit<CustomerDocumentItem, 'id' | 'uploadedAt'>) => {
     const { date, time } = getFormattedNow();
@@ -428,7 +560,18 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       (c) => ({
         ...c,
         documents: [{ ...doc, id: uid('doc'), uploadedAt: date }, ...c.documents],
-        timeline: [{ id: uid('cact'), action: 'Document Uploaded', description: `Uploaded document: ${doc.name} (${doc.fileName}).`, date, time, user: actorName, type: 'document' }, ...c.timeline],
+        timeline: [
+          {
+            id: uid('cact'),
+            action: 'Document Uploaded',
+            description: `Uploaded document: ${doc.name} (${doc.fileName}).`,
+            date,
+            time,
+            user: actorName,
+            type: 'document',
+          },
+          ...c.timeline,
+        ],
       }),
       'Could not add the document'
     );
@@ -442,7 +585,18 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       (c) => ({
         ...c,
         documents: c.documents.map((d) => (d.id === docId ? { ...d, verificationStatus: status } : d)),
-        timeline: [{ id: uid('cact'), action: status === 'verified' ? 'Document Verified' : 'Document Rejected', description: `Document status marked as ${status}.`, date, time, user: actorName, type: 'document' }, ...c.timeline],
+        timeline: [
+          {
+            id: uid('cact'),
+            action: status === 'verified' ? 'Document Verified' : 'Document Rejected',
+            description: `Document status marked as ${status}.`,
+            date,
+            time,
+            user: actorName,
+            type: 'document',
+          },
+          ...c.timeline,
+        ],
       }),
       'Could not update the document status'
     );
@@ -457,17 +611,34 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ...current,
       paymentStatus: 'Paid',
       paymentHistory: [{ ...payment, id: uid('pay'), receiptNumber: 'Pending…' }, ...current.paymentHistory],
-      timeline: [{ id: uid('cact'), action: 'Payment Received', description: `Payment of ₹${payment.totalAmount.toLocaleString('en-IN')} received via ${payment.paymentMethod}.`, date, time, user: actorName, type: 'payment' }, ...current.timeline],
+      timeline: [
+        {
+          id: uid('cact'),
+          action: 'Payment Received',
+          description: `Payment of ₹${payment.totalAmount.toLocaleString('en-IN')} received via ${payment.paymentMethod}.`,
+          date,
+          time,
+          user: actorName,
+          type: 'payment',
+        },
+        ...current.timeline,
+      ],
     };
     setCustomers((prev) => replaceById(prev, optimistic));
-    ApiClient.crm.addCustomerPayment(customerId, payment as unknown as Record<string, unknown>)
+    ApiClient.crm
+      .addCustomerPayment(customerId, payment as unknown as Record<string, unknown>)
       .then((saved: CustomerItem) => setCustomers((prev) => replaceById(prev, saved)))
       .catch((err) => {
         setCustomers((prev) => replaceById(prev, current));
         reportSyncError('Could not record the payment', err);
       });
     addAuditLog('Payment Logged', `Received ₹${payment.totalAmount} from ${current.fullName}`, 'payment');
-    addNotification({ title: 'Payment Received', message: `Rent payment of ₹${payment.totalAmount} logged for ${current.fullName}.`, type: 'payment', linkTo: '/owner/customers' });
+    addNotification({
+      title: 'Payment Received',
+      message: `Rent payment of ₹${payment.totalAmount} logged for ${current.fullName}.`,
+      type: 'payment',
+      linkTo: '/owner/customers',
+    });
   };
 
   const recordCustomerMoveOut = (customerId: string, moveOutDate: string, reason?: string) => {
@@ -479,10 +650,22 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...current,
         tenantStatus: 'Inactive',
         expectedMoveOutDate: moveOutDate,
-        timeline: [{ id: uid('cact'), action: 'Move-out Completed', description: `Resident vacated on ${moveOutDate}. Reason: ${reason || 'End of lease tenure'}.`, date, time, user: actorName, type: 'customer' }, ...current.timeline],
+        timeline: [
+          {
+            id: uid('cact'),
+            action: 'Move-out Completed',
+            description: `Resident vacated on ${moveOutDate}. Reason: ${reason || 'End of lease tenure'}.`,
+            date,
+            time,
+            user: actorName,
+            type: 'customer',
+          },
+          ...current.timeline,
+        ],
       })
     );
-    ApiClient.crm.moveOut(customerId, { moveOutDate, reason })
+    ApiClient.crm
+      .moveOut(customerId, { moveOutDate, reason })
       .then(applyWorkflowResult)
       .catch((err) => {
         setCustomers((prev) => replaceById(prev, current));
@@ -495,7 +678,8 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const target = customersRef.current.find((c) => c.id === id);
     if (!target) return;
     setCustomers((prev) => prev.filter((c) => c.id !== id));
-    ApiClient.crm.remove('customers', id)
+    ApiClient.crm
+      .remove('customers', id)
       .then(() => refreshProperties())
       .catch((err) => {
         setCustomers((prev) => [target, ...prev]);
@@ -519,17 +703,33 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       bookingNumber: 'Pending…',
       bookingStatus: 'Pending',
       createdAt: new Date().toISOString(),
-      timeline: [{ id: uid('bkact'), action: 'Booking Created', description: `New booking request created for ${data.roomName} (${data.bedNumber}).`, date, time, user: actorName, type: 'booking' }],
+      timeline: [
+        {
+          id: uid('bkact'),
+          action: 'Booking Created',
+          description: `New booking request created for ${data.roomName} (${data.bedNumber}).`,
+          date,
+          time,
+          user: actorName,
+          type: 'booking',
+        },
+      ],
     };
     setBookings((prev) => [optimistic, ...prev]);
-    ApiClient.crm.createBooking({ ...data, id })
+    ApiClient.crm
+      .createBooking({ ...data, id })
       .then((saved: BookingItem) => {
         setBookings((prev) => prev.map((b) => (b.id === id ? saved : b)));
         if (data.leadId) {
           const lead = leadsRef.current.find((l) => l.id === data.leadId);
           if (lead) setLeads((prev) => replaceById(prev, { ...lead, stage: 'Booking Requested', bookingId: saved.id }));
         }
-        addNotification({ title: 'Booking Created', message: `Booking ${saved.bookingNumber} for ${data.tenantName} at ${data.propertyName}.`, type: 'booking', linkTo: '/owner/bookings' });
+        addNotification({
+          title: 'Booking Created',
+          message: `Booking ${saved.bookingNumber} for ${data.tenantName} at ${data.propertyName}.`,
+          type: 'booking',
+          linkTo: '/owner/bookings',
+        });
       })
       .catch((err) => {
         setBookings((prev) => prev.filter((b) => b.id !== id));
@@ -543,7 +743,8 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const current = bookingsRef.current.find((b) => b.id === id);
     if (!current) return;
     setBookings((prev) => replaceById(prev, { ...current, ...updates }));
-    ApiClient.crm.updateBooking(id, updates as Record<string, unknown>)
+    ApiClient.crm
+      .updateBooking(id, updates as Record<string, unknown>)
       .then((saved: BookingItem) => setBookings((prev) => replaceById(prev, saved)))
       .catch((err) => {
         setBookings((prev) => replaceById(prev, current));
@@ -566,13 +767,30 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         paymentStatus: 'Paid',
         paidAmount: booking.totalAmount,
         customerId,
-        timeline: [{ id: uid('bkact'), action: 'Booking Approved', description: `Owner approved booking. Bed ${booking.bedNumber} reserved and customer profile linked.`, date, time, user: actorName, type: 'booking' }, ...booking.timeline],
+        timeline: [
+          {
+            id: uid('bkact'),
+            action: 'Booking Approved',
+            description: `Owner approved booking. Bed ${booking.bedNumber} reserved and customer profile linked.`,
+            date,
+            time,
+            user: actorName,
+            type: 'booking',
+          },
+          ...booking.timeline,
+        ],
       })
     );
-    ApiClient.crm.approveBooking(bookingId, { customerId })
+    ApiClient.crm
+      .approveBooking(bookingId, { customerId })
       .then((result) => {
         applyWorkflowResult(result);
-        addNotification({ title: 'Booking Approved', message: `Booking ${booking.bookingNumber} confirmed. Tenant allotment ready for ${booking.moveInDate}.`, type: 'booking', linkTo: '/owner/bookings' });
+        addNotification({
+          title: 'Booking Approved',
+          message: `Booking ${booking.bookingNumber} confirmed. Tenant allotment ready for ${booking.moveInDate}.`,
+          type: 'booking',
+          linkTo: '/owner/bookings',
+        });
       })
       .catch((err) => {
         setBookings((prev) => replaceById(prev, booking));
@@ -586,8 +804,27 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const booking = bookingsRef.current.find((b) => b.id === bookingId);
     if (!booking) return;
     const { date, time } = getFormattedNow();
-    setBookings((prev) => replaceById(prev, { ...booking, bookingStatus: 'Rejected', rejectionReason: reason, timeline: [{ id: uid('bkact'), action: 'Booking Rejected', description: `Booking rejected by owner. Reason: ${reason}`, date, time, user: actorName, type: 'booking' }, ...booking.timeline] }));
-    ApiClient.crm.rejectBooking(bookingId, reason)
+    setBookings((prev) =>
+      replaceById(prev, {
+        ...booking,
+        bookingStatus: 'Rejected',
+        rejectionReason: reason,
+        timeline: [
+          {
+            id: uid('bkact'),
+            action: 'Booking Rejected',
+            description: `Booking rejected by owner. Reason: ${reason}`,
+            date,
+            time,
+            user: actorName,
+            type: 'booking',
+          },
+          ...booking.timeline,
+        ],
+      })
+    );
+    ApiClient.crm
+      .rejectBooking(bookingId, reason)
       .then((saved: BookingItem) => setBookings((prev) => replaceById(prev, saved)))
       .catch((err) => {
         setBookings((prev) => replaceById(prev, booking));
@@ -600,8 +837,27 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const booking = bookingsRef.current.find((b) => b.id === bookingId);
     if (!booking) return;
     const { date, time } = getFormattedNow();
-    setBookings((prev) => replaceById(prev, { ...booking, bookingStatus: 'Cancelled', cancellationReason: reason, timeline: [{ id: uid('bkact'), action: 'Booking Cancelled', description: `Booking cancelled. Reason: ${reason}. Bed ${booking.bedNumber} released.`, date, time, user: actorName, type: 'booking' }, ...booking.timeline] }));
-    ApiClient.crm.cancelBooking(bookingId, reason)
+    setBookings((prev) =>
+      replaceById(prev, {
+        ...booking,
+        bookingStatus: 'Cancelled',
+        cancellationReason: reason,
+        timeline: [
+          {
+            id: uid('bkact'),
+            action: 'Booking Cancelled',
+            description: `Booking cancelled. Reason: ${reason}. Bed ${booking.bedNumber} released.`,
+            date,
+            time,
+            user: actorName,
+            type: 'booking',
+          },
+          ...booking.timeline,
+        ],
+      })
+    );
+    ApiClient.crm
+      .cancelBooking(bookingId, reason)
       .then(applyWorkflowResult)
       .catch((err) => {
         setBookings((prev) => replaceById(prev, booking));
@@ -614,12 +870,30 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const booking = bookingsRef.current.find((b) => b.id === bookingId);
     if (!booking) return;
     const { date, time } = getFormattedNow();
-    setBookings((prev) => replaceById(prev, { ...booking, bookingStatus: 'Completed', timeline: [{ id: uid('bkact'), action: 'Move-in Completed', description: 'Tenant moved in. Physical key & biometric verification completed.', date, time, user: actorName, type: 'customer' }, ...booking.timeline] }));
+    setBookings((prev) =>
+      replaceById(prev, {
+        ...booking,
+        bookingStatus: 'Completed',
+        timeline: [
+          {
+            id: uid('bkact'),
+            action: 'Move-in Completed',
+            description: 'Tenant moved in. Physical key & biometric verification completed.',
+            date,
+            time,
+            user: actorName,
+            type: 'customer',
+          },
+          ...booking.timeline,
+        ],
+      })
+    );
     if (booking.customerId) {
       const customer = customersRef.current.find((c) => c.id === booking.customerId);
       if (customer) setCustomers((prev) => replaceById(prev, { ...customer, tenantStatus: 'Active' }));
     }
-    ApiClient.crm.completeMoveIn(bookingId)
+    ApiClient.crm
+      .completeMoveIn(bookingId)
       .then(applyWorkflowResult)
       .catch((err) => {
         setBookings((prev) => replaceById(prev, booking));
@@ -632,11 +906,44 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     () => ({
       isLoading,
       refresh,
-      leads, getLeadById, createLead, updateLead, updateLeadStage, deleteLead, addLeadNote, logLeadContact, importLeads,
-      bookings, getBookingById, createBooking, updateBooking, approveBooking, rejectBooking, cancelBooking, completeMoveIn,
-      visitors, getVisitorById, scheduleVisit, updateVisitor, updateVisitorStatus, deleteVisitor,
-      customers, getCustomerById, findCustomerByContact, createCustomer, updateCustomer, addCustomerDocument, verifyCustomerDocument, addCustomerPayment, recordCustomerMoveOut, deleteCustomer,
-      auditLogs, notifications, markNotificationRead, markAllNotificationsRead, addNotification,
+      leads,
+      getLeadById,
+      createLead,
+      updateLead,
+      updateLeadStage,
+      deleteLead,
+      addLeadNote,
+      logLeadContact,
+      importLeads,
+      bookings,
+      getBookingById,
+      createBooking,
+      updateBooking,
+      approveBooking,
+      rejectBooking,
+      cancelBooking,
+      completeMoveIn,
+      visitors,
+      getVisitorById,
+      scheduleVisit,
+      updateVisitor,
+      updateVisitorStatus,
+      deleteVisitor,
+      customers,
+      getCustomerById,
+      findCustomerByContact,
+      createCustomer,
+      updateCustomer,
+      addCustomerDocument,
+      verifyCustomerDocument,
+      addCustomerPayment,
+      recordCustomerMoveOut,
+      deleteCustomer,
+      auditLogs,
+      notifications,
+      markNotificationRead,
+      markAllNotificationsRead,
+      addNotification,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isLoading, refresh, leads, bookings, visitors, customers, auditLogs, notifications, actorName]

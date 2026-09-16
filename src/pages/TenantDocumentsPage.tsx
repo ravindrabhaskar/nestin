@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
 import { TenantDocument } from '../types';
-import { ApiClient } from '../lib/apiClient';
+import { ApiClient, uploadFile } from '../lib/apiClient';
 import { useApiResource } from '../hooks/useApiResource';
 import { useAuth } from '../context/AuthContext';
 
@@ -92,16 +92,19 @@ export const TenantDocumentsPage: React.FC = () => {
       return;
     }
 
-    // Document metadata is registered with the API; the file itself is kept in-browser for preview.
-    // Binary uploads to object storage are wired in via the same endpoint once a bucket is configured.
+    // The file is stored privately (local disk or S3) and only the resident, the owner they booked
+    // with, and platform admins can open it.
     try {
+      showToast('Uploading…');
+      const uploaded = await uploadFile(file, 'document');
       const saved = await ApiClient.tenant.addDocument({
         name: newDocName || file.name,
         fileName: file.name,
         type: newDocType,
-        fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+        fileSize: uploaded.sizeLabel,
+        fileUrl: uploaded.url,
       });
-      setDocuments((prev) => [{ ...saved, fileUrl: URL.createObjectURL(file) }, ...prev]);
+      setDocuments((prev) => [saved, ...prev]);
       setUploadModalOpen(false);
       setNewDocName('');
       showToast('Document uploaded for verification.');
@@ -205,7 +208,7 @@ export const TenantDocumentsPage: React.FC = () => {
 
       {/* UPLOAD MODAL */}
       {uploadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in">
           <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-black font-heading text-slate-900">
@@ -273,7 +276,7 @@ export const TenantDocumentsPage: React.FC = () => {
 
       {/* VIEW MODAL */}
       {selectedDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in">
           <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-black font-heading text-slate-900">

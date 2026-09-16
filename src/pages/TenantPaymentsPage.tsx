@@ -14,6 +14,7 @@ import { TenantPaymentItem } from '../types';
 import { ApiClient, tokenStore } from '../lib/apiClient';
 import { useApiResource } from '../hooks/useApiResource';
 import { useAuth } from '../context/AuthContext';
+import { payOnline } from '../lib/checkout';
 
 /** Downloads the server-generated receipt with the session token attached. */
 async function downloadReceipt(payment: TenantPaymentItem) {
@@ -39,6 +40,21 @@ export const TenantPaymentsPage: React.FC = () => {
   const [isPaying, setIsPaying] = useState(false);
   const [payNotice, setPayNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
+  /** Settle an existing pending charge (e.g. a booking token when the gateway is live). */
+  const handlePayPending = async (item: TenantPaymentItem) => {
+    setIsPaying(true);
+    setPayNotice(null);
+    try {
+      const paid = await payOnline({ paymentId: item.id });
+      setPayments((prev) => prev.map((x) => (x.id === paid.id ? paid : x)));
+      setPayNotice({ kind: 'ok', text: `Payment successful. Invoice ${paid.invoiceNumber}.` });
+    } catch (err) {
+      setPayNotice({ kind: 'err', text: err instanceof Error ? err.message : 'Payment failed.' });
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
   const handlePayRent = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = Number(payAmount);
@@ -46,8 +62,9 @@ export const TenantPaymentsPage: React.FC = () => {
     setIsPaying(true);
     setPayNotice(null);
     try {
-      const paid = await ApiClient.tenant.pay({ amount, type: 'Rent', paymentMethod: 'UPI / GPay', idempotencyKey: `rent-${user?.id}-${Date.now()}` });
-      setPayments((prev) => [paid, ...prev]);
+      // Real Razorpay checkout when the gateway is configured; simulated otherwise (same flow).
+      const paid = await payOnline({ amount, type: 'Rent', paymentMethod: 'UPI / GPay' });
+      setPayments((prev) => [paid, ...prev.filter((x) => x.id !== paid.id)]);
       setPayAmount('');
       setPayNotice({ kind: 'ok', text: `Payment successful. Invoice ${paid.invoiceNumber} generated.` });
     } catch (err) {
@@ -214,7 +231,17 @@ export const TenantPaymentsPage: React.FC = () => {
                       <td className="py-4 px-5">
                         {getStatusBadge(item.status)}
                       </td>
-                      <td className="py-4 px-5 text-right">
+                      <td className="py-4 px-5 text-right space-x-2">
+                        {item.status === 'Pending' && (
+                          <button
+                            type="button"
+                            disabled={isPaying}
+                            onClick={() => handlePayPending(item)}
+                            className="px-3 py-1 bg-slate-900 text-[#a3e635] text-xs font-bold rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
+                          >
+                            Pay now
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setSelectedReceipt(item)}
@@ -278,7 +305,7 @@ export const TenantPaymentsPage: React.FC = () => {
 
       {/* RECEIPT / INVOICE MODAL */}
       {selectedReceipt && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150 font-sans">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
