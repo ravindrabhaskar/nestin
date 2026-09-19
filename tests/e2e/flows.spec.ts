@@ -7,8 +7,8 @@ import { test, expect, type Page, type BrowserContext } from '@playwright/test';
 
 const PASSWORD = 'NestIn@2026';
 
-async function signIn(context: BrowserContext, page: Page, email: string) {
-  const res = await context.request.post('/api/v1/auth/login', { data: { email, password: PASSWORD } });
+async function signIn(context: BrowserContext, page: Page, email: string, password = PASSWORD) {
+  const res = await context.request.post('/api/v1/auth/login', { data: { email, password } });
   const body = await res.json();
   expect(body.success, JSON.stringify(body)).toBeTruthy();
   await page.goto('/');
@@ -269,7 +269,7 @@ test('owner records an expense and sees it in the P&L; creates a task and moves 
     page.getByRole('button', { name: 'Save expense' }).click(),
   ]);
   expect(resp.status(), await resp.text()).toBe(201);
-  await expect(page.getByText('ACT Fibernet')).toBeVisible();
+  await expect(page.locator('li').filter({ hasText: 'ACT Fibernet' }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Profit & Loss' }).click();
   await expect(page.getByText('Net operating income')).toBeVisible();
 
@@ -294,4 +294,99 @@ test('owner records an expense and sees it in the P&L; creates a task and moves 
     .click();
   await expect(page.getByRole('region', { name: 'Done' }).locator('article').filter({ hasText: title })).toBeVisible();
   await ctx.close();
+});
+
+test('owner sends a rent agreement → resident signs it with the OTP → resident gives move-out notice → owner sees it', async ({
+  browser,
+}) => {
+  const ownerCtx = await browser.newContext();
+  const ownerPage = await ownerCtx.newPage();
+  const owner = await signIn(ownerCtx, ownerPage, 'owner@nestin.com');
+  // A fresh resident of the demo owner: register, book one of the owner's listings, owner approves.
+  const email = `resident-${Date.now().toString(36)}@example.com`;
+  const reg = await ownerCtx.request.post('/api/v1/auth/register', {
+    data: { email, password: PASSWORD, fullName: 'Flow Resident', role: 'tenant', phone: '+91 98888 77777' },
+  });
+  expect(reg.status(), await reg.text()).toBe(201);
+  const ownerProps = await ownerCtx.request.get('/api/v1/properties/owner', {
+    headers: { Authorization: `Bearer ${owner.token}` },
+  });
+  const listing = (await ownerProps.json()).data.find(
+    (p: any) => p.status === 'published' && p.rooms.some((r: any) => r.availableBedsCount > 0)
+  );
+  const tenantToken = (await reg.json()).data.token as string;
+  const booked = await ownerCtx.request.post('/api/v1/tenant/bookings', {
+    headers: { Authorization: `Bearer ${tenantToken}` },
+    data: { propertyId: listing.id, moveInDate: new Date().toISOString().slice(0, 10), tenantPhone: '+91 98888 77777' },
+  });
+  expect(booked.status(), await booked.text()).toBe(201);
+  const bookingId = (await booked.json()).data.booking.id;
+  const approved = await ownerCtx.request.post(`/api/v1/crm/bookings/${bookingId}/approve`, {
+    headers: { Authorization: `Bearer ${owner.token}` },
+    data: {},
+  });
+  expect(approved.status(), await approved.text()).toBe(200);
+  const customer = (await approved.json()).data.customer;
+
+  const tenantCtx = await browser.newContext();
+  const tenantPage = await tenantCtx.newPage();
+  await signIn(tenantCtx, tenantPage, email);
+
+  // Owner: Residents → Agreements → pick the resident → send.
+  await ownerPage.goto('/owner/residents');
+  await expect(ownerPage.getByRole('heading', { name: 'Residents' })).toBeVisible({ timeout: 20_000 });
+  const option = ownerPage.getByLabel('Resident').locator(`option[value="${customer.id}"]`);
+  await expect(
+    option,
+    `resident option for ${customer.id} (${customer.fullName}, ${customer.tenantStatus})`
+  ).toHaveCount(1, {
+    timeout: 15_000,
+  });
+  expect(await option.isDisabled(), `option disabled: signed agreement already exists for ${customer.id}`).toBe(false);
+  await ownerPage.getByLabel('Resident').selectOption(customer.id);
+  const [sent] = await Promise.all([
+    ownerPage.waitForResponse((r) => r.url().endsWith('/api/v1/crm/agreements') && r.request().method() === 'POST'),
+    ownerPage.getByRole('button', { name: /Generate & send/ }).click(),
+  ]);
+  expect(sent.status(), await sent.text()).toBe(201);
+  await expect(ownerPage.getByText('Awaiting signature').first()).toBeVisible();
+
+  // Resident: Documents → sign with OTP (demo mode shows the code).
+  await tenantPage.goto('/documents');
+  await expect(tenantPage.getByText('Rent agreements')).toBeVisible({ timeout: 20_000 });
+  await tenantPage.getByRole('button', { name: /Sign with OTP/ }).click();
+  const hint = tenantPage.getByText(/Demo mode — your code is/);
+  await expect(hint).toBeVisible({ timeout: 10_000 });
+  const code = (await hint.textContent())!.match(/(\d{6})/)![1];
+  await tenantPage.getByLabel('One-time password').fill(code);
+  await tenantPage.getByRole('checkbox').first().check();
+  const [signed] = await Promise.all([
+    tenantPage.waitForResponse((r) => /\/agreements\/.+\/sign$/.test(r.url())),
+    tenantPage.getByRole('button', { name: 'Sign agreement' }).click(),
+  ]);
+  expect(signed.status(), await signed.text()).toBe(200);
+  await expect(tenantPage.getByText(/Signed \d{4}-\d{2}-\d{2}/)).toBeVisible();
+
+  // Resident: Bookings → give notice.
+  await tenantPage.goto('/my-bookings');
+  await expect(tenantPage.getByText('Moving out')).toBeVisible({ timeout: 20_000 });
+  const date = new Date(Date.now() + 40 * 86_400_000).toISOString().slice(0, 10);
+  await tenantPage.getByLabel('Move-out date').fill(date);
+  const [notice] = await Promise.all([
+    tenantPage.waitForResponse((r) => r.url().endsWith('/api/v1/tenant/move-out') && r.request().method() === 'POST'),
+    tenantPage.getByRole('button', { name: 'Give notice' }).click(),
+  ]);
+  expect(notice.status(), await notice.text()).toBe(201);
+  await expect(tenantPage.getByText(/Notice received/)).toBeVisible();
+
+  // Owner sees the notice and can schedule the inspection.
+  await ownerPage.goto('/owner/residents');
+  await ownerPage.getByRole('button', { name: /Move-outs/ }).click();
+  await expect(ownerPage.getByText(`Vacating ${date}`)).toBeVisible({ timeout: 15_000 });
+  await ownerPage.getByLabel('Inspection date').fill(date);
+  await ownerPage.getByRole('button', { name: 'Schedule inspection' }).click();
+  await expect(ownerPage.getByText('inspection scheduled', { exact: true }).first()).toBeVisible();
+
+  await ownerCtx.close();
+  await tenantCtx.close();
 });

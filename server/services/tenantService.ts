@@ -16,6 +16,7 @@ import {
 } from '../db/repositories.js';
 import { badRequest, notFound, HttpError } from '../lib/errors.js';
 import { config } from '../config.js';
+import { MAINTENANCE_CATEGORIES, applyCredits } from './residentService.js';
 import { createOrder, razorpayEnabled, verifyPaymentSignature, assertPaymentsAvailable } from '../lib/razorpay.js';
 import { newId, invoiceNumber, ticketNumber } from '../lib/ids.js';
 import * as v from '../lib/validate.js';
@@ -262,7 +263,17 @@ export function createTicket(actor: AuthUser, body: Record<string, unknown>, ctx
   const subject = v.str(body.subject, 'Subject', { max: 200 });
   const description = v.str(body.description || body.message, 'Description', { max: 3000 });
   const category = v.str(body.category || 'General', 'Category', { max: 60 });
-  const priority = v.oneOf(body.priority, ['Low', 'Medium', 'High'] as const, 'Priority', 'Medium');
+  const maintenance = MAINTENANCE_CATEGORIES[category];
+  const priority = v.oneOf(
+    body.priority,
+    ['Low', 'Medium', 'High'] as const,
+    'Priority',
+    maintenance && maintenance.slaHours <= 12 ? 'High' : 'Medium'
+  );
+  const photos = (Array.isArray(body.photos) ? (body.photos as unknown[]) : [])
+    .slice(0, 6)
+    .map((p) => v.str(p, 'Photo', { max: 500 }))
+    .filter((url) => /^(\/api\/v1\/files\/|\/uploads\/|https:\/\/)/.test(url));
   const now = new Date().toISOString();
   const responsible = responsibleOwnerFor(actor.id);
   const ticket: StoredTicket = {
@@ -278,6 +289,9 @@ export function createTicket(actor: AuthUser, body: Record<string, unknown>, ctx
     pgName: v.optionalStr(body.pgName, 'Property', 120) || responsible.propertyName,
     status: 'Open',
     priority,
+    photos,
+    slaHours: maintenance?.slaHours,
+    slaDueAt: maintenance ? new Date(Date.now() + maintenance.slaHours * 3_600_000).toISOString() : undefined,
     createdAt: now,
     updatedAt: now,
     messages: [{ id: newId('msg'), sender: 'user', senderName: actor.fullName, message: description, timestamp: now }],
@@ -434,6 +448,13 @@ export async function createCheckoutOrder(
       date: now.toISOString(),
       createdAt: now.toISOString(),
     };
+    // Referral / goodwill credits reduce what the resident pays; the owner still sees the full charge.
+    const credit = body.applyCredits === false ? { amount, applied: 0 } : applyCredits(actor.id, amount, pending.id);
+    if (credit.applied > 0) {
+      pending.creditApplied = credit.applied;
+      pending.amount = credit.amount;
+      pending.description = `${pending.description || type} (₹${credit.applied.toLocaleString('en-IN')} credit applied)`;
+    }
     payments.insert(pending);
   }
 

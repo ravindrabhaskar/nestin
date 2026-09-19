@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
+import { ReferralCard, LifestyleForm } from '../components/resident/ReferralAndLifestyle';
 import { SecurityPanel } from '../components/profile/SecurityPanel';
 
 const DEFAULT_SEARCH_PREFS = {
@@ -476,6 +477,12 @@ export const TenantSettingsPage: React.FC = () => {
             </div>
           </div>
         </form>
+      )}
+      {activeTab === 'preferences' && (
+        <div className="space-y-6 mt-6">
+          <LifestyleForm onNotice={showToast} />
+          <ReferralCard onNotice={showToast} />
+        </div>
       )}
 
       {/* 3. SECURITY TAB */}

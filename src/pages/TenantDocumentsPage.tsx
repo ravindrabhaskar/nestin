@@ -5,6 +5,7 @@ import { TenantDocument } from '../types';
 import { ApiClient, uploadFile } from '../lib/apiClient';
 import { useApiResource } from '../hooks/useApiResource';
 import { useAuth } from '../context/AuthContext';
+import { AgreementCard } from '../components/resident/AgreementCard';
 
 export const TenantDocumentsPage: React.FC = () => {
   const { user } = useAuth();
@@ -122,6 +123,7 @@ export const TenantDocumentsPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
+        <AgreementCard onNotice={(m) => showToast?.(m)} />
         {/* TRUST BANNER */}
         <div className="p-5 bg-white rounded-3xl border border-slate-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
           <div className="flex items-start gap-4">

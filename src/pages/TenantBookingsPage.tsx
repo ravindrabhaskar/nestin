@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, Bed, CheckCircle2, Clock, XCircle, X, Phone } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
+import { MoveOutCard } from '../components/resident/MoveOutCard';
+import { SurveyPrompt } from '../components/resident/ReferralAndLifestyle';
 import { TenantBookingItem } from '../types';
 import { ApiClient } from '../lib/apiClient';
 import { useApiResource } from '../hooks/useApiResource';
@@ -94,6 +96,8 @@ export const TenantBookingsPage: React.FC = () => {
   return (
     <TenantAccountLayout title="My Bookings" subtitle="View and manage your PG bookings." activeNav="/my-bookings">
       <div className="space-y-6">
+        <SurveyPrompt />
+        <MoveOutCard hasActiveStay={bookings.some((b) => b.status === 'active')} />
         {/* TAB FILTER BUTTONS */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-1 flex flex-wrap gap-1 shadow-2xs">
           {(['Upcoming', 'Active', 'Completed', 'Cancelled'] as const).map((tab) => {

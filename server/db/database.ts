@@ -194,6 +194,33 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_user ON auth_tokens(user_id, kind);
 
+CREATE TABLE IF NOT EXISTS agreements (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, tenant_id TEXT NOT NULL, customer_id TEXT NOT NULL, status TEXT NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agreements_owner ON agreements(owner_id);
+CREATE INDEX IF NOT EXISTS idx_agreements_tenant ON agreements(tenant_id);
+
+CREATE TABLE IF NOT EXISTS move_outs (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, tenant_id TEXT NOT NULL, customer_id TEXT NOT NULL, status TEXT NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_move_outs_owner ON move_outs(owner_id, status);
+CREATE INDEX IF NOT EXISTS idx_move_outs_tenant ON move_outs(tenant_id);
+
+CREATE TABLE IF NOT EXISTS credits (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, status TEXT NOT NULL, amount REAL NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_credits_user ON credits(user_id, status);
+
+CREATE TABLE IF NOT EXISTS surveys (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, owner_id TEXT NOT NULL, property_id TEXT NOT NULL, score INTEGER NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_surveys_property ON surveys(property_id);
+CREATE INDEX IF NOT EXISTS idx_surveys_owner ON surveys(owner_id);
+
 CREATE TABLE IF NOT EXISTS expenses (
   id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, property_id TEXT, category TEXT NOT NULL, amount REAL NOT NULL, date TEXT NOT NULL,
   data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as crm from '../services/crmService.js';
 import * as support from '../services/supportService.js';
+import * as resident from '../services/residentService.js';
 import {
   authenticate,
   requireRole,
@@ -145,6 +146,53 @@ crmRouter.put(
 );
 
 // ---- Resident support tickets (owner side) ----------------------------------------------------
+// Agreements, move-outs, NPS, maintenance SLA ------------------------------------------------
+crmRouter.get(
+  '/agreements',
+  requirePermission('customers.view'),
+  wrap((req, res) => sendOk(res, resident.listAgreementsForOwner(ownerScope(req))))
+);
+crmRouter.post(
+  '/agreements',
+  requirePermission('customers.edit'),
+  wrap((req, res) =>
+    sendOk(res, resident.createAgreement(currentUser(req), ownerScope(req), req.body || {}, ctx(req)), 201)
+  )
+);
+crmRouter.post(
+  '/agreements/:id/void',
+  requirePermission('customers.edit'),
+  wrap((req, res) => sendOk(res, resident.voidAgreement(ownerScope(req), req.params.id)))
+);
+crmRouter.get(
+  '/agreements/:id/document',
+  requirePermission('customers.view'),
+  wrap((req, res) => {
+    const a = resident.agreementForViewer(currentUser(req), req.params.id);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(resident.agreementDocumentHtml(a));
+  })
+);
+crmRouter.get(
+  '/move-outs',
+  requirePermission('customers.view'),
+  wrap((req, res) => sendOk(res, resident.listMoveOuts(ownerScope(req))))
+);
+crmRouter.put(
+  '/move-outs/:id',
+  requirePermission('customers.edit'),
+  wrap((req, res) =>
+    sendOk(res, resident.updateMoveOut(currentUser(req), ownerScope(req), req.params.id, req.body || {}, ctx(req)))
+  )
+);
+crmRouter.get(
+  '/nps',
+  requirePermission('reports.view'),
+  wrap((req, res) =>
+    sendOk(res, { ...resident.ownerNps(ownerScope(req)), maintenance: resident.maintenanceSlaSummary(ownerScope(req)) })
+  )
+);
+
 crmRouter.get(
   '/support',
   requirePermission('support.manage'),

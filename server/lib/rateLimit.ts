@@ -42,6 +42,21 @@ export function rateLimit(opts: { windowMs: number; max: number; keyFn?: (req: R
   };
 }
 
+/**
+ * Forgives a caller after a successful attempt so the limiter counts *failures*: twenty staff
+ * signing in from one office NAT must not lock the twenty-first out, while twenty wrong passwords
+ * for one account still do.
+ */
+export function resetRateLimit(name: string, req: Request, key = ''): void {
+  try {
+    getDb()
+      .prepare('DELETE FROM rate_limits WHERE key = ?')
+      .run(`${name}:${clientIp(req)}:${key}`);
+  } catch {
+    // best effort
+  }
+}
+
 export function clientIp(req: Request): string {
   const forwarded = req.headers['x-forwarded-for'];
   const first = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0];

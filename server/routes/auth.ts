@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as auth from '../services/authService.js';
 import { authenticate, currentUser } from '../middleware/auth.js';
 import { sendOk, wrap } from '../middleware/common.js';
-import { rateLimit } from '../lib/rateLimit.js';
+import { rateLimit, resetRateLimit } from '../lib/rateLimit.js';
 import { config } from '../config.js';
 
 export const authRouter = Router();
@@ -27,15 +27,24 @@ authRouter.post(
   loginLimiter,
   wrap((req, res) => sendOk(res, auth.register(req.body || {}, req), 201))
 );
+const emailKey = (req: { body?: { email?: unknown } }) => String((req.body && req.body.email) || '').toLowerCase();
 authRouter.post(
   '/login',
   loginLimiter,
-  wrap((req, res) => sendOk(res, auth.login(req.body || {}, req)))
+  wrap((req, res) => {
+    const result = auth.login(req.body || {}, req);
+    resetRateLimit('auth', req, emailKey(req));
+    sendOk(res, result);
+  })
 );
 authRouter.post(
   '/admin/login',
   loginLimiter,
-  wrap((req, res) => sendOk(res, auth.loginSuperAdmin(req.body || {}, req)))
+  wrap((req, res) => {
+    const result = auth.loginSuperAdmin(req.body || {}, req);
+    resetRateLimit('auth', req, emailKey(req));
+    sendOk(res, result);
+  })
 );
 authRouter.post(
   '/google',

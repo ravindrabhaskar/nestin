@@ -44,9 +44,15 @@ export function contentSecurityPolicy(): string {
     'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com/gsi/style'],
     'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
     'img-src': ["'self'", 'data:', 'blob:', 'https:'],
-    'media-src': ["'self'", 'blob:'],
+    'media-src': ["'self'", 'blob:', 'https:'],
     'connect-src': connectSrc,
-    'frame-src': ["'self'", 'https://accounts.google.com', 'https://api.razorpay.com', 'https://checkout.razorpay.com'],
+    'frame-src': [
+      "'self'",
+      'https://accounts.google.com',
+      'https://api.razorpay.com',
+      'https://checkout.razorpay.com',
+      'https://www.youtube-nocookie.com',
+    ],
     'worker-src': ["'self'", 'blob:'],
     'manifest-src': ["'self'"],
   };

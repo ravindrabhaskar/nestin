@@ -16,7 +16,7 @@ import { events } from '../lib/events.js';
  * Public objects (avatars, listing photos) are served directly from /uploads/<key> (local) or the CDN.
  */
 
-const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm']);
 const DOC_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
 
 const upload = multer({

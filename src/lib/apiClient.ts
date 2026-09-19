@@ -201,6 +201,12 @@ export const ApiClient = {
   crm: {
     snapshot: () => http.get<any>('/crm/snapshot'),
     supportTickets: () => http.get<any[]>('/crm/support'),
+    agreements: () => http.get<any[]>('/crm/agreements'),
+    createAgreement: (data: Record<string, unknown>) => http.post<any>('/crm/agreements', data),
+    voidAgreement: (id: string) => http.post<any>(`/crm/agreements/${id}/void`, {}),
+    moveOuts: () => http.get<any[]>('/crm/move-outs'),
+    updateMoveOut: (id: string, data: Record<string, unknown>) => http.put<any>(`/crm/move-outs/${id}`, data),
+    nps: () => http.get<any>('/crm/nps'),
     replySupport: (id: string, message: string) => http.post<any>(`/crm/support/${id}/messages`, { message }),
     resolveSupport: (id: string) => http.post<any>(`/crm/support/${id}/resolve`),
     upsert: (kind: 'leads' | 'visitors' | 'customers', doc: { id?: string } & Record<string, unknown>) =>
@@ -266,6 +272,20 @@ export const ApiClient = {
     deleteDocument: (id: string) => http.delete<{ deleted: boolean }>(`/tenant/documents/${id}`),
     tickets: () => http.get<any[]>('/tenant/support'),
     createTicket: (data: Record<string, unknown>) => http.post<any>('/tenant/support', data),
+    maintenanceCategories: () =>
+      http.get<Record<string, { label: string; slaHours: number }>>('/tenant/maintenance-categories'),
+    agreements: () => http.get<any[]>('/tenant/agreements'),
+    requestAgreementOtp: (id: string) =>
+      http.post<{ sentTo: string[]; expiresAt: string; devOtp?: string }>(`/tenant/agreements/${id}/request-otp`, {}),
+    signAgreement: (id: string, data: { otp: string; accepted: boolean; fullName?: string }) =>
+      http.post<any>(`/tenant/agreements/${id}/sign`, data),
+    moveOut: () => http.get<any>('/tenant/move-out'),
+    requestMoveOut: (data: { moveOutDate: string; reason?: string }) => http.post<any>('/tenant/move-out', data),
+    cancelMoveOut: (id: string) => http.post<any>(`/tenant/move-out/${id}/cancel`, {}),
+    referrals: () => http.get<any>('/tenant/referrals'),
+    roommates: (propertyId: string) => http.get<any>(`/tenant/roommates/${encodeURIComponent(propertyId)}`),
+    surveyDue: () => http.get<{ due: boolean; propertyName?: string }>('/tenant/survey'),
+    submitSurvey: (data: { score: number; comment?: string }) => http.post<any>('/tenant/survey', data),
     replyTicket: (id: string, message: string) => http.post<any>(`/tenant/support/${id}/messages`, { message }),
     resolveTicket: (id: string) => http.post<any>(`/tenant/support/${id}/resolve`),
     wishlist: () => http.get<any[]>('/tenant/wishlist'),

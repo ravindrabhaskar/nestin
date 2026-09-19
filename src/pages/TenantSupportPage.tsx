@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, MessageSquare, Phone, Mail, ChevronDown, Plus, CheckCircle2, Send, X } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
 import { TenantSupportTicket } from '../types';
-import { ApiClient } from '../lib/apiClient';
+import { ApiClient, uploadFile } from '../lib/apiClient';
 import { useApiResource } from '../hooks/useApiResource';
 import { useAuth } from '../context/AuthContext';
 
@@ -53,6 +53,14 @@ export const TenantSupportPage: React.FC = () => {
       f.q.toLowerCase().includes(searchQuery.toLowerCase()) || f.a.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const [ticketPhotos, setTicketPhotos] = useState<File[]>([]);
+  const maintenanceCategories = useApiResource(
+    () => ApiClient.tenant.maintenanceCategories(),
+    {} as Record<string, { label: string; slaHours: number }>,
+    {
+      label: 'Could not load categories',
+    }
+  );
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
@@ -62,12 +70,18 @@ export const TenantSupportPage: React.FC = () => {
     e.preventDefault();
     if (!ticketSubject.trim() || !ticketMessage.trim()) return;
     try {
+      const photos: string[] = [];
+      for (const file of ticketPhotos.slice(0, 4)) {
+        const up = await uploadFile(file, 'property');
+        photos.push(up.url);
+      }
       const created = await ApiClient.tenant.createTicket({
         subject: ticketSubject,
         category: ticketCategory,
         description: ticketMessage,
-        priority: 'Medium',
+        photos,
       });
+      setTicketPhotos([]);
       setTickets((prev) => [created, ...prev]);
       setTicketSubject('');
       setTicketMessage('');
@@ -302,12 +316,34 @@ export const TenantSupportPage: React.FC = () => {
                   onChange={(e) => setTicketCategory(e.target.value)}
                   className="w-full h-10 px-3 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
                 >
-                  <option value="Rent & Deposit">Rent & Deposit Inquiries</option>
-                  <option value="Maintenance">Room / Amenity Maintenance</option>
-                  <option value="Booking & Check-in">Booking & Check-in</option>
-                  <option value="WiFi & Utilities">WiFi & Utilities</option>
-                  <option value="Other">Other</option>
+                  <optgroup label="Maintenance (with response-time commitment)">
+                    {Object.entries(
+                      maintenanceCategories.data as Record<string, { label: string; slaHours: number }>
+                    ).map(([key, c]) => (
+                      <option key={key} value={key}>
+                        {c.label} · within {c.slaHours}h
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Account">
+                    <option value="Rent & Deposit">Rent & Deposit Inquiries</option>
+                    <option value="Booking & Check-in">Booking & Check-in</option>
+                    <option value="General">Something else</option>
+                  </optgroup>
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1">
+                  Photos (optional, up to 4)
+                </label>
+                <input
+                  aria-label="Photos"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setTicketPhotos(Array.from(e.target.files || []).slice(0, 4))}
+                  className="text-xs"
+                />
               </div>
 
               <div>

@@ -31,6 +31,7 @@ import * as v from '../lib/validate.js';
 import { events, type EventContext } from '../lib/events.js';
 import type { AuthUser } from '../middleware/auth.js';
 import { setBedStatus, syncBedAvailability } from './propertyService.js';
+import { rewardReferralOnBooking } from './residentService.js';
 import { dispatchNotification } from '../lib/messaging.js';
 import { razorpayEnabled, simulatedPaymentsAllowed } from '../lib/razorpay.js';
 
@@ -692,6 +693,7 @@ export function approveBooking(
       { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId }
     );
 
+    if (booking.tenantId) rewardReferralOnBooking(booking.tenantId, booking.id);
     return {
       booking,
       customer,
@@ -914,7 +916,8 @@ export function findCustomerByContact(ownerId: string, phone: string, email?: st
       .list({ owner_id: ownerId })
       .find(
         (c) =>
-          c.phone.replace(/\D/g, '') === normalizedPhone || (email && c.email?.toLowerCase() === email.toLowerCase())
+          (c.phone || '').replace(/\D/g, '') === normalizedPhone ||
+          (email && c.email?.toLowerCase() === email.toLowerCase())
       ) || null
   );
 }

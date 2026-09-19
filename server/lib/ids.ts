@@ -26,6 +26,11 @@ export function bookingNumber(): string {
   return `NST-${String(100000 + nextSequence('booking')).padStart(6, '0')}`;
 }
 
+/** Generic sequential label, e.g. `AGR-000012` for agreements or `REF-000003` for refunds. */
+export function nextSequenceLabel(prefix: string, series: string, width = 6): string {
+  return `${prefix}-${String(nextSequence(series)).padStart(width, '0')}`;
+}
+
 /** Support ticket reference (own series so tickets and bookings never collide). */
 export function ticketNumber(): string {
   return `TKT-${String(100000 + nextSequence('ticket')).padStart(6, '0')}`;

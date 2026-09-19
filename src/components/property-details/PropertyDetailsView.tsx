@@ -35,6 +35,7 @@ import { OwnerPropertyListing } from '../../types/property';
 import { PropertyListing } from '../../types';
 import { usePropertyListing } from '../../context/PropertyListingContext';
 import { useAuth } from '../../context/AuthContext';
+import { TourVideo, RoommatesPanel, SatisfactionBadge } from './ListingExtras';
 import { useWishlist } from '../../context/WishlistContext';
 import { CalendarDatePicker } from '../ui/CalendarDatePicker';
 import { ApiClient } from '../../lib/apiClient';
@@ -940,6 +941,9 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
               </div>
             </div>
 
+            <TourVideo url={property.tourVideoUrl} name={property.name} />
+            <RoommatesPanel propertyId={property.id} />
+
             {/* ========================================================================= */}
             {/* 8. RESIDENT REVIEWS & RATINGS (Screenshot 5 Match)                        */}
             {/* ========================================================================= */}
@@ -949,7 +953,12 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                   <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">
                     Resident Reviews & Ratings
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">100% verified tenant reviews from stay check-ins.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Reviews marked "Verified stay" come from residents with a confirmed booking here.
+                  </p>
+                  <div className="mt-1">
+                    <SatisfactionBadge satisfaction={property.satisfaction} />
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1032,7 +1041,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                             </span>
                             {rev.verifiedResident && (
                               <span className="px-2 py-0.5 bg-[#ecfccb] text-[#3f6212] rounded-md text-[10px] font-black uppercase flex items-center gap-1">
-                                <Check className="w-2.5 h-2.5" /> Verified Resident
+                                <Check className="w-2.5 h-2.5" /> Verified stay
                               </span>
                             )}
                           </div>

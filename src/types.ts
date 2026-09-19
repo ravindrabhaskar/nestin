@@ -253,4 +253,8 @@ export interface TenantSupportTicket {
     timestamp: string;
   }[];
   responses?: { sender: 'user' | 'support'; message: string; timestamp: string }[];
+  /** Maintenance requests: photos of the issue and the response-time commitment. */
+  photos?: string[];
+  slaHours?: number;
+  slaDueAt?: string;
 }

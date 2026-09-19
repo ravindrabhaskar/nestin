@@ -237,6 +237,11 @@ export interface OwnerPropertyListing {
     moveInAvailabilityLabel?: string;
   };
 
+  /** Uploaded walkthrough video (mp4/webm) or a YouTube link. */
+  tourVideoUrl?: string;
+  /** Derived from resident NPS surveys; present once there are enough responses. */
+  satisfaction?: { responses: number; wouldRecommend: number };
+
   // Nearby
   nearbyPlaces: PropertyNearbyPlace[];
 

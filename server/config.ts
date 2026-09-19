@@ -117,6 +117,11 @@ export const config = {
     gstPercent: Math.max(0, Number(process.env.SUBSCRIPTION_GST_PERCENT || 18)),
   },
 
+  referrals: {
+    /** Credit (INR) granted to both parties when a referred resident's first booking is confirmed. 0 disables. */
+    creditInr: Math.max(0, Number(process.env.REFERRAL_CREDIT_INR ?? 500)),
+  },
+
   verification: {
     /** Months a "NestIn Verified" badge stays valid before a re-verification visit is due. */
     validityMonths: Math.max(1, Number(process.env.VERIFICATION_VALIDITY_MONTHS || 12)),
@@ -149,7 +154,7 @@ export const config = {
     authWindowMs: 15 * 60 * 1000,
     authMaxAttempts: Number(process.env.AUTH_MAX_ATTEMPTS || 20),
     apiWindowMs: 60 * 1000,
-    apiMaxRequests: Number(process.env.API_MAX_REQUESTS_PER_MINUTE || 600),
+    apiMaxRequests: Number(process.env.API_MAX_REQUESTS_PER_MINUTE || 1200),
   },
 };
 

@@ -127,7 +127,7 @@ export const FinanceView: React.FC<{ showToast: (m: string) => void }> = ({ show
         />
       </div>
 
-      <div className="flex gap-2 bg-white border border-slate-200 rounded-2xl p-1 w-fit">
+      <div className="flex flex-wrap gap-2 bg-white border border-slate-200 rounded-2xl p-1 w-fit max-w-full">
         {(['pnl', 'expenses', 'utilities'] as const).map((t) => (
           <button
             key={t}

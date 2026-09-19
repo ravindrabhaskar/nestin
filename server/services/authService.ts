@@ -17,6 +17,7 @@ import { createJwt, hashToken, type AppRole } from '../lib/jwt.js';
 import { newId } from '../lib/ids.js';
 import { badRequest, conflict, forbidden, unauthorized, HttpError } from '../lib/errors.js';
 import * as v from '../lib/validate.js';
+import { sanitizeLifestyle, findByReferralCode } from './residentService.js';
 import { events } from '../lib/events.js';
 import { clientIp } from '../lib/rateLimit.js';
 import { getAllPermissionsTrue } from '../../src/data/rbacData';
@@ -83,6 +84,7 @@ const PROFILE_FIELDS = [
   'language',
 ] as const;
 const PROFILE_OBJECT_FIELDS = [
+  'lifestyle',
   'livingPreferences',
   'notificationSettings',
   'privacySettings',
@@ -215,6 +217,8 @@ export function register(body: Record<string, unknown>, req: Request): AuthResul
 
   if (users.findByEmail(email))
     throw conflict('An account with this email address already exists. Please log in instead.');
+  const referrer =
+    typeof body.referralCode === 'string' && body.referralCode ? findByReferralCode(body.referralCode) : null;
 
   const user = users.insert({
     id: newId(role === 'owner' ? 'own' : 'usr'),
@@ -229,6 +233,7 @@ export function register(body: Record<string, unknown>, req: Request): AuthResul
       phone: phone || undefined,
       city,
       avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName)}`,
+      ...(referrer && referrer.role !== 'super_admin' ? { referredBy: referrer.id } : {}),
     },
   });
 
@@ -394,7 +399,8 @@ export function updateProfile(userId: string, sessionId: string, body: Record<st
     if (body[field] !== undefined) data[field] = v.optionalStr(body[field], field, field === 'bio' ? 1000 : 200);
   }
   for (const field of PROFILE_OBJECT_FIELDS) {
-    if (body[field] !== undefined) data[field] = v.obj(body[field], field);
+    if (body[field] !== undefined)
+      data[field] = field === 'lifestyle' ? sanitizeLifestyle(body[field]) : v.obj(body[field], field);
   }
   const fullName =
     body.fullName !== undefined

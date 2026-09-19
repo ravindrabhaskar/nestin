@@ -179,4 +179,11 @@ describe('auth & authorization', () => {
     }
     assert.ok(results.includes(429), 'expected a 429 after repeated failures');
   });
+
+  test('successful logins do not count against the brute-force limit', async () => {
+    for (let i = 0; i < 25; i++) {
+      const res = await api.post('/auth/login', { email: DEMO.owner, password: DEMO.password });
+      assert.equal(res.status, 200, `login ${i + 1} should succeed, got ${res.status}`);
+    }
+  });
 });

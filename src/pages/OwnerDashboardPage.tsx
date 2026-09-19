@@ -33,6 +33,7 @@ import {
   Wallet,
   ClipboardList,
   LineChart,
+  FileSignature,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePropertyListing } from '../context/PropertyListingContext';
@@ -56,6 +57,7 @@ import { OwnerNotificationsView } from '../components/dashboard/OwnerNotificatio
 import { FinanceView } from '../components/dashboard/FinanceView';
 import { TasksView } from '../components/dashboard/TasksView';
 import { InsightsView } from '../components/dashboard/InsightsView';
+import { ResidentsView } from '../components/dashboard/ResidentsView';
 import { exportMonthlyReportPDF } from '../utils/pdfExport';
 
 interface OwnerDashboardProps {
@@ -142,6 +144,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
         { name: 'Bookings', icon: CalendarCheck },
         { name: 'Visitors', icon: UserCheck },
         { name: 'Customers', icon: Users },
+        { name: 'Residents', icon: FileSignature },
         { name: 'Tasks', icon: ClipboardList },
         { name: 'Support', icon: LifeBuoy },
       ],
@@ -368,6 +371,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
                           Finance: '/owner/finance',
                           Insights: '/owner/insights',
                           Tasks: '/owner/tasks',
+                          Residents: '/owner/residents',
                           Notifications: '/owner/notifications',
                         };
                         if (routeMap[item.name]) {
@@ -597,6 +601,8 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
             <FinanceView showToast={showToast} />
           ) : activeNav === 'Insights' ? (
             <InsightsView showToast={showToast} />
+          ) : activeNav === 'Residents' ? (
+            <ResidentsView showToast={showToast} />
           ) : activeNav === 'Tasks' ? (
             <TasksView showToast={showToast} />
           ) : activeNav === 'Subscription' ? (

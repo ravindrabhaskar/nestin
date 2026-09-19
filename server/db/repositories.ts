@@ -34,6 +34,11 @@ export interface UserProfileData {
   /** For employees: the id of the RBAC employee record. */
   employeeId?: string;
   emailVerified?: boolean;
+  /** Roommate-matching preferences (see residentService.Lifestyle). */
+  lifestyle?: object;
+  /** Referral programme. */
+  referralCode?: string;
+  referredBy?: string;
 }
 
 export interface UserRecord {
@@ -432,6 +437,8 @@ export interface PaymentRecord {
   description?: string;
   date: string;
   createdAt: string;
+  /** Referral/goodwill credit that reduced what the resident paid. */
+  creditApplied?: number;
   /** Platform commission retained from this payment (INR); the owner receives `amount - platformFee`. */
   platformFee?: number;
   platformFeePercent?: number;
@@ -506,6 +513,114 @@ export const subscriptionInvoices = new Collection<SubscriptionInvoice>({
     amount: i.amount,
     gateway_order_id: i.gatewayOrderId || null,
   }),
+});
+
+export interface AgreementRecord {
+  id: string;
+  agreementNumber: string;
+  ownerId: string;
+  ownerName: string;
+  tenantId: string;
+  customerId: string;
+  bookingId?: string;
+  propertyId: string;
+  propertyName: string;
+  propertyAddress: string;
+  roomName: string;
+  bedNumber: string;
+  residentName: string;
+  residentPhone: string;
+  residentEmail?: string;
+  startDate: string;
+  endDate: string;
+  monthlyRent: number;
+  securityDeposit: number;
+  noticePeriodDays: number;
+  clauses: string[];
+  text: string;
+  textHash: string;
+  status: 'sent' | 'signed' | 'void';
+  sentAt: string;
+  otpHash?: string;
+  otpExpiresAt?: string;
+  otpAttempts?: number;
+  signedAt?: string;
+  signedBy?: string;
+  signedIp?: string;
+  signatureHash?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export const agreements = new Collection<AgreementRecord>({
+  table: 'agreements',
+  columns: (a) => ({ owner_id: a.ownerId, tenant_id: a.tenantId, customer_id: a.customerId, status: a.status }),
+});
+
+export interface MoveOutRecord {
+  id: string;
+  ownerId: string;
+  tenantId: string;
+  customerId: string;
+  propertyId: string;
+  propertyName: string;
+  roomName: string;
+  bedNumber: string;
+  residentName: string;
+  requestedMoveOutDate: string;
+  reason: string;
+  noticeDays: number;
+  depositAmount: number;
+  deductions: Array<{ label: string; amount: number }>;
+  refundAmount: number;
+  inspectionDate?: string;
+  inspectionNotes?: string;
+  refundMethod?: 'UPI' | 'Bank Transfer' | 'Cash' | 'Adjusted';
+  refundReference?: string;
+  settledAt?: string;
+  status: 'requested' | 'inspection_scheduled' | 'inspected' | 'settled' | 'cancelled';
+  timeline: Array<{ at: string; by: string; event: string; note?: string }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const moveOuts = new Collection<MoveOutRecord>({
+  table: 'move_outs',
+  columns: (m) => ({ owner_id: m.ownerId, tenant_id: m.tenantId, customer_id: m.customerId, status: m.status }),
+});
+
+export interface CreditRecord {
+  id: string;
+  userId: string;
+  amount: number;
+  reason: string;
+  status: 'available' | 'applied' | 'expired';
+  sourceUserId?: string;
+  sourceBookingId?: string;
+  appliedToPaymentId?: string;
+  appliedAt?: string;
+  createdAt: string;
+}
+
+export const credits = new Collection<CreditRecord>({
+  table: 'credits',
+  columns: (c) => ({ user_id: c.userId, status: c.status, amount: c.amount }),
+});
+
+export interface SurveyRecord {
+  id: string;
+  userId: string;
+  ownerId: string;
+  propertyId: string;
+  propertyName: string;
+  score: number;
+  comment: string;
+  createdAt: string;
+}
+
+export const surveys = new Collection<SurveyRecord>({
+  table: 'surveys',
+  columns: (s) => ({ user_id: s.userId, owner_id: s.ownerId, property_id: s.propertyId, score: s.score }),
 });
 
 export interface ExpenseRecord {

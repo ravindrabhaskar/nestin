@@ -42,6 +42,17 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+/** Accepts an uploaded mp4/webm from our storage or a YouTube watch/short URL; anything else is dropped. */
+export function sanitizeTourVideo(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  const url = value.trim().slice(0, 500);
+  if (/^(\/api\/v1\/files\/|\/uploads\/)/.test(url) && /\.(mp4|webm)(\?|$)/i.test(url)) return url;
+  const yt = url.match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/);
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}`;
+  if (/^https:\/\/.+\.(mp4|webm)(\?|$)/i.test(url)) return url;
+  return undefined;
+}
+
 export interface PublicPropertyFilters {
   city?: string;
   area?: string;
@@ -359,6 +370,7 @@ export function create(
       status: 'pending' as const,
     })),
     tags: v.arr(draft.tags, 'Tags', 20).map((t) => String(t).slice(0, 40)),
+    tourVideoUrl: sanitizeTourVideo(draft.tourVideoUrl),
     caretaker: {
       ...(draft.caretaker || { name: '', phone: '', isPubliclyVisible: true }),
       isIdentityVerified: false,
@@ -408,6 +420,7 @@ export function update(
     body,
     SYSTEM_CONTROLLED.filter((k) => k !== 'status')
   ) as Partial<OwnerPropertyListing>;
+  if ('tourVideoUrl' in patch) patch.tourVideoUrl = sanitizeTourVideo(patch.tourVideoUrl);
 
   // Status is workflow-controlled; owners may only archive/unarchive or move a rejected listing back to draft.
   let status = existing.status;

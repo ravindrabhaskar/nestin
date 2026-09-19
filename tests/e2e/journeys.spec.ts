@@ -144,7 +144,7 @@ test.describe('Go-to-market surfaces', () => {
     await expect(page.getByText(/Business plan is now active|Business plan active/).first()).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByText(/SUB-\d{4}-\d{4}/).first()).toBeVisible();
+    await expect(page.getByText(/SUB-\d{4}-\d{2}-\d{6}/).first()).toBeVisible();
   });
 
   test('admin verification requires the checklist; billing and ops tabs load', async ({ page }) => {
@@ -158,7 +158,13 @@ test.describe('Go-to-market surfaces', () => {
     });
     await expect(page.getByRole('button', { name: /All Properties/ })).toBeVisible({ timeout: 20_000 });
     await page.getByRole('button', { name: /All Properties/ }).click();
-    await page.getByRole('button', { name: 'Audit' }).first().click();
+    // Pick a listing that is not yet verified, so granting the badge requires the checklist.
+    const unverifiedRow = page
+      .locator('tr')
+      .filter({ hasNot: page.getByText('Verified') })
+      .filter({ has: page.getByRole('button', { name: 'Audit' }) })
+      .first();
+    await unverifiedRow.getByRole('button', { name: 'Audit' }).click();
     await expect(page.getByText('Verification checklist')).toBeVisible();
     await page.getByRole('button', { name: /Verify & Publish Live/ }).click();
     await expect(page.getByRole('alert')).toContainText(/checklist/i);

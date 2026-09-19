@@ -362,6 +362,14 @@ function AppInner() {
                   }
                 />
                 <Route
+                  path="/owner/residents"
+                  element={
+                    <ProtectedOwnerRoute>
+                      <OwnerDashboardPage initialNav="Residents" />
+                    </ProtectedOwnerRoute>
+                  }
+                />
+                <Route
                   path="/owner/tasks"
                   element={
                     <ProtectedOwnerRoute>

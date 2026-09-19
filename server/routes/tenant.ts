@@ -3,6 +3,10 @@ import * as tenant from '../services/tenantService.js';
 import * as crm from '../services/crmService.js';
 import { authenticate, requireRole, currentUser, type AuthedRequest } from '../middleware/auth.js';
 import { sendOk, wrap } from '../middleware/common.js';
+import * as resident from '../services/residentService.js';
+import { users } from '../db/repositories.js';
+import { notFound } from '../lib/errors.js';
+import { clientIp } from '../lib/rateLimit.js';
 
 export const tenantRouter = Router();
 
@@ -160,3 +164,79 @@ tenantRouter.put(
     sendOk(res, { read: true });
   })
 );
+
+// Resident lifecycle: agreements, move-out, referrals, roommates, surveys -----------------------
+tenantRouter.get(
+  '/agreements',
+  wrap((req, res) => sendOk(res, resident.listAgreementsForTenant(currentUser(req).id).map(stripOtp)))
+);
+tenantRouter.post(
+  '/agreements/:id/request-otp',
+  requireRole('tenant'),
+  wrap(async (req, res) => sendOk(res, await resident.requestSigningOtp(currentUser(req), req.params.id)))
+);
+tenantRouter.post(
+  '/agreements/:id/sign',
+  requireRole('tenant'),
+  wrap((req, res) =>
+    sendOk(
+      res,
+      stripOtp(resident.signAgreement(currentUser(req), req.params.id, req.body || {}, ctx(req), clientIp(req)))
+    )
+  )
+);
+tenantRouter.get(
+  '/agreements/:id/document',
+  wrap((req, res) => {
+    const a = resident.agreementForViewer(currentUser(req), req.params.id);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `inline; filename="${a.agreementNumber}.html"`);
+    res.send(resident.agreementDocumentHtml(a));
+  })
+);
+
+tenantRouter.get(
+  '/move-out',
+  wrap((req, res) => sendOk(res, resident.myMoveOut(currentUser(req).id)))
+);
+tenantRouter.post(
+  '/move-out',
+  requireRole('tenant'),
+  wrap((req, res) => sendOk(res, resident.requestMoveOut(currentUser(req), req.body || {}, ctx(req)), 201))
+);
+tenantRouter.post(
+  '/move-out/:id/cancel',
+  requireRole('tenant'),
+  wrap((req, res) => sendOk(res, resident.cancelMoveOut(currentUser(req), req.params.id)))
+);
+
+tenantRouter.get(
+  '/referrals',
+  wrap((req, res) => {
+    const user = users.findById(currentUser(req).id);
+    if (!user) throw notFound('User');
+    sendOk(res, resident.referralSummary(user));
+  })
+);
+
+tenantRouter.get(
+  '/roommates/:propertyId',
+  requireRole('tenant'),
+  wrap((req, res) => sendOk(res, resident.roommatesForProperty(currentUser(req), req.params.propertyId)))
+);
+
+tenantRouter.get(
+  '/survey',
+  wrap((req, res) => sendOk(res, resident.surveyDue(currentUser(req).id)))
+);
+tenantRouter.post(
+  '/survey',
+  requireRole('tenant'),
+  wrap((req, res) => sendOk(res, resident.submitSurvey(currentUser(req), req.body || {}, ctx(req)), 201))
+);
+tenantRouter.get('/maintenance-categories', (_req, res) => sendOk(res, resident.MAINTENANCE_CATEGORIES));
+
+function stripOtp<T extends { otpHash?: string; otpExpiresAt?: string; otpAttempts?: number }>(a: T): T {
+  const { otpHash: _h, otpAttempts: _n, ...rest } = a;
+  return rest as T;
+}

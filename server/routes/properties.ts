@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as props from '../services/propertyService.js';
+import { publicSatisfaction } from '../services/residentService.js';
 import {
   authenticate,
   optionalAuth,
@@ -105,7 +106,7 @@ propertiesRouter.get(
   wrap((req, res) => {
     const listing = props.getPublicBySlugOrId(req.params.slug, req.user);
     if (!req.user || req.user.role === 'tenant') props.recordView(listing.id);
-    sendOk(res, listing);
+    sendOk(res, { ...listing, satisfaction: publicSatisfaction(listing.id) || undefined });
   })
 );
 
