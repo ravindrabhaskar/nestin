@@ -52,11 +52,22 @@ export interface PublicPropertyFilters {
   type?: string;
   verifiedOnly?: boolean;
   availableOnly?: boolean;
-  sort?: 'relevance' | 'rent_asc' | 'rent_desc' | 'rating' | 'newest';
+  /** Listings with meals included/optional. */
+  foodOnly?: boolean;
+  /** Any of: single | double | triple | four | dormitory. */
+  roomTypes?: string[];
+  /** All must be present (case-insensitive amenity names). */
+  amenities?: string[];
+  minRating?: number;
+  /** Centre + radius for "near me"; enables the `nearest` sort. */
+  near?: { lat: number; lng: number; radiusKm?: number };
+  sort?: 'relevance' | 'rent_asc' | 'rent_desc' | 'rating' | 'newest' | 'nearest';
   limit?: number;
   page?: number;
   pageSize?: number;
 }
+
+const ROOM_TYPE_KEYS = ['single', 'double', 'triple', 'four', 'dormitory'];
 
 export interface PublicCatalogueResult {
   items: OwnerPropertyListing[];
@@ -66,7 +77,7 @@ export interface PublicCatalogueResult {
   totalPages: number;
 }
 
-const SORTS: Record<NonNullable<PublicPropertyFilters['sort']>, string> = {
+const SORTS: Record<Exclude<NonNullable<PublicPropertyFilters['sort']>, 'nearest'>, string> = {
   relevance: 'is_featured DESC, is_verified DESC, rating DESC, created_at DESC',
   rent_asc: 'min_rent ASC, rating DESC',
   rent_desc: 'min_rent DESC, rating DESC',
@@ -107,6 +118,35 @@ export function searchPublished(filters: PublicPropertyFilters = {}): PublicCata
   }
   if (filters.verifiedOnly) where.push('is_verified = 1');
   if (filters.availableOnly) where.push('available_beds > 0');
+  if (filters.foodOnly) where.push('has_food = 1');
+  if (filters.minRating && filters.minRating > 0) {
+    where.push('rating >= ?');
+    params.push(Math.min(5, filters.minRating));
+  }
+  const roomTypes = (filters.roomTypes || []).map((t) => t.toLowerCase()).filter((t) => ROOM_TYPE_KEYS.includes(t));
+  if (roomTypes.length) {
+    where.push(`(${roomTypes.map(() => 'room_types LIKE ?').join(' OR ')})`);
+    for (const t of roomTypes) params.push(`%|${t}|%`);
+  }
+  for (const amenity of (filters.amenities || []).slice(0, 12)) {
+    const key = amenity.toLowerCase().replace(/[%_|]/g, '').trim();
+    if (!key) continue;
+    where.push('amenities_text LIKE ?');
+    params.push(`%${key}%`);
+  }
+  // Distance: a bounding box keeps it on the (status, latitude, longitude) index; the equirectangular
+  // approximation below is accurate to well under 1% at city scale and needs no extensions.
+  let distanceExpr = '';
+  if (filters.near && Number.isFinite(filters.near.lat) && Number.isFinite(filters.near.lng)) {
+    const { lat, lng } = filters.near;
+    const radiusKm = Math.min(200, Math.max(0.5, filters.near.radiusKm || 30));
+    const dLat = radiusKm / 111;
+    const cosLat = Math.cos((lat * Math.PI) / 180);
+    const dLng = radiusKm / (111 * Math.max(0.1, cosLat));
+    where.push('latitude BETWEEN ? AND ? AND longitude BETWEEN ? AND ?');
+    params.push(lat - dLat, lat + dLat, lng - dLng, lng + dLng);
+    distanceExpr = `((latitude - ${lat}) * (latitude - ${lat}) + ((longitude - ${lng}) * ${cosLat.toFixed(6)}) * ((longitude - ${lng}) * ${cosLat.toFixed(6)}))`;
+  }
   if (filters.query) {
     for (const term of filters.query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6)) {
       where.push('search_text LIKE ?');
@@ -115,10 +155,11 @@ export function searchPublished(filters: PublicPropertyFilters = {}): PublicCata
   }
   const pageSize = Math.min(500, Math.max(1, Math.floor(filters.pageSize || filters.limit || 24)));
   const page = Math.max(1, Math.floor(filters.page || 1));
+  const sort = filters.sort === 'nearest' && !distanceExpr ? 'relevance' : filters.sort || 'relevance';
   const { items, total } = properties.search({
     where,
     params,
-    orderBy: SORTS[filters.sort || 'relevance'],
+    orderBy: sort === 'nearest' ? `${distanceExpr} ASC, rating DESC` : SORTS[sort],
     limit: pageSize,
     offset: (page - 1) * pageSize,
   });

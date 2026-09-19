@@ -1,4 +1,5 @@
 import { config } from '../config.js';
+import { enqueue, registerJob } from './queue.js';
 import { outbox, users, type OutboxMessage } from '../db/repositories.js';
 import { newId } from './ids.js';
 
@@ -157,33 +158,50 @@ export function dispatchNotification(
   userId: string,
   notif: { title: string; message: string; type: string; linkTo?: string }
 ): void {
-  setImmediate(async () => {
-    try {
-      const user = users.findById(userId);
-      if (!user || user.status !== 'active') return;
-      const prefs = (user.data.notificationSettings || {}) as Record<string, boolean>;
-      const wantsEmail = prefs.emailNotifications !== false;
-      const wantsWhatsApp = prefs.whatsAppNotifications === true && !!user.data.phone;
-      const categoryOptOut =
-        (notif.type === 'booking' && prefs.bookingUpdates === false) ||
-        (notif.type === 'payment' && prefs.paymentConfirmation === false) ||
-        (notif.type === 'visit' && prefs.visitConfirmation === false);
-      if (categoryOptOut) return;
-      const link = notif.linkTo ? `${config.appUrl}${notif.linkTo}` : config.appUrl;
-      if (wantsEmail)
-        await sendEmail({
-          to: user.email,
-          subject: `NestIn: ${notif.title}`,
-          html: emailTemplate(notif.title, [`Hi ${user.fullName},`, notif.message], {
-            label: 'Open NestIn',
-            url: link,
-          }),
-        });
-      if (wantsWhatsApp) await sendWhatsApp(user.data.phone!, `NestIn — ${notif.title}\n${notif.message}\n${link}`);
-    } catch (err) {
-      console.error('[notify] dispatch failed:', err);
-    }
-  });
+  // Queued rather than awaited: provider latency or outages never slow the user's request, and
+  // delivery is retried with backoff (see lib/queue.ts).
+  enqueue('notification.deliver', { userId, notif }, { maxAttempts: 4 });
+}
+
+registerJob('notification.deliver', async (payload) => {
+  await deliverNotification(
+    String(payload.userId),
+    payload.notif as { title: string; message: string; type: string; linkTo?: string }
+  );
+});
+
+/** Channel fan-out (email / WhatsApp) for one notification. Throws on provider failure so the job retries. */
+export async function deliverNotification(
+  userId: string,
+  notif: { title: string; message: string; type: string; linkTo?: string }
+): Promise<void> {
+  const user = users.findById(userId);
+  if (!user || user.status !== 'active') return;
+  const prefs = (user.data.notificationSettings || {}) as Record<string, boolean>;
+  const wantsEmail = prefs.emailNotifications !== false;
+  const wantsWhatsApp = prefs.whatsAppNotifications === true && !!user.data.phone;
+  const categoryOptOut =
+    (notif.type === 'booking' && prefs.bookingUpdates === false) ||
+    (notif.type === 'payment' && prefs.paymentConfirmation === false) ||
+    (notif.type === 'visit' && prefs.visitConfirmation === false);
+  if (categoryOptOut) return;
+  const link = notif.linkTo ? `${config.appUrl}${notif.linkTo}` : config.appUrl;
+  const results: OutboxMessage[] = [];
+  if (wantsEmail)
+    results.push(
+      await sendEmail({
+        to: user.email,
+        subject: `NestIn: ${notif.title}`,
+        html: emailTemplate(notif.title, [`Hi ${user.fullName},`, notif.message], {
+          label: 'Open NestIn',
+          url: link,
+        }),
+      })
+    );
+  if (wantsWhatsApp)
+    results.push(await sendWhatsApp(user.data.phone!, `NestIn — ${notif.title}\n${notif.message}\n${link}`));
+  const failed = results.find((r) => r.status === 'failed');
+  if (failed) throw new Error(`${failed.channel} delivery failed: ${failed.error || 'unknown error'}`);
 }
 
 export const messagingStatus = () => ({

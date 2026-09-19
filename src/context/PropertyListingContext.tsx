@@ -85,7 +85,9 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
 
   const refresh = useCallback(async () => {
     try {
-      const requests: Promise<OwnerPropertyListing[]>[] = [ApiClient.properties.listPublic()];
+      // A bounded "featured" slice for home/recently-viewed widgets; Find PG and city pages query the
+      // paginated search endpoint themselves, so the catalogue size never affects page load.
+      const requests: Promise<OwnerPropertyListing[]>[] = [ApiClient.properties.listPublic({ limit: 48 })];
       if (isSuperAdmin) requests.push(ApiClient.admin.properties());
       else if (ownerId) requests.push(ApiClient.properties.listOwner());
       const [published, privileged = []] = await Promise.all(requests);

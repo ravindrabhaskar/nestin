@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { HttpError } from '../lib/errors.js';
 import { config } from '../config.js';
+import { captureError } from '../lib/errorTracking.js';
 import type { AuthedRequest } from './auth.js';
 
 export function correlation(req: AuthedRequest, res: Response, next: NextFunction): void {
@@ -159,6 +160,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
   console.error(`[api] unhandled error (${correlationId}):`, err);
+  captureError(err, { correlationId, method: req.method, path: req.originalUrl });
   res.status(500).json({
     success: false,
     error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' },

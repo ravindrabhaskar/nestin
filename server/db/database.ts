@@ -194,6 +194,18 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_user ON auth_tokens(user_id, kind);
 
+CREATE TABLE IF NOT EXISTS job_queue (
+  id TEXT PRIMARY KEY, type TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 5, run_at TEXT NOT NULL, dedupe_key TEXT, payload TEXT NOT NULL,
+  last_error TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_job_queue_due ON job_queue(status, run_at);
+CREATE INDEX IF NOT EXISTS idx_job_queue_dedupe ON job_queue(dedupe_key);
+
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY, count INTEGER NOT NULL, reset_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS outbox (
   id TEXT PRIMARY KEY, channel TEXT NOT NULL CHECK (channel IN ('email','whatsapp')), recipient TEXT NOT NULL, status TEXT NOT NULL,
   data TEXT NOT NULL, created_at TEXT NOT NULL
@@ -244,11 +256,18 @@ function migrate(database: DatabaseSync): void {
     ['is_featured', 'INTEGER'],
     ['available_beds', 'INTEGER'],
     ['search_text', 'TEXT'],
+    // v3.2 facets: food, sharing types, amenities and coordinates so Find PG filters run in SQL.
+    ['has_food', 'INTEGER'],
+    ['room_types', 'TEXT'],
+    ['amenities_text', 'TEXT'],
+    ['latitude', 'REAL'],
+    ['longitude', 'REAL'],
   ] as const) {
     if (!propCols.includes(col)) database.exec(`ALTER TABLE properties ADD COLUMN ${col} ${ddl}`);
   }
   database.exec('CREATE INDEX IF NOT EXISTS idx_properties_city_status ON properties(status, city)');
   database.exec('CREATE INDEX IF NOT EXISTS idx_properties_rent ON properties(status, min_rent)');
+  database.exec('CREATE INDEX IF NOT EXISTS idx_properties_geo ON properties(status, latitude, longitude)');
   const paymentCols = (database.prepare('PRAGMA table_info(payments)').all() as Array<{ name: string }>).map(
     (c) => c.name
   );

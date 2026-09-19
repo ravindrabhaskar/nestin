@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { MapPin, Map as MapIcon, ShieldCheck, Star } from 'lucide-react';
 import { PropertyListing, ViewMode, FindPGFilterState } from '../types';
 import { usePropertyListing } from '../context/PropertyListingContext';
+import { ApiClient, type CatalogueSearchParams } from '../lib/apiClient';
+import type { OwnerPropertyListing } from '../types/property';
 import { useAuth } from '../context/AuthContext';
 import { PropertyCard } from './PropertyCard';
 import { FilterBar, DEFAULT_FILTERS } from './FilterBar';
@@ -33,7 +35,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({ onOpenAuth, initialSearc
   const [searchQuery, setSearchQuery] = useState(effectiveInitialSearch);
   const [currentLocationText, setCurrentLocationText] = useState(effectiveInitialSearch);
   const [viewMode, setViewMode] = useState<ViewMode>(viewParam || 'grid');
-  const { publishedProperties, toFindPGListing } = usePropertyListing();
+  const { toFindPGListing } = usePropertyListing();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMapProperty, setSelectedMapProperty] = useState<PropertyListing | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,14 +101,85 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({ onOpenAuth, initialSearc
     }, 'Please sign in with Google to reserve your room and complete your booking.');
   };
 
-  // Brief smooth loading transition whenever search query, filters, or page index change
+  // Results come from the SQL-backed catalogue search, so filtering scales with the database rather
+  // than the browser. One request per (filters, page); the map view asks for a wider page.
+  const [results, setResults] = useState<PropertyListing[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [nearMe, setNearMe] = useState<{ lat: number; lng: number } | null>(null);
+
+  const searchParamsFor = useCallback(
+    (f: FindPGFilterState, page: number, pageSize: number): CatalogueSearchParams => {
+      const roomTypes = f.roomTypes
+        .map((rt) => rt.toLowerCase())
+        .map((rt) => (rt.startsWith('private') ? 'single' : rt.replace(' sharing', '')))
+        .filter((v, i, arr) => arr.indexOf(v) === i);
+      const gender = f.gender.toLowerCase();
+      const category =
+        /boy|men/.test(gender) && !/women/.test(gender)
+          ? 'Men'
+          : /girl|women/.test(gender)
+            ? 'Women'
+            : /co/.test(gender)
+              ? 'Co-ed'
+              : undefined;
+      const sort: CatalogueSearchParams['sort'] =
+        f.sortBy === 'price-asc'
+          ? 'rent_asc'
+          : f.sortBy === 'price-desc'
+            ? 'rent_desc'
+            : f.sortBy === 'rating-desc'
+              ? 'rating'
+              : nearMe
+                ? 'nearest'
+                : 'relevance';
+      return {
+        q: f.searchQuery.trim() || undefined,
+        maxRent: f.maxRent < 35000 ? f.maxRent : undefined,
+        category,
+        food: f.foodPreference !== 'Any' ? true : undefined,
+        roomTypes: roomTypes.length ? roomTypes.join(',') : undefined,
+        amenities: f.selectedAmenities.length ? f.selectedAmenities.join(',') : undefined,
+        verified: f.verifiedOnly || undefined,
+        available: f.availableNow || undefined,
+        minRating: f.minRating > 0 ? f.minRating : undefined,
+        lat: nearMe?.lat,
+        lng: nearMe?.lng,
+        radiusKm: nearMe ? (f.maxDistance < 30 ? f.maxDistance : 30) : undefined,
+        sort,
+        page,
+        pageSize,
+      };
+    },
+    [nearMe]
+  );
+
   useEffect(() => {
+    let cancelled = false;
     setIsLoading(true);
+    const pageSize = viewMode === 'map' ? 200 : ITEMS_PER_PAGE;
     const timer = window.setTimeout(() => {
-      setIsLoading(false);
-    }, 280);
-    return () => window.clearTimeout(timer);
-  }, [filters, currentPage, viewMode]);
+      ApiClient.properties
+        .search(searchParamsFor(filters, viewMode === 'map' ? 1 : currentPage, pageSize))
+        .then(({ data, metadata }) => {
+          if (cancelled) return;
+          setResults((data as OwnerPropertyListing[]).map(toFindPGListing));
+          setTotalItems(Number(metadata.total || data.length));
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setResults([]);
+            setTotalItems(0);
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [filters, currentPage, viewMode, searchParamsFor, toFindPGListing]);
 
   // Handle hero search submit
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -129,12 +202,27 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({ onOpenAuth, initialSearc
   };
 
   const handleNearMe = () => {
-    const loc = 'Hyderabad';
-    setSearchQuery(loc);
-    setCurrentLocationText('Near me • Hyderabad');
-    setFilters((prev) => ({ ...prev, searchQuery: loc }));
-    setCurrentPage(1);
-    updateUrlParams(loc);
+    const fallback = () => {
+      const loc = 'Hyderabad';
+      setSearchQuery(loc);
+      setCurrentLocationText('Near me • Hyderabad');
+      setFilters((prev) => ({ ...prev, searchQuery: loc }));
+      setCurrentPage(1);
+      updateUrlParams(loc);
+    };
+    if (!('geolocation' in navigator)) return fallback();
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setNearMe({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setSearchQuery('');
+        setCurrentLocationText('Near me • your location');
+        setFilters((prev) => ({ ...prev, searchQuery: '', sortBy: 'nearest' }));
+        setCurrentPage(1);
+        setSearchParams({ view: viewMode }, { replace: true });
+      },
+      fallback,
+      { timeout: 5000, maximumAge: 300_000 }
+    );
   };
 
   const handleSelectSuggestedLocation = (location: string) => {
@@ -145,130 +233,9 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({ onOpenAuth, initialSearc
     updateUrlParams(location);
   };
 
-  // Filter properties dynamically
-  const filteredProperties = useMemo(() => {
-    let result = publishedProperties.map(toFindPGListing);
-
-    // Search query match
-    if (filters.searchQuery.trim()) {
-      const q = filters.searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.city.toLowerCase().includes(q) ||
-          (p.area && p.area.toLowerCase().includes(q)) ||
-          (p.address && p.address.toLowerCase().includes(q))
-      );
-    }
-
-    // Rent filter
-    if (filters.maxRent < 35000) {
-      result = result.filter((p) => (p.rent || p.price) <= filters.maxRent);
-    }
-
-    // Distance filter
-    if (filters.maxDistance < 30) {
-      result = result.filter((p) => {
-        const distStr = p.distance || '2.5 km away';
-        const numMatch = distStr.match(/(\d+(\.\d+)?)/);
-        const distVal = numMatch ? parseFloat(numMatch[1]) : 2.5;
-        return distVal <= filters.maxDistance;
-      });
-    }
-
-    // Gender filter
-    if (filters.gender !== 'Any') {
-      const selected = filters.gender.toLowerCase();
-      result = result.filter((p) => {
-        if (!p.gender) return false;
-        const g = p.gender.toLowerCase();
-        if (selected.includes('men') || selected.includes('boy')) {
-          return g.includes('boy') || g.includes('men');
-        }
-        if (selected.includes('women') || selected.includes('girl')) {
-          return g.includes('girl') || g.includes('women');
-        }
-        if (selected.includes('co-living') || selected.includes('coliving')) {
-          return g.includes('co-living') || g.includes('coliving');
-        }
-        return g === selected;
-      });
-    }
-
-    // Food preference filter
-    if (filters.foodPreference !== 'Any') {
-      result = result.filter((p) => p.food === true);
-    }
-
-    // Room type filter
-    if (filters.roomTypes.length > 0) {
-      result = result.filter((p) => {
-        const pSharing = p.sharing || [];
-        const pType = p.type || '';
-        return filters.roomTypes.some((rt) => {
-          if (rt === 'Single sharing') return pSharing.some((s) => s.toLowerCase().includes('single'));
-          if (rt === 'Double sharing') return pSharing.some((s) => s.toLowerCase().includes('double'));
-          if (rt === 'Triple sharing') return pSharing.some((s) => s.toLowerCase().includes('triple'));
-          if (rt === 'Four sharing') return pSharing.some((s) => s.toLowerCase().includes('four'));
-          if (rt === 'Private room')
-            return (
-              pType === 'Private Room' ||
-              pSharing.some((s) => s.toLowerCase().includes('private') || s.toLowerCase().includes('single'))
-            );
-          return true;
-        });
-      });
-    }
-
-    // Amenities filter
-    if (filters.selectedAmenities.length > 0) {
-      result = result.filter((p) => {
-        const pAmenities = p.amenities || [];
-        return filters.selectedAmenities.some((a) =>
-          pAmenities.some((pa) => pa.toLowerCase().includes(a.toLowerCase()))
-        );
-      });
-    }
-
-    // Verified only filter
-    if (filters.verifiedOnly) {
-      result = result.filter((p) => p.verified);
-    }
-
-    // Available now filter
-    if (filters.availableNow) {
-      result = result.filter((p) => p.available && p.available.toLowerCase().includes('now'));
-    }
-
-    // Min rating filter
-    if (filters.minRating > 0) {
-      result = result.filter((p) => p.rating >= filters.minRating);
-    }
-
-    // Sorting
-    result.sort((a, b) => {
-      const priceA = a.rent || a.price;
-      const priceB = b.rent || b.price;
-      if (filters.sortBy === 'price-asc') return priceA - priceB;
-      if (filters.sortBy === 'price-desc') return priceB - priceA;
-      if (filters.sortBy === 'rating-desc') return b.rating - a.rating;
-      // default nearest (sort by featured first, then rating)
-      if (a.featured && !b.featured) return -1;
-      if (!a.featured && b.featured) return 1;
-      return b.rating - a.rating;
-    });
-
-    return result;
-  }, [filters, publishedProperties, toFindPGListing]);
-
-  // Pagination calculation
-  const totalItems = filteredProperties.length;
+  const filteredProperties = results;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE) || 1;
-
-  const paginatedProperties = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredProperties.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredProperties, currentPage]);
+  const paginatedProperties = viewMode === 'map' ? results.slice(0, ITEMS_PER_PAGE) : results;
 
   const handleFilterChange = (newFilters: FindPGFilterState) => {
     setFilters(newFilters);
@@ -307,8 +274,9 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({ onOpenAuth, initialSearc
         {/* RESULTS HEADER TITLE */}
         <div className="space-y-1 pt-2 min-w-0">
           <div className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200/80 text-[11px] font-semibold text-slate-600 mb-2 max-w-full truncate">
-            Showing 1–{Math.min(paginatedProperties.length, ITEMS_PER_PAGE)} of {totalItems} verified PGs • page{' '}
-            {currentPage} of {totalPages}
+            Showing {totalItems === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}–
+            {Math.min(totalItems, (currentPage - 1) * ITEMS_PER_PAGE + paginatedProperties.length)} of {totalItems}{' '}
+            verified PGs • page {currentPage} of {totalPages}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
             {totalItems} verified stays near {locationDisplayTitle}
@@ -522,7 +490,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({ onOpenAuth, initialSearc
               <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200/80 shadow-md flex items-center gap-2 text-xs font-bold text-slate-800">
                 <MapPin className="w-3.5 h-3.5 text-emerald-600" />
                 <span>
-                  Map View — {locationDisplayTitle} ({filteredProperties.length} Stays)
+                  Map View — {locationDisplayTitle} ({totalItems} Stays)
                 </span>
               </div>
 

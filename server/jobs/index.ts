@@ -7,6 +7,7 @@ import { runVerificationExpiry } from '../services/propertyService.js';
 import { getSubscription, hasFeature } from '../services/billingService.js';
 import { runScheduledBackup } from '../lib/backup.js';
 import { log } from '../lib/logger.js';
+import { startQueueWorker } from '../lib/queue.js';
 
 /**
  * Lightweight in-process scheduler. Jobs are idempotent per period (tracked in the `meta` table) so
@@ -75,6 +76,7 @@ export function reconcileSubscriptions(): number {
 }
 
 export function startJobs(): void {
+  startQueueWorker();
   const tick = async () => {
     try {
       runRentReminders();

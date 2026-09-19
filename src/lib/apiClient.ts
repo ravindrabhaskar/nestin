@@ -165,8 +165,9 @@ export const ApiClient = {
   },
 
   properties: {
-    listPublic: (params?: { city?: string; q?: string; category?: string; maxRent?: number }) => {
+    listPublic: (params?: { city?: string; q?: string; category?: string; maxRent?: number; limit?: number }) => {
       const qs = new URLSearchParams();
+      if (params?.limit) qs.set('limit', String(params.limit));
       if (params?.city) qs.set('city', params.city);
       if (params?.q) qs.set('q', params.q);
       if (params?.category) qs.set('category', params.category);
@@ -363,7 +364,16 @@ export interface CatalogueSearchParams {
   maxRent?: number;
   verified?: boolean;
   available?: boolean;
-  sort?: 'relevance' | 'rent_asc' | 'rent_desc' | 'rating' | 'newest';
+  food?: boolean;
+  minRating?: number;
+  /** Comma-separated: single,double,triple,four,dormitory */
+  roomTypes?: string;
+  /** Comma-separated amenity names (all must match). */
+  amenities?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  sort?: 'relevance' | 'rent_asc' | 'rent_desc' | 'rating' | 'newest' | 'nearest';
   page?: number;
   pageSize?: number;
 }
@@ -510,11 +520,54 @@ export interface UploadedFile {
   sizeLabel: string;
 }
 
+/**
+ * Client-side image pipeline: photos are resized to a sensible maximum edge and re-encoded (WebP
+ * when the browser can, else JPEG) before upload, so a 6 MB phone photo becomes ~200 KB without
+ * any native image library on the server. Non-images and documents are passed through untouched.
+ */
+export async function optimiseImage(file: File, opts: { maxEdge?: number; quality?: number } = {}): Promise<File> {
+  if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type) || typeof createImageBitmap !== 'function') return file;
+  const maxEdge = opts.maxEdge ?? 1600;
+  const quality = opts.quality ?? 0.82;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && file.size < 400 * 1024) return file;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const type = (await supportsWebp()) ? 'image/webp' : 'image/jpeg';
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+    if (!blob || blob.size >= file.size) return file;
+    const name = file.name.replace(/\.[^.]+$/, '') + (type === 'image/webp' ? '.webp' : '.jpg');
+    return new File([blob], name, { type, lastModified: Date.now() });
+  } catch {
+    return file;
+  }
+}
+
+let webpSupport: Promise<boolean> | null = null;
+function supportsWebp(): Promise<boolean> {
+  if (!webpSupport) {
+    webpSupport = new Promise((resolve) => {
+      const c = document.createElement('canvas');
+      resolve(c.toDataURL('image/webp').startsWith('data:image/webp'));
+    });
+  }
+  return webpSupport;
+}
+
 /** Multipart upload; returns the URL to reference from profiles, listings or documents. */
 export async function uploadFile(file: File, purpose: 'avatar' | 'property' | 'document'): Promise<UploadedFile> {
   const form = new FormData();
   form.append('purpose', purpose);
-  form.append('file', file, file.name);
+  const upload =
+    purpose === 'document' ? file : await optimiseImage(file, { maxEdge: purpose === 'avatar' ? 512 : 1600 });
+  form.append('file', upload, upload.name);
   const token = tokenStore.get();
   let res: Response;
   try {

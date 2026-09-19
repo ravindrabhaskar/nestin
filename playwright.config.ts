@@ -30,6 +30,22 @@ export default defineConfig({
       use: { ...devices['Pixel 5'], viewport: { width: 375, height: 667 } },
       testMatch: /visual\.spec\.ts/,
     },
+    // Cross-browser runs of the journeys and flows (not the crawl, which is viewport-focused).
+    // Enabled with BROWSERS=all (CI nightly); needs `npx playwright install firefox webkit`.
+    ...(process.env.BROWSERS === 'all'
+      ? [
+          {
+            name: 'firefox',
+            use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 800 } },
+            testMatch: /(journeys|flows)\.spec\.ts/,
+          },
+          {
+            name: 'webkit',
+            use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } },
+            testMatch: /(journeys|flows)\.spec\.ts/,
+          },
+        ]
+      : []),
   ],
   webServer: {
     command: 'npx tsx server.ts',

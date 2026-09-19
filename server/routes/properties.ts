@@ -43,8 +43,18 @@ propertiesRouter.get(
       maxRent: qn(req.query.maxRent),
       verifiedOnly: req.query.verified === 'true',
       availableOnly: req.query.available === 'true',
+      foodOnly: req.query.food === 'true',
+      minRating: qn(req.query.minRating),
+      roomTypes: qs(req.query.roomTypes)?.split(',').filter(Boolean),
+      amenities: qs(req.query.amenities)?.split(',').filter(Boolean),
+      near:
+        qn(req.query.lat) !== undefined && qn(req.query.lng) !== undefined
+          ? { lat: qn(req.query.lat)!, lng: qn(req.query.lng)!, radiusKm: qn(req.query.radiusKm) }
+          : undefined,
       sort:
-        sort && sort in { relevance: 1, rent_asc: 1, rent_desc: 1, rating: 1, newest: 1 } ? (sort as never) : undefined,
+        sort && sort in { relevance: 1, rent_asc: 1, rent_desc: 1, rating: 1, newest: 1, nearest: 1 }
+          ? (sort as never)
+          : undefined,
       page: paged ? qn(req.query.page) || 1 : 1,
       pageSize: paged ? qn(req.query.pageSize) || 24 : Math.min(500, qn(req.query.limit) || 500),
     });

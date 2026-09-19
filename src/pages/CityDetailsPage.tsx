@@ -1,4 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { ApiClient } from '../lib/apiClient';
+import type { OwnerPropertyListing } from '../types/property';
+import type { PropertyListing } from '../types';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -49,14 +52,22 @@ export const CityDetailsPage: React.FC = () => {
   }, [citySlug, allCities]);
 
   // Filter properties in this city
-  const { publishedProperties, toFindPGListing } = usePropertyListing();
-  const allListings = useMemo(() => publishedProperties.map(toFindPGListing), [publishedProperties, toFindPGListing]);
-  const cityProperties = useMemo(() => {
-    return allListings.filter(
-      (p) =>
-        p.city.toLowerCase().includes(city.name.toLowerCase()) || city.name.toLowerCase().includes(p.city.toLowerCase())
-    );
-  }, [city, allListings]);
+  const { toFindPGListing } = usePropertyListing();
+  const [cityProperties, setCityProperties] = useState<PropertyListing[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    ApiClient.properties
+      .search({ city: city.name, pageSize: 60, sort: 'relevance' })
+      .then(({ data }) => {
+        if (!cancelled) setCityProperties((data as OwnerPropertyListing[]).map(toFindPGListing));
+      })
+      .catch(() => {
+        if (!cancelled) setCityProperties([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [city.name, toFindPGListing]);
 
   const handleExplorePGs = () => {
     navigate(`/find-pg?city=${encodeURIComponent(city.name)}`);
@@ -447,7 +458,7 @@ export const CityDetailsPage: React.FC = () => {
 
           <div className="h-[400px] rounded-2xl overflow-hidden border border-white/10">
             <InteractiveMap
-              properties={cityProperties.length > 0 ? cityProperties : allListings.slice(0, 10)}
+              properties={cityProperties}
               onSelectProperty={(prop) => {
                 navigate(`/properties/${prop.slug || prop.id}`);
               }}

@@ -278,18 +278,38 @@ export const properties = new Collection<OwnerPropertyListing>({
       .filter(Boolean)
       .join(' ')
       .toLowerCase(),
+    has_food: p.pricing?.foodMess?.type && p.pricing.foodMess.type !== 'Not Available' ? 1 : 0,
+    // "|single|double|" so a room-type filter is a single indexed LIKE per selected type.
+    room_types: `|${Array.from(new Set((p.rooms || []).map((r) => roomTypeKey(r.type)))).join('|')}|`,
+    amenities_text: `|${(p.amenities || [])
+      .filter((a) => a.isAvailable)
+      .map((a) => a.name.toLowerCase())
+      .join('|')}|`,
+    latitude: Number.isFinite(p.location?.latitude) ? p.location.latitude : null,
+    longitude: Number.isFinite(p.location?.longitude) ? p.location.longitude : null,
   }),
 });
+
+/** Normalises "Single Sharing" / "Private Room" / "Dormitory" into the keys the search filter uses. */
+export function roomTypeKey(type: string | undefined): string {
+  const t = (type || '').toLowerCase();
+  if (t.includes('single') || t.includes('private')) return 'single';
+  if (t.includes('double') || t.includes('twin')) return 'double';
+  if (t.includes('triple')) return 'triple';
+  if (t.includes('four') || t.includes('quad')) return 'four';
+  if (t.includes('dorm')) return 'dormitory';
+  return t.replace(/[^a-z]+/g, '-') || 'custom';
+}
 
 /** Re-derives indexed catalogue columns once after upgrading a database created before v3.1. */
 export function backfillCatalogueColumns(): number {
   let touched = 0;
-  if (!getMeta('migration:catalogue-columns-v1')) {
+  if (!getMeta('migration:catalogue-columns-v2')) {
     const all = properties.list({}, { limit: 100000 });
     Collection.transaction(() => {
       for (const p of all) properties.replace(p);
     });
-    setMeta('migration:catalogue-columns-v1', new Date().toISOString());
+    setMeta('migration:catalogue-columns-v2', new Date().toISOString());
     touched += all.length;
   }
   // payments.gateway_order_id was added later; rewrite once so webhooks can look orders up by index.

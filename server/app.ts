@@ -33,6 +33,8 @@ import { pushRouter } from './routes/push.js';
 import { requestLogger, metricsText, log } from './lib/logger.js';
 import { databaseSizeBytes } from './db/database.js';
 import { pushEnabled } from './lib/push.js';
+import { initErrorTracking, errorTrackingEnabled } from './lib/errorTracking.js';
+import { queueStats } from './lib/queue.js';
 import './services/notificationService.js';
 
 const startedAt = Date.now();
@@ -67,6 +69,8 @@ export function createApiRouter(): Router {
       storage: storageDriverName,
       messaging: messagingStatus(),
       push: pushEnabled(),
+      errorTracking: errorTrackingEnabled(),
+      queue: queueStats(),
       demoData: config.seedDemoData,
       timestamp: new Date().toISOString(),
     });
@@ -96,6 +100,7 @@ export interface AppOptions {
 
 export async function createApp(options: AppOptions = {}): Promise<Express> {
   assertProductionConfig();
+  await initErrorTracking();
   getDb();
   seedDatabase();
   backfillCatalogueColumns();

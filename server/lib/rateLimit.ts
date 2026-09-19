@@ -1,22 +1,20 @@
 import type { Request, Response, NextFunction } from 'express';
 import { tooManyRequests } from './errors.js';
-
-interface Bucket {
-  count: number;
-  resetAt: number;
-}
+import { getDb } from '../db/database.js';
 
 /**
- * Fixed-window in-memory rate limiter keyed by client IP (+ optional key such as email).
- * Sufficient for a single-instance deployment; swap for a Redis-backed limiter when scaling out.
+ * Fixed-window rate limiter keyed by client IP (+ optional key such as email), persisted in the
+ * `rate_limits` table so counters survive restarts and are shared by every app instance on the
+ * same database. One upsert per request; expired rows are swept periodically.
  */
 export function rateLimit(opts: { windowMs: number; max: number; keyFn?: (req: Request) => string; name: string }) {
-  const buckets = new Map<string, Bucket>();
-
   const sweep = setInterval(
     () => {
-      const now = Date.now();
-      for (const [k, b] of buckets) if (b.resetAt <= now) buckets.delete(k);
+      try {
+        getDb().prepare('DELETE FROM rate_limits WHERE reset_at <= ?').run(Date.now());
+      } catch {
+        // table may not exist yet during early boot; nothing to sweep
+      }
     },
     Math.min(opts.windowMs, 60_000)
   );
@@ -25,16 +23,19 @@ export function rateLimit(opts: { windowMs: number; max: number; keyFn?: (req: R
   return (req: Request, res: Response, next: NextFunction) => {
     const key = `${opts.name}:${clientIp(req)}:${opts.keyFn ? opts.keyFn(req) : ''}`;
     const now = Date.now();
-    let bucket = buckets.get(key);
-    if (!bucket || bucket.resetAt <= now) {
-      bucket = { count: 0, resetAt: now + opts.windowMs };
-      buckets.set(key, bucket);
-    }
-    bucket.count += 1;
+    const row = getDb()
+      .prepare(
+        `INSERT INTO rate_limits (key, count, reset_at) VALUES (?, 1, ?)
+         ON CONFLICT(key) DO UPDATE SET
+           count = CASE WHEN rate_limits.reset_at <= excluded.reset_at - ? THEN 1 ELSE rate_limits.count + 1 END,
+           reset_at = CASE WHEN rate_limits.reset_at <= excluded.reset_at - ? THEN excluded.reset_at ELSE rate_limits.reset_at END
+         RETURNING count, reset_at`
+      )
+      .get(key, now + opts.windowMs, opts.windowMs, opts.windowMs) as { count: number; reset_at: number };
     res.setHeader('X-RateLimit-Limit', String(opts.max));
-    res.setHeader('X-RateLimit-Remaining', String(Math.max(0, opts.max - bucket.count)));
-    if (bucket.count > opts.max) {
-      res.setHeader('Retry-After', String(Math.ceil((bucket.resetAt - now) / 1000)));
+    res.setHeader('X-RateLimit-Remaining', String(Math.max(0, opts.max - row.count)));
+    if (row.count > opts.max) {
+      res.setHeader('Retry-After', String(Math.max(1, Math.ceil((row.reset_at - now) / 1000))));
       return next(tooManyRequests());
     }
     next();
