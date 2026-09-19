@@ -30,6 +30,9 @@ import {
   FileDown,
   Eye,
   ShieldCheck,
+  Wallet,
+  ClipboardList,
+  LineChart,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePropertyListing } from '../context/PropertyListingContext';
@@ -50,6 +53,9 @@ import { EmployeesView } from '../components/dashboard/rbac/EmployeesView';
 import { RolesManagementView } from '../components/dashboard/rbac/RolesManagementView';
 import { SubscriptionView } from '../components/dashboard/SubscriptionView';
 import { OwnerNotificationsView } from '../components/dashboard/OwnerNotificationsView';
+import { FinanceView } from '../components/dashboard/FinanceView';
+import { TasksView } from '../components/dashboard/TasksView';
+import { InsightsView } from '../components/dashboard/InsightsView';
 import { exportMonthlyReportPDF } from '../utils/pdfExport';
 
 interface OwnerDashboardProps {
@@ -136,6 +142,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
         { name: 'Bookings', icon: CalendarCheck },
         { name: 'Visitors', icon: UserCheck },
         { name: 'Customers', icon: Users },
+        { name: 'Tasks', icon: ClipboardList },
         { name: 'Support', icon: LifeBuoy },
       ],
     },
@@ -145,6 +152,8 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
         { name: 'Employees', icon: Briefcase },
         { name: 'Roles & Permissions', icon: ShieldCheck },
         { name: 'Payments', icon: CreditCard },
+        { name: 'Finance', icon: Wallet },
+        { name: 'Insights', icon: LineChart },
         { name: 'Subscription', icon: Receipt },
         { name: 'Documents', icon: FolderLock },
       ],
@@ -356,6 +365,9 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
                           'Roles & Permissions': '/owner/roles-permissions',
                           Support: '/owner/support',
                           Subscription: '/owner/subscription',
+                          Finance: '/owner/finance',
+                          Insights: '/owner/insights',
+                          Tasks: '/owner/tasks',
                           Notifications: '/owner/notifications',
                         };
                         if (routeMap[item.name]) {
@@ -581,6 +593,12 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
             />
           ) : activeNav === 'Roles & Permissions' ? (
             <RolesManagementView />
+          ) : activeNav === 'Finance' ? (
+            <FinanceView showToast={showToast} />
+          ) : activeNav === 'Insights' ? (
+            <InsightsView showToast={showToast} />
+          ) : activeNav === 'Tasks' ? (
+            <TasksView showToast={showToast} />
           ) : activeNav === 'Subscription' ? (
             <SubscriptionView showToast={showToast} />
           ) : activeNav === 'Notifications' ? (

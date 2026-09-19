@@ -279,6 +279,7 @@ export const ApiClient = {
   },
 
   admin: {
+    analytics: (days = 30) => http.get<any>(`/admin/analytics?days=${days}`),
     stats: () => http.get<any>('/admin/stats'),
     support: () => http.get<any[]>('/admin/support'),
     replySupport: (id: string, message: string) => http.post<any>(`/admin/support/${id}/messages`, { message }),
@@ -319,6 +320,35 @@ export const ApiClient = {
     },
   },
 
+  operations: {
+    expenses: (params?: { month?: string; propertyId?: string; category?: string }) => {
+      const qs = new URLSearchParams();
+      for (const [k, val] of Object.entries(params || {})) if (val) qs.set(k, String(val));
+      return http.get<{ categories: string[]; expenses: any[] }>(`/operations/expenses${qs.size ? `?${qs}` : ''}`);
+    },
+    addExpense: (data: Record<string, unknown>) => http.post<any>('/operations/expenses', data),
+    updateExpense: (id: string, data: Record<string, unknown>) => http.put<any>(`/operations/expenses/${id}`, data),
+    deleteExpense: (id: string) => http.delete<{ deleted: boolean }>(`/operations/expenses/${id}`),
+    pnl: (month?: string) => http.get<any>(`/operations/pnl${month ? `?month=${month}` : ''}`),
+    utilities: (propertyId?: string) =>
+      http.get<any[]>(`/operations/utilities${propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : ''}`),
+    addUtilityReading: (data: Record<string, unknown>) => http.post<any>('/operations/utilities', data),
+    billUtility: (id: string) => http.post<any>(`/operations/utilities/${id}/bill`, {}),
+    deleteUtility: (id: string) => http.delete<{ deleted: boolean }>(`/operations/utilities/${id}`),
+    tasks: (params?: { mine?: boolean; status?: string }) => {
+      const qs = new URLSearchParams();
+      if (params?.mine) qs.set('mine', 'true');
+      if (params?.status) qs.set('status', params.status);
+      return http.get<any[]>(`/operations/tasks${qs.size ? `?${qs}` : ''}`);
+    },
+    createTask: (data: Record<string, unknown>) => http.post<any>('/operations/tasks', data),
+    updateTask: (id: string, data: Record<string, unknown>) => http.put<any>(`/operations/tasks/${id}`, data),
+    deleteTask: (id: string) => http.delete<{ deleted: boolean }>(`/operations/tasks/${id}`),
+    forecast: () => http.get<any>('/operations/forecast'),
+    comparison: () => http.get<any[]>('/operations/comparison'),
+    importResidents: (csv: string) => http.post<any>('/operations/import/residents', { csv }),
+    importTemplateUrl: `${API_BASE}/operations/import/residents/template`,
+  },
   billing: {
     view: () => http.get<SubscriptionView>('/billing'),
     checkout: (data: { plan: string; interval: 'monthly' | 'yearly' }) =>

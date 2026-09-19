@@ -30,6 +30,7 @@ import { storageDriverName } from './lib/storage.js';
 import { messagingStatus } from './lib/messaging.js';
 import { billingRouter } from './routes/billing.js';
 import { pushRouter } from './routes/push.js';
+import { operationsRouter } from './routes/operations.js';
 import { requestLogger, metricsText, log } from './lib/logger.js';
 import { databaseSizeBytes } from './db/database.js';
 import { pushEnabled } from './lib/push.js';
@@ -87,6 +88,7 @@ export function createApiRouter(): Router {
   api.use('/files', filesRouter);
   api.use('/billing', billingRouter);
   api.use('/push', pushRouter);
+  api.use('/operations', operationsRouter);
 
   api.use(notFoundHandler);
   api.use(errorHandler);

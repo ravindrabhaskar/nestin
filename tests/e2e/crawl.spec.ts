@@ -52,6 +52,9 @@ const OWNER_ROUTES = [
   '/owner/notifications',
   '/owner/subscription',
   '/owner/support',
+  '/owner/finance',
+  '/owner/insights',
+  '/owner/tasks',
 ];
 const ADMIN_ROUTES = ['/admin'];
 

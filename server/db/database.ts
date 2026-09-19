@@ -194,6 +194,24 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_user ON auth_tokens(user_id, kind);
 
+CREATE TABLE IF NOT EXISTS expenses (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, property_id TEXT, category TEXT NOT NULL, amount REAL NOT NULL, date TEXT NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_expenses_owner ON expenses(owner_id, date);
+
+CREATE TABLE IF NOT EXISTS utility_readings (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, property_id TEXT NOT NULL, room_id TEXT NOT NULL, meter TEXT NOT NULL, status TEXT NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_utility_owner ON utility_readings(owner_id, property_id);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, property_id TEXT, assignee_id TEXT, status TEXT NOT NULL, priority TEXT NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tasks_owner ON tasks(owner_id, status);
+
 CREATE TABLE IF NOT EXISTS job_queue (
   id TEXT PRIMARY KEY, type TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
   max_attempts INTEGER NOT NULL DEFAULT 5, run_at TEXT NOT NULL, dedupe_key TEXT, payload TEXT NOT NULL,

@@ -120,6 +120,10 @@ adminRouter.post(
   wrap((req, res) => sendOk(res, support.resolveAsSupport(currentUser(req), req.params.id, ctx(req), { admin: true })))
 );
 adminRouter.get(
+  '/analytics',
+  wrap((req, res) => sendOk(res, admin.funnelAnalytics(Math.min(365, Math.max(7, Number(req.query.days) || 30)))))
+);
+adminRouter.get(
   '/outbox',
   wrap((_req, res) => sendOk(res, outbox.list({}, { limit: 300 })))
 );

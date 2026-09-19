@@ -5,6 +5,7 @@ import {
   payments,
   leads,
   customers,
+  visitors,
   inboundRequests,
   auditEvents,
   sessions,
@@ -282,4 +283,146 @@ export function subscribeNewsletter(body: Record<string, unknown>, ctx: EventCon
     events.publish('NewsletterSubscribed', 'InboundRequest', email, {}, ctx);
   }
   return { subscribed: true };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Growth analytics: funnel, churn, LTV — per city, over a trailing window
+// ---------------------------------------------------------------------------------------------
+
+export interface FunnelAnalytics {
+  windowDays: number;
+  funnel: { views: number; leads: number; visits: number; bookings: number; confirmed: number; movedIn: number };
+  conversion: { leadToBooking: number; bookingToConfirmed: number; confirmedToMoveIn: number };
+  churn: { activeResidents: number; movedOut: number; churnRate: number };
+  ltv: { avgRevenuePerResident: number; avgTenureMonths: number; estimatedLtv: number };
+  byCity: Array<{
+    city: string;
+    listings: number;
+    views: number;
+    bookings: number;
+    confirmed: number;
+    revenue: number;
+    residents: number;
+    avgRevenuePerResident: number;
+  }>;
+  weekly: Array<{ week: string; bookings: number; confirmed: number; revenue: number; signups: number }>;
+}
+
+export function funnelAnalytics(windowDays = 30, now = new Date()): FunnelAnalytics {
+  const since = now.getTime() - windowDays * 86_400_000;
+  const inWindow = (iso?: string) => !!iso && Date.parse(iso) >= since;
+  const props = properties.list({}, { limit: 100000 });
+  const cityOf = new Map(props.map((p) => [p.id, p.location?.city || 'Unknown']));
+  const allLeads = leads.list({}, { limit: 100000 });
+  const allVisits = visitors.list({}, { limit: 100000 });
+  const allBookings = bookings.list({}, { limit: 100000 });
+  const allCustomers = customers.list({}, { limit: 100000 });
+  const paid = payments.list({ status: 'Paid' }, { limit: 100000 }).filter((p) => p.type !== 'Subscription');
+  const allUsers = users.list({}, 100000);
+
+  const bookingsW = allBookings.filter((b) => inWindow(b.createdAt));
+  const confirmedW = bookingsW.filter((b) => b.bookingStatus === 'Confirmed' || b.bookingStatus === 'Completed');
+  const movedInW = allCustomers.filter((c) => inWindow(c.moveInDate) && Date.parse(c.moveInDate) <= now.getTime());
+  const views = props.reduce((n, p) => n + (p.systemMetrics?.viewsCount || 0), 0);
+  const funnel = {
+    views,
+    leads: allLeads.filter((l) => inWindow(l.createdAt)).length,
+    visits: allVisits.filter((vv) => inWindow(vv.createdAt)).length,
+    bookings: bookingsW.length,
+    confirmed: confirmedW.length,
+    movedIn: movedInW.length,
+  };
+  const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+
+  const active = allCustomers.filter((c) => c.tenantStatus === 'Active' || c.tenantStatus === 'Vacating');
+  const movedOut = allCustomers.filter((c) => c.tenantStatus === 'Inactive' && inWindow(c.expectedMoveOutDate));
+  const revenueByResident = new Map<string, number>();
+  for (const p of paid)
+    if (p.customerId) revenueByResident.set(p.customerId, (revenueByResident.get(p.customerId) || 0) + p.amount);
+  const residentsWithRevenue = [...revenueByResident.values()];
+  const avgRevenuePerResident = residentsWithRevenue.length
+    ? Math.round(residentsWithRevenue.reduce((a, b) => a + b, 0) / residentsWithRevenue.length)
+    : 0;
+  const tenures = allCustomers
+    .map((c) => {
+      const end =
+        c.tenantStatus === 'Inactive' && c.expectedMoveOutDate ? Date.parse(c.expectedMoveOutDate) : now.getTime();
+      return Math.max(0, (end - Date.parse(c.moveInDate)) / (30 * 86_400_000));
+    })
+    .filter((m) => Number.isFinite(m));
+  const avgTenureMonths = tenures.length
+    ? Math.round((tenures.reduce((a, b) => a + b, 0) / tenures.length) * 10) / 10
+    : 0;
+  const avgMonthlyRent = active.length ? active.reduce((n, c) => n + (c.monthlyRent || 0), 0) / active.length : 0;
+
+  const cities = new Map<string, FunnelAnalytics['byCity'][number]>();
+  const cityRow = (city: string) => {
+    if (!cities.has(city))
+      cities.set(city, {
+        city,
+        listings: 0,
+        views: 0,
+        bookings: 0,
+        confirmed: 0,
+        revenue: 0,
+        residents: 0,
+        avgRevenuePerResident: 0,
+      });
+    return cities.get(city)!;
+  };
+  for (const p of props.filter((x) => x.status === 'published')) {
+    const row = cityRow(cityOf.get(p.id)!);
+    row.listings += 1;
+    row.views += p.systemMetrics?.viewsCount || 0;
+  }
+  for (const b of bookingsW) {
+    const row = cityRow(cityOf.get(b.propertyId) || 'Unknown');
+    row.bookings += 1;
+    if (b.bookingStatus === 'Confirmed' || b.bookingStatus === 'Completed') row.confirmed += 1;
+  }
+  for (const p of paid.filter((x) => inWindow(x.date || x.createdAt))) {
+    cityRow(cityOf.get(p.propertyId || '') || 'Unknown').revenue += p.amount;
+  }
+  for (const c of active) cityRow(cityOf.get(c.propertyId) || 'Unknown').residents += 1;
+  for (const row of cities.values())
+    row.avgRevenuePerResident = row.residents ? Math.round(row.revenue / row.residents) : 0;
+
+  const weekly: FunnelAnalytics['weekly'] = [];
+  const weeks = Math.min(12, Math.max(1, Math.ceil(windowDays / 7)));
+  for (let w = weeks - 1; w >= 0; w--) {
+    const end = now.getTime() - w * 7 * 86_400_000;
+    const start = end - 7 * 86_400_000;
+    const within = (iso?: string) => !!iso && Date.parse(iso) >= start && Date.parse(iso) < end;
+    weekly.push({
+      week: new Date(start).toISOString().slice(0, 10),
+      bookings: allBookings.filter((b) => within(b.createdAt)).length,
+      confirmed: allBookings.filter(
+        (b) => within(b.createdAt) && (b.bookingStatus === 'Confirmed' || b.bookingStatus === 'Completed')
+      ).length,
+      revenue: paid.filter((p) => within(p.date || p.createdAt)).reduce((n, p) => n + p.amount, 0),
+      signups: allUsers.filter((u) => within(u.createdAt)).length,
+    });
+  }
+
+  return {
+    windowDays,
+    funnel,
+    conversion: {
+      leadToBooking: pct(funnel.bookings, funnel.leads),
+      bookingToConfirmed: pct(funnel.confirmed, funnel.bookings),
+      confirmedToMoveIn: pct(funnel.movedIn, funnel.confirmed),
+    },
+    churn: {
+      activeResidents: active.length,
+      movedOut: movedOut.length,
+      churnRate: pct(movedOut.length, active.length + movedOut.length),
+    },
+    ltv: {
+      avgRevenuePerResident,
+      avgTenureMonths,
+      estimatedLtv: Math.round(avgMonthlyRent * Math.max(avgTenureMonths, 1)),
+    },
+    byCity: [...cities.values()].sort((a, b) => b.revenue - a.revenue || b.bookings - a.bookings),
+    weekly,
+  };
 }

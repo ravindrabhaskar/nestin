@@ -508,6 +508,101 @@ export const subscriptionInvoices = new Collection<SubscriptionInvoice>({
   }),
 });
 
+export interface ExpenseRecord {
+  id: string;
+  ownerId: string;
+  propertyId?: string;
+  propertyName?: string;
+  category: string;
+  amount: number;
+  date: string;
+  description: string;
+  vendor?: string;
+  receiptUrl?: string;
+  recurring?: 'monthly';
+  createdBy: string;
+  createdAt: string;
+}
+
+export const expenses = new Collection<ExpenseRecord>({
+  table: 'expenses',
+  columns: (e) => ({
+    owner_id: e.ownerId,
+    property_id: e.propertyId || null,
+    category: e.category,
+    amount: e.amount,
+    date: e.date,
+  }),
+});
+
+export interface UtilityReadingRecord {
+  id: string;
+  ownerId: string;
+  propertyId: string;
+  propertyName: string;
+  roomId: string;
+  roomName: string;
+  meter: 'electricity' | 'water' | 'gas';
+  readingDate: string;
+  previousReading: number;
+  currentReading: number;
+  unitsConsumed: number;
+  ratePerUnit: number;
+  fixedCharges: number;
+  amount: number;
+  splitAmong: number;
+  perResident: number;
+  status: 'draft' | 'billed';
+  billedAt?: string;
+  billedPaymentIds: string[];
+  recordedBy: string;
+  createdAt: string;
+}
+
+export const utilityReadings = new Collection<UtilityReadingRecord>({
+  table: 'utility_readings',
+  columns: (u) => ({
+    owner_id: u.ownerId,
+    property_id: u.propertyId,
+    room_id: u.roomId,
+    meter: u.meter,
+    status: u.status,
+  }),
+});
+
+export interface TaskRecord {
+  id: string;
+  ownerId: string;
+  title: string;
+  description: string;
+  propertyId?: string;
+  propertyName?: string;
+  assigneeId?: string;
+  assigneeName?: string;
+  assigneeUserId?: string;
+  priority: 'low' | 'medium' | 'high';
+  status: 'todo' | 'in_progress' | 'done';
+  category: 'cleaning' | 'maintenance' | 'collection' | 'visit' | 'inspection' | 'other';
+  dueDate?: string;
+  createdBy: string;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  completedBy?: string;
+}
+
+export const tasks = new Collection<TaskRecord>({
+  table: 'tasks',
+  columns: (t) => ({
+    owner_id: t.ownerId,
+    property_id: t.propertyId || null,
+    assignee_id: t.assigneeId || null,
+    status: t.status,
+    priority: t.priority,
+  }),
+});
+
 export interface PushSubscriptionRecord {
   id: string;
   userId: string;

@@ -346,6 +346,30 @@ function AppInner() {
                   }
                 />
                 <Route
+                  path="/owner/finance"
+                  element={
+                    <ProtectedOwnerRoute>
+                      <OwnerDashboardPage initialNav="Finance" />
+                    </ProtectedOwnerRoute>
+                  }
+                />
+                <Route
+                  path="/owner/insights"
+                  element={
+                    <ProtectedOwnerRoute>
+                      <OwnerDashboardPage initialNav="Insights" />
+                    </ProtectedOwnerRoute>
+                  }
+                />
+                <Route
+                  path="/owner/tasks"
+                  element={
+                    <ProtectedOwnerRoute>
+                      <OwnerDashboardPage initialNav="Tasks" />
+                    </ProtectedOwnerRoute>
+                  }
+                />
+                <Route
                   path="/owner/subscription"
                   element={
                     <ProtectedOwnerRoute>

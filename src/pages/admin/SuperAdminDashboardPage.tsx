@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { AdminBillingPanel, AdminOpsPanel } from './AdminBillingOpsPanels';
+import { AdminGrowthPanel } from './AdminGrowthPanel';
 import { VERIFICATION_CHECKLIST, type VerificationCheckId } from '../../types/property';
 import { useFocusTrap } from '../../lib/useFocusTrap';
 import { usePropertyListing } from '../../context/PropertyListingContext';
@@ -48,6 +49,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
     | 'audit'
     | 'billing'
     | 'ops'
+    | 'growth'
   >('verification');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCity, setFilterCity] = useState('all');
@@ -252,6 +254,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
             { id: 'inbound', label: 'Inbox & Requests', icon: FileCheck },
             { id: 'support', label: 'Support Desk', icon: UserCheck },
             { id: 'outbox', label: 'Messaging', icon: FileCheck },
+            { id: 'growth', label: 'Growth', icon: TrendingUp },
             { id: 'billing', label: 'Billing', icon: TrendingUp },
             { id: 'ops', label: 'Operations', icon: Settings },
             { id: 'settings', label: 'System Policies', icon: Settings },
@@ -812,6 +815,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
         {/* -------------------------------------------------------------
             TAB 6: REGISTRIES (ACCOUNTS, BOOKINGS, INBOX, AUDIT TRAIL) — live from the admin API
         ------------------------------------------------------------- */}
+        {activeTab === 'growth' && <AdminGrowthPanel />}
         {activeTab === 'billing' && <AdminBillingPanel onNotice={showToast} />}
         {activeTab === 'ops' && <AdminOpsPanel onNotice={showToast} />}
         {(activeTab === 'audit' ||

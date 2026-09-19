@@ -252,3 +252,46 @@ test('owner adds a staff member; the new staff member signs in with the temporar
   await ctx.close();
   await staffCtx.close();
 });
+
+test('owner records an expense and sees it in the P&L; creates a task and moves it to done', async ({ browser }) => {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  await signIn(ctx, page, 'owner@nestin.com');
+
+  await page.goto('/owner/finance');
+  await expect(page.getByRole('heading', { name: 'Finance' })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Expenses' }).click();
+  await page.getByLabel('Category').selectOption('Internet');
+  await page.getByLabel('Amount').fill('1499');
+  await page.getByLabel('Vendor').fill('ACT Fibernet');
+  const [resp] = await Promise.all([
+    page.waitForResponse((r) => r.url().endsWith('/api/v1/operations/expenses') && r.request().method() === 'POST'),
+    page.getByRole('button', { name: 'Save expense' }).click(),
+  ]);
+  expect(resp.status(), await resp.text()).toBe(201);
+  await expect(page.getByText('ACT Fibernet')).toBeVisible();
+  await page.getByRole('button', { name: 'Profit & Loss' }).click();
+  await expect(page.getByText('Net operating income')).toBeVisible();
+
+  await page.goto('/owner/tasks');
+  await expect(page.getByRole('heading', { name: 'Tasks' })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'New task' }).click();
+  const title = `Fix geyser ${Date.now().toString(36)}`;
+  await page.getByLabel('Task title').fill(title);
+  await page.getByLabel('Priority').selectOption('high');
+  await page.getByRole('button', { name: 'Create' }).click();
+  const card = page.locator('article').filter({ hasText: title });
+  await expect(card).toBeVisible({ timeout: 10_000 });
+  await card.getByRole('button', { name: /Start/ }).click();
+  await expect(
+    page.getByRole('region', { name: 'In progress' }).locator('article').filter({ hasText: title })
+  ).toBeVisible();
+  await page
+    .getByRole('region', { name: 'In progress' })
+    .locator('article')
+    .filter({ hasText: title })
+    .getByRole('button', { name: /Mark done/ })
+    .click();
+  await expect(page.getByRole('region', { name: 'Done' }).locator('article').filter({ hasText: title })).toBeVisible();
+  await ctx.close();
+});
