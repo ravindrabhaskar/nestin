@@ -106,6 +106,18 @@ Authorization: `Authorization: Bearer <jwt>`. Tokens are bound to a server sessi
 
 ---
 
+## What's new (v3.2 — 19 Sep 2026)
+
+| Area | Features |
+|---|---|
+| Platform | SQL-backed Find PG search (room type, food, amenities, rating, gender, near-me); durable job queue with retries; persistent rate limits; Sentry hook (`SENTRY_DSN`); client-side image optimisation; short-lived access tokens + httpOnly refresh cookie; `npm run test:load` |
+| Owners | Finance (P&L, expense ledger, utility meter readings billed to residents), Insights (occupancy forecast, property comparison, CSV import), Tasks board, Residents (agreements, move-outs & deposit settlement, NPS + maintenance SLA), add-ons (paid verification visit, featured placement), WhatsApp APPROVE/REJECT/STATUS bot |
+| Residents | OTP-signed rent agreements, move-out notice & deposit refund tracking, UPI autopay mandates, referral credits, roommate compatibility (opt-in), maintenance requests with photos + SLA, NPS prompt, video tours, Hindi/Telugu UI scaffold |
+| Admin | Growth analytics (funnel, conversion, churn, LTV, per-city, weekly) |
+| Mobile | `capacitor.config.ts` + `docs/MOBILE.md` for Play Store / App Store shells |
+
+New environment variables: `ACCESS_TOKEN_TTL_SECONDS`, `REFERRAL_CREDIT_INR`, `SENTRY_DSN`, `ALLOW_SIMULATED_PAYMENTS`. Postgres path: `docs/POSTGRES-MIGRATION.md`.
+
 ## Configuration
 
 Copy `.env.example` to `.env`. Everything is optional in development. In production the server checks its configuration on start-up (`assertProductionConfig` in `server/config.ts`) and refuses to boot with a clear message rather than running insecurely; it requires:
