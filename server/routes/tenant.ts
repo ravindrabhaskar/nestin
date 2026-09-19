@@ -4,6 +4,7 @@ import * as crm from '../services/crmService.js';
 import { authenticate, requireRole, currentUser, type AuthedRequest } from '../middleware/auth.js';
 import { sendOk, wrap } from '../middleware/common.js';
 import * as resident from '../services/residentService.js';
+import * as monetisation from '../services/monetisationService.js';
 import { users } from '../db/repositories.js';
 import { notFound } from '../lib/errors.js';
 import { clientIp } from '../lib/rateLimit.js';
@@ -235,6 +236,26 @@ tenantRouter.post(
   wrap((req, res) => sendOk(res, resident.submitSurvey(currentUser(req), req.body || {}, ctx(req)), 201))
 );
 tenantRouter.get('/maintenance-categories', (_req, res) => sendOk(res, resident.MAINTENANCE_CATEGORIES));
+
+// Autopay -----------------------------------------------------------------------------------------
+tenantRouter.get(
+  '/autopay',
+  wrap((req, res) => sendOk(res, monetisation.myMandate(currentUser(req).id)))
+);
+tenantRouter.post(
+  '/autopay',
+  requireRole('tenant'),
+  wrap(async (req, res) =>
+    sendOk(res, await monetisation.createMandate(currentUser(req), req.body || {}, ctx(req)), 201)
+  )
+);
+tenantRouter.post(
+  '/autopay/:id',
+  requireRole('tenant'),
+  wrap(async (req, res) =>
+    sendOk(res, await monetisation.updateMandate(currentUser(req), req.params.id, req.body?.action))
+  )
+);
 
 function stripOtp<T extends { otpHash?: string; otpExpiresAt?: string; otpAttempts?: number }>(a: T): T {
   const { otpHash: _h, otpAttempts: _n, ...rest } = a;

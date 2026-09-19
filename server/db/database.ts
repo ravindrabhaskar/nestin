@@ -194,6 +194,22 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_user ON auth_tokens(user_id, kind);
 
+CREATE TABLE IF NOT EXISTS mandates (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, owner_id TEXT NOT NULL, customer_id TEXT NOT NULL, status TEXT NOT NULL,
+  gateway_subscription_id TEXT, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_mandates_tenant ON mandates(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_mandates_status ON mandates(status);
+CREATE INDEX IF NOT EXISTS idx_mandates_gateway ON mandates(gateway_subscription_id);
+
+CREATE TABLE IF NOT EXISTS addon_orders (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, property_id TEXT NOT NULL, type TEXT NOT NULL, status TEXT NOT NULL,
+  gateway_order_id TEXT, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_addon_owner ON addon_orders(owner_id);
+CREATE INDEX IF NOT EXISTS idx_addon_property ON addon_orders(property_id, type, status);
+CREATE INDEX IF NOT EXISTS idx_addon_gateway ON addon_orders(gateway_order_id);
+
 CREATE TABLE IF NOT EXISTS agreements (
   id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, tenant_id TEXT NOT NULL, customer_id TEXT NOT NULL, status TEXT NOT NULL,
   data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -319,6 +335,11 @@ function migrate(database: DatabaseSync): void {
   if (!paymentCols.includes('platform_fee'))
     database.exec('ALTER TABLE payments ADD COLUMN platform_fee REAL NOT NULL DEFAULT 0');
   if (!paymentCols.includes('gateway_order_id')) database.exec('ALTER TABLE payments ADD COLUMN gateway_order_id TEXT');
+  const sessionCols = (database.prepare('PRAGMA table_info(sessions)').all() as Array<{ name: string }>).map(
+    (c) => c.name
+  );
+  if (!sessionCols.includes('refresh_hash')) database.exec('ALTER TABLE sessions ADD COLUMN refresh_hash TEXT');
+  database.exec('CREATE INDEX IF NOT EXISTS idx_sessions_refresh ON sessions(refresh_hash)');
   database.exec('CREATE INDEX IF NOT EXISTS idx_payments_gateway_order ON payments(gateway_order_id)');
   database.exec('CREATE INDEX IF NOT EXISTS idx_sub_invoices_gateway_order ON subscription_invoices(gateway_order_id)');
 }

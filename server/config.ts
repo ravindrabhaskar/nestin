@@ -30,7 +30,13 @@ export const config = {
   seedDemoData: isProduction ? process.env.SEED_DEMO_DATA === 'true' : process.env.SEED_DEMO_DATA !== 'false',
 
   jwtSecret: requireSecret('JWT_SECRET', () => devSecret),
+  /** Session (refresh) lifetime: how long a device stays signed in. */
   jwtTtlSeconds: Number(process.env.JWT_TTL_SECONDS || 60 * 60 * 24 * 7),
+  /**
+   * Access-token lifetime. Short by design: a leaked bearer token is useful for minutes, not days.
+   * Clients refresh silently with the httpOnly cookie (`POST /auth/refresh`).
+   */
+  accessTtlSeconds: Math.max(60, Number(process.env.ACCESS_TOKEN_TTL_SECONDS || 60 * 60)),
 
   corsOrigins: (process.env.CORS_ORIGINS || '')
     .split(',')

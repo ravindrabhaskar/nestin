@@ -7,6 +7,7 @@ import {
 } from '../../src/types/property';
 import { config } from '../config.js';
 import { getMeta, setMeta } from '../db/database.js';
+import { fulfilVerificationOrder } from './monetisationService.js';
 import { calculatePropertyCompleteness } from '../../src/lib/domain/propertyCompleteness';
 import { properties, users, bookings } from '../db/repositories.js';
 import { Collection, getDb } from '../db/database.js';
@@ -607,6 +608,7 @@ export function adminApprove(
 
   prop.status = 'published';
   prop.isNestinVerified = grantVerified;
+  if (grantVerified) fulfilVerificationOrder(prop.id);
   prop.isFeatured = options.isFeatured === undefined ? prop.isFeatured : !!options.isFeatured;
   prop.isZeroBrokerage = options.isZeroBrokerage === undefined ? prop.isZeroBrokerage : !!options.isZeroBrokerage;
   prop.rejectionReason = undefined;

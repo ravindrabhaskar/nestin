@@ -117,3 +117,39 @@ export async function paySubscription(plan: string, interval: 'monthly' | 'yearl
     rzp.open();
   });
 }
+
+/** Owner add-on purchase (verification visit / featured placement). Same flow as the subscription. */
+export async function payAddon(data: {
+  type: 'verification' | 'featured';
+  propertyId: string;
+  months?: number;
+}): Promise<any> {
+  const order = await ApiClient.billing.addonCheckout(data);
+  if (order.simulated) return ApiClient.billing.completeAddonCheckout({ orderId: order.orderId });
+
+  await loadRazorpay();
+  if (!window.Razorpay) throw new Error('Payment gateway unavailable.');
+  return new Promise((resolve, reject) => {
+    const rzp = new window.Razorpay!({
+      key: order.keyId,
+      amount: Math.round(order.amount * 100),
+      currency: order.currency,
+      name: 'NestIn',
+      description: order.description,
+      order_id: order.gatewayOrderId,
+      prefill: order.prefill,
+      theme: { color: '#0f172a' },
+      modal: { ondismiss: () => reject(new Error('Payment was cancelled.')) },
+      handler: (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+        ApiClient.billing
+          .completeAddonCheckout({ orderId: order.orderId, ...response })
+          .then(resolve)
+          .catch(reject);
+      },
+    });
+    rzp.on('payment.failed', (r: unknown) =>
+      reject(new Error((r as { error?: { description?: string } })?.error?.description || 'Payment failed.'))
+    );
+    rzp.open();
+  });
+}

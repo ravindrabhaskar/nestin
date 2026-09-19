@@ -58,6 +58,38 @@ export interface ApiEnvelope<T> {
   metadata: Record<string, unknown> & { total?: number; page?: number; pageSize?: number; totalPages?: number };
 }
 
+let refreshing: Promise<boolean> | null = null;
+
+/** One refresh at a time; concurrent 401s share the same attempt. */
+export function refreshAccessToken(): Promise<boolean> {
+  if (!refreshing) {
+    refreshing = fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      .then(async (r) => {
+        const json = await r.json().catch(() => ({}));
+        if (!r.ok || !json?.data?.token) return false;
+        tokenStore.set(json.data.token);
+        return true;
+      })
+      .catch(() => false)
+      .finally(() => {
+        refreshing = null;
+      });
+  }
+  return refreshing;
+}
+
+/** Seconds until the stored access token expires (NaN when there is none). */
+export function accessTokenSecondsLeft(): number {
+  const token = tokenStore.get();
+  if (!token) return NaN;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.exp - Math.floor(Date.now() / 1000);
+  } catch {
+    return NaN;
+  }
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -74,10 +106,15 @@ async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  opts: { auth?: boolean; envelope?: boolean } = {}
+  opts: { auth?: boolean; envelope?: boolean; noRefresh?: boolean } = {}
 ): Promise<T | ApiEnvelope<T>> {
   const headers: Record<string, string> = { 'X-Correlation-Id': correlationId() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // Renew proactively when the token is about to lapse so users never see a failed request.
+  if (opts.auth !== false && !opts.noRefresh) {
+    const left = accessTokenSecondsLeft();
+    if (Number.isFinite(left) && left < 120) await refreshAccessToken();
+  }
   const token = opts.auth === false ? null : tokenStore.get();
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -86,6 +123,7 @@ async function request<T>(
     res = await fetch(`${API_BASE}${path}`, {
       method,
       headers,
+      credentials: 'include',
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
@@ -100,7 +138,11 @@ async function request<T>(
   if (!res.ok || payload.success === false) {
     const code = payload.error?.code || `HTTP_${res.status}`;
     const message = payload.error?.message || `Request failed (${res.status})`;
-    if (res.status === 401 && token) {
+    if (res.status === 401 && token && !opts.noRefresh && !path.startsWith('/auth/refresh')) {
+      // Access tokens are short-lived; try one silent refresh with the httpOnly cookie, then retry.
+      if (await refreshAccessToken()) {
+        return request<T>(method, path, body, { ...opts, noRefresh: true } as never);
+      }
       tokenStore.clear();
       unauthorizedListeners.forEach((l) => l());
     }
@@ -285,6 +327,10 @@ export const ApiClient = {
     referrals: () => http.get<any>('/tenant/referrals'),
     roommates: (propertyId: string) => http.get<any>(`/tenant/roommates/${encodeURIComponent(propertyId)}`),
     surveyDue: () => http.get<{ due: boolean; propertyName?: string }>('/tenant/survey'),
+    autopay: () => http.get<any>('/tenant/autopay'),
+    createAutopay: (data: { dayOfMonth: number; amount?: number }) => http.post<any>('/tenant/autopay', data),
+    updateAutopay: (id: string, action: 'pause' | 'resume' | 'cancel') =>
+      http.post<any>(`/tenant/autopay/${id}`, { action }),
     submitSurvey: (data: { score: number; comment?: string }) => http.post<any>('/tenant/survey', data),
     replyTicket: (id: string, message: string) => http.post<any>(`/tenant/support/${id}/messages`, { message }),
     resolveTicket: (id: string) => http.post<any>(`/tenant/support/${id}/resolve`),
@@ -380,6 +426,11 @@ export const ApiClient = {
       razorpay_signature?: string;
     }) => http.post<SubscriptionView>('/billing/checkout/complete', data),
     cancel: (cancel: boolean) => http.post<SubscriptionView>('/billing/cancel', { cancel }),
+    addons: () =>
+      http.get<{ prices: { verificationVisit: number; featuredPerMonth: number }; orders: any[] }>('/billing/addons'),
+    addonCheckout: (data: { type: 'verification' | 'featured'; propertyId: string; months?: number }) =>
+      http.post<any>('/billing/addons/checkout', data),
+    completeAddonCheckout: (data: Record<string, unknown>) => http.post<any>('/billing/addons/checkout/complete', data),
   },
 
   push: {

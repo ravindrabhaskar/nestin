@@ -64,6 +64,9 @@ export interface PublicSession {
 }
 
 export interface AuthResult {
+  /** Opaque refresh token; the route sets it as an httpOnly cookie and never returns it in JSON. */
+  refreshToken?: string;
+  accessExpiresAt?: string;
   user: PublicUser;
   token: string;
   session: PublicSession;
@@ -181,25 +184,70 @@ function describeClient(req: Request): { device: string; browser: string; ip: st
   };
 }
 
+const newRefreshToken = () => crypto.randomBytes(32).toString('base64url');
+
+function accessTokenFor(user: UserRecord, sessionId: string): string {
+  return createJwt(
+    {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      ownerId: user.role === 'owner' ? user.id : user.ownerId || undefined,
+      sid: sessionId,
+    },
+    config.accessTtlSeconds
+  );
+}
+
 function issueSession(user: UserRecord, req: Request): AuthResult {
   const sessionId = newId('sess');
   const expiresAt = new Date(Date.now() + config.jwtTtlSeconds * 1000).toISOString();
-  const token = createJwt({
-    sub: user.id,
-    email: user.email,
-    role: user.role,
-    ownerId: user.role === 'owner' ? user.id : user.ownerId || undefined,
-    sid: sessionId,
-  });
+  const token = accessTokenFor(user, sessionId);
+  const refreshToken = newRefreshToken();
   const client = describeClient(req);
   const session = sessions.insert({
     id: sessionId,
     userId: user.id,
     tokenHash: hashToken(token),
+    refreshHash: hashToken(refreshToken),
     ...client,
     expiresAt,
   });
-  return { user: toPublicUser(user, sessionId, true), token, session: toPublicSession(session, sessionId), expiresAt };
+  return {
+    user: toPublicUser(user, sessionId, true),
+    token,
+    refreshToken,
+    accessExpiresAt: new Date(Date.now() + config.accessTtlSeconds * 1000).toISOString(),
+    session: toPublicSession(session, sessionId),
+    expiresAt,
+  };
+}
+
+/**
+ * Exchanges a valid refresh token for a new access token, rotating the refresh token so a stolen
+ * cookie can be used at most once. The session row (device list, revocation) is unchanged.
+ */
+export function refreshSession(refreshToken: unknown): {
+  token: string;
+  refreshToken: string;
+  accessExpiresAt: string;
+  expiresAt: string;
+} {
+  if (typeof refreshToken !== 'string' || refreshToken.length < 20) throw unauthorized('Sign in again');
+  const session = sessions.findByRefreshHash(hashToken(refreshToken));
+  if (!session || session.revokedAt || Date.parse(session.expiresAt) < Date.now())
+    throw unauthorized('Session expired. Sign in again.');
+  const user = users.findById(session.userId);
+  if (!user || user.status !== 'active') throw unauthorized('Account is not active');
+  const token = accessTokenFor(user, session.id);
+  const next = newRefreshToken();
+  sessions.rotateTokens(session.id, hashToken(token), hashToken(next));
+  return {
+    token,
+    refreshToken: next,
+    accessExpiresAt: new Date(Date.now() + config.accessTtlSeconds * 1000).toISOString(),
+    expiresAt: session.expiresAt,
+  };
 }
 
 // ---------------------------------------------------------------------------------------------

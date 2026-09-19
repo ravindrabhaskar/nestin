@@ -33,6 +33,7 @@ import type { AuthUser } from '../middleware/auth.js';
 import { setBedStatus, syncBedAvailability } from './propertyService.js';
 import { rewardReferralOnBooking } from './residentService.js';
 import { dispatchNotification } from '../lib/messaging.js';
+import { config } from '../config.js';
 import { razorpayEnabled, simulatedPaymentsAllowed } from '../lib/razorpay.js';
 
 export const LEAD_STAGES: LeadStage[] = [
@@ -434,7 +435,11 @@ export function createBooking(
 
   notifyUser(prop.ownerId, {
     title: options.tenantInitiated ? 'New Online Booking Request' : 'Booking Created',
-    message: `Booking ${bookingNumber} for ${tenantName} at ${prop.name}.`,
+    message: `Booking ${bookingNumber} for ${tenantName} at ${prop.name}.${
+      options.tenantInitiated && config.messaging.twilio.enabled
+        ? ` Reply APPROVE ${bookingNumber} or REJECT ${bookingNumber} <reason> on WhatsApp.`
+        : ''
+    }`,
     type: 'booking',
     linkTo: '/owner/bookings',
   });

@@ -10,6 +10,8 @@ export interface JwtPayload {
   /** Owner account this user acts on behalf of (self for owners, employer for employees). */
   ownerId?: string;
   sid: string;
+  /** Random token id so two tokens minted in the same second for one session still differ. */
+  jti?: string;
   iat: number;
   exp: number;
 }
@@ -20,7 +22,12 @@ function sign(input: string): string {
 
 export function createJwt(payload: Omit<JwtPayload, 'iat' | 'exp'>, ttlSeconds = config.jwtTtlSeconds): string {
   const now = Math.floor(Date.now() / 1000);
-  const full: JwtPayload = { ...payload, iat: now, exp: now + ttlSeconds };
+  const full: JwtPayload = {
+    ...payload,
+    jti: crypto.randomBytes(6).toString('base64url'),
+    iat: now,
+    exp: now + ttlSeconds,
+  };
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const body = Buffer.from(JSON.stringify(full)).toString('base64url');
   return `${header}.${body}.${sign(`${header}.${body}`)}`;

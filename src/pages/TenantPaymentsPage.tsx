@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Clock, XCircle, AlertCircle, Download, Printer, X, CreditCard } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
+import { AutopayCard } from '../components/resident/AutopayCard';
 import { TenantPaymentItem } from '../types';
 import { ApiClient, tokenStore } from '../lib/apiClient';
 import { useApiResource } from '../hooks/useApiResource';
@@ -120,6 +121,9 @@ export const TenantPaymentsPage: React.FC = () => {
       activeNav="/payments"
     >
       <div className="space-y-6">
+        <AutopayCard
+          onNotice={(text) => setPayNotice({ kind: /fail|wrong|could not/i.test(text) ? 'err' : 'ok', text })}
+        />
         {/* PAY RENT ONLINE */}
         <form
           onSubmit={handlePayRent}

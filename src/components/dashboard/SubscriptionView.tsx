@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { ApiClient, ApiError, type SubscriptionView as SubscriptionData } from '../../lib/apiClient';
 import { paySubscription } from '../../lib/checkout';
+import { AddonsPanel } from './AddonsPanel';
 import { formatInr, planRank, type PlanDefinition, type PlanId } from '../../lib/domain/plans';
 import { useAuth } from '../../context/AuthContext';
 
@@ -304,6 +305,8 @@ export const SubscriptionView: React.FC<Props> = ({ showToast }) => {
             </button>
           )}
         </div>
+
+        <AddonsPanel onNotice={showToast} />
 
         <div className="bg-white rounded-3xl border border-slate-200 p-5 space-y-3">
           <h3 className="text-sm font-black text-slate-900 font-heading flex items-center gap-2">

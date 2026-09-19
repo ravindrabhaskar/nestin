@@ -8,6 +8,7 @@ import { getSubscription, hasFeature } from '../services/billingService.js';
 import { runScheduledBackup } from '../lib/backup.js';
 import { log } from '../lib/logger.js';
 import { startQueueWorker } from '../lib/queue.js';
+import { runAutopayCharges, runFeaturedExpiry } from '../services/monetisationService.js';
 
 /**
  * Lightweight in-process scheduler. Jobs are idempotent per period (tracked in the `meta` table) so
@@ -82,6 +83,10 @@ export function startJobs(): void {
       runRentReminders();
       sessions.purgeExpired();
       reconcileSubscriptions();
+      const autopay = runAutopayCharges();
+      if (autopay.charged) log.info('autopay charges', autopay);
+      const unfeatured = runFeaturedExpiry();
+      if (unfeatured) log.info('featured placements expired', { count: unfeatured });
       const ver = runVerificationExpiry();
       if (ver.expired || ver.dueSoon) log.info('verification sweep', ver);
       await runScheduledBackup();

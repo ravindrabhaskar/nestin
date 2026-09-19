@@ -5,6 +5,7 @@ import { Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
 import { ReferralCard, LifestyleForm } from '../components/resident/ReferralAndLifestyle';
+import { LanguageCard } from '../components/resident/LanguageCard';
 import { SecurityPanel } from '../components/profile/SecurityPanel';
 
 const DEFAULT_SEARCH_PREFS = {
@@ -480,6 +481,7 @@ export const TenantSettingsPage: React.FC = () => {
       )}
       {activeTab === 'preferences' && (
         <div className="space-y-6 mt-6">
+          <LanguageCard onNotice={showToast} />
           <LifestyleForm onNotice={showToast} />
           <ReferralCard onNotice={showToast} />
         </div>

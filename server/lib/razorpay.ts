@@ -60,6 +60,57 @@ export async function createOrder(
   return (await res.json()) as RazorpayOrder;
 }
 
+const authHeader = () =>
+  `Basic ${Buffer.from(`${config.razorpay.keyId}:${config.razorpay.keySecret}`).toString('base64')}`;
+
+async function rp<T>(path: string, method: 'POST' | 'GET' = 'POST', body?: unknown): Promise<T> {
+  const res = await fetch(`https://api.razorpay.com/v1${path}`, {
+    method,
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 300);
+    throw new HttpError(502, 'GATEWAY_ERROR', `Payment gateway request failed (${res.status}).`, detail);
+  }
+  return (await res.json()) as T;
+}
+
+export interface RazorpaySubscription {
+  id: string;
+  status: string;
+  short_url?: string;
+}
+
+/**
+ * Recurring rent mandate (UPI autopay / e-mandate) through the Subscriptions API: a monthly plan
+ * for the exact rent, then a subscription the resident authorises once via `short_url`. Charges
+ * afterwards arrive as `subscription.charged` webhooks.
+ */
+export async function createRazorpaySubscription(input: {
+  amountInr: number;
+  description: string;
+  notes?: Record<string, string>;
+  customer?: { name: string; email: string; contact?: string };
+  totalCount?: number;
+}): Promise<RazorpaySubscription> {
+  const plan = await rp<{ id: string }>('/plans', 'POST', {
+    period: 'monthly',
+    interval: 1,
+    item: { name: input.description.slice(0, 120), amount: Math.round(input.amountInr * 100), currency: 'INR' },
+  });
+  return rp<RazorpaySubscription>('/subscriptions', 'POST', {
+    plan_id: plan.id,
+    total_count: input.totalCount || 36,
+    customer_notify: 1,
+    notes: input.notes || {},
+  });
+}
+
+export async function cancelRazorpaySubscription(id: string): Promise<void> {
+  await rp(`/subscriptions/${encodeURIComponent(id)}/cancel`, 'POST', { cancel_at_cycle_end: 0 });
+}
+
 /** Checkout success handshake: HMAC-SHA256(order_id|payment_id, key_secret) must equal the signature. */
 export function verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
   const expected = crypto

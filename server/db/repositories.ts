@@ -168,6 +168,8 @@ export const users = {
 };
 
 export interface SessionRecord {
+  /** SHA-256 of the httpOnly refresh token (rotated on every refresh). */
+  refreshHash?: string;
   id: string;
   userId: string;
   tokenHash: string;
@@ -193,6 +195,7 @@ interface SessionRow {
   last_active_at: string;
   expires_at: string;
   revoked_at: string | null;
+  refresh_hash?: string | null;
 }
 
 const rowToSession = (r: SessionRow | undefined): SessionRecord | null =>
@@ -208,6 +211,7 @@ const rowToSession = (r: SessionRow | undefined): SessionRecord | null =>
         createdAt: r.created_at,
         lastActiveAt: r.last_active_at,
         expiresAt: r.expires_at,
+        refreshHash: r.refresh_hash || undefined,
         revokedAt: r.revoked_at,
       }
     : null;
@@ -217,15 +221,37 @@ export const sessions = {
     const ts = nowIso();
     getDb()
       .prepare(
-        `INSERT INTO sessions (id, user_id, token_hash, device, browser, ip, location, created_at, last_active_at, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)`
+        `INSERT INTO sessions (id, user_id, token_hash, device, browser, ip, location, created_at, last_active_at, expires_at, revoked_at, refresh_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`
       )
-      .run(s.id, s.userId, s.tokenHash, s.device, s.browser, s.ip, s.location, ts, ts, s.expiresAt);
+      .run(
+        s.id,
+        s.userId,
+        s.tokenHash,
+        s.device,
+        s.browser,
+        s.ip,
+        s.location,
+        ts,
+        ts,
+        s.expiresAt,
+        s.refreshHash || null
+      );
     return { ...s, createdAt: ts, lastActiveAt: ts, revokedAt: null };
   },
   get(id: string): SessionRecord | null {
     return rowToSession(
       getDb().prepare('SELECT * FROM sessions WHERE id = ?').get(id) as unknown as SessionRow | undefined
     );
+  },
+  findByRefreshHash(hash: string): SessionRecord | null {
+    const row = getDb().prepare('SELECT * FROM sessions WHERE refresh_hash = ?').get(hash) as unknown as
+      SessionRow | undefined;
+    return rowToSession(row);
+  },
+  rotateTokens(id: string, tokenHash: string, refreshHash: string): void {
+    getDb()
+      .prepare('UPDATE sessions SET token_hash = ?, refresh_hash = ?, last_active_at = ? WHERE id = ?')
+      .run(tokenHash, refreshHash, nowIso(), id);
   },
   touch(id: string): void {
     getDb().prepare('UPDATE sessions SET last_active_at = ? WHERE id = ?').run(nowIso(), id);
@@ -512,6 +538,71 @@ export const subscriptionInvoices = new Collection<SubscriptionInvoice>({
     status: i.status,
     amount: i.amount,
     gateway_order_id: i.gatewayOrderId || null,
+  }),
+});
+
+export interface MandateRecord {
+  id: string;
+  tenantId: string;
+  customerId: string;
+  ownerId: string;
+  propertyId: string;
+  propertyName: string;
+  amount: number;
+  dayOfMonth: number;
+  status: 'pending_auth' | 'active' | 'paused' | 'cancelled';
+  gateway: 'razorpay' | 'simulated';
+  gatewaySubscriptionId?: string;
+  authorizationUrl?: string;
+  nextChargeAt: string;
+  lastChargedAt?: string;
+  cancelledAt?: string;
+  charges: Array<{ period: string; paymentId: string; amount: number; at: string; gatewayPaymentId?: string }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const mandates = new Collection<MandateRecord>({
+  table: 'mandates',
+  columns: (m) => ({
+    tenant_id: m.tenantId,
+    owner_id: m.ownerId,
+    customer_id: m.customerId,
+    status: m.status,
+    gateway_subscription_id: m.gatewaySubscriptionId || null,
+  }),
+});
+
+export interface AddonOrderRecord {
+  id: string;
+  ownerId: string;
+  propertyId: string;
+  propertyName: string;
+  type: 'verification' | 'featured';
+  months: number;
+  invoiceNumber: string;
+  subtotal: number;
+  gstPercent: number;
+  gst: number;
+  amount: number;
+  status: 'Pending' | 'Paid' | 'Failed';
+  gateway: 'razorpay' | 'simulated';
+  gatewayOrderId?: string;
+  gatewayPaymentId?: string;
+  paidAt?: string;
+  periodEnd?: string;
+  fulfilledAt?: string;
+  createdAt: string;
+}
+
+export const addonOrders = new Collection<AddonOrderRecord>({
+  table: 'addon_orders',
+  columns: (o) => ({
+    owner_id: o.ownerId,
+    property_id: o.propertyId,
+    type: o.type,
+    status: o.status,
+    gateway_order_id: o.gatewayOrderId || null,
   }),
 });
 

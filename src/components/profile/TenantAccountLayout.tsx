@@ -1,3 +1,4 @@
+import { useT } from '../../lib/i18n';
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
@@ -42,33 +43,39 @@ export const TenantAccountLayout: React.FC<TenantAccountLayoutProps> = ({
     return currentPath === path;
   };
 
+  const { t } = useT();
   const navItems = [
     {
       group: 'ACCOUNT',
       links: [
-        { label: 'Profile', path: '/profile', iconName: 'profile' },
-        { label: 'Bookings', path: '/my-bookings', iconName: 'bookings' },
-        { label: 'Saved PGs', path: '/saved', iconName: 'heart' },
-        { label: 'Payments', path: '/payments', iconName: 'payments' },
+        { label: t('nav.profile'), path: '/profile', iconName: 'profile' },
+        { label: t('nav.bookings'), path: '/my-bookings', iconName: 'bookings' },
+        { label: t('nav.saved'), path: '/saved', iconName: 'heart' },
+        { label: t('nav.payments'), path: '/payments', iconName: 'payments' },
       ],
     },
     {
       group: 'PREFERENCES',
       links: [
-        { label: 'Notifications', path: '/settings/notifications', tab: 'notifications', iconName: 'notifications' },
-        { label: 'Search Preferences', path: '/settings/preferences', tab: 'preferences', iconName: 'filter' },
+        {
+          label: t('nav.notifications'),
+          path: '/settings/notifications',
+          tab: 'notifications',
+          iconName: 'notifications',
+        },
+        { label: t('nav.preferences'), path: '/settings/preferences', tab: 'preferences', iconName: 'filter' },
       ],
     },
     {
       group: 'SETTINGS',
       links: [
-        { label: 'Security', path: '/settings/security', tab: 'security', iconName: 'lock' },
-        { label: 'Privacy', path: '/settings/privacy', tab: 'privacy', iconName: 'shield' },
+        { label: t('nav.security'), path: '/settings/security', tab: 'security', iconName: 'lock' },
+        { label: t('nav.privacy'), path: '/settings/privacy', tab: 'privacy', iconName: 'shield' },
       ],
     },
     {
       group: 'SUPPORT',
-      links: [{ label: 'Help & Support', path: '/support', iconName: 'support' }],
+      links: [{ label: t('nav.support'), path: '/support', iconName: 'support' }],
     },
   ];
 

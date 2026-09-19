@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import * as auth from '../services/authService.js';
 import { authenticate, currentUser } from '../middleware/auth.js';
 import { sendOk, wrap } from '../middleware/common.js';
@@ -25,8 +25,47 @@ authRouter.get('/config', (_req, res) => {
 authRouter.post(
   '/register',
   loginLimiter,
-  wrap((req, res) => sendOk(res, auth.register(req.body || {}, req), 201))
+  wrap((req, res) => sendAuth(res, auth.register(req.body || {}, req), 201))
 );
+const REFRESH_COOKIE = 'nestin_refresh';
+const cookiePath = '/api/v1/auth';
+
+function setRefreshCookie(res: Response, token: string, expiresAt: string): void {
+  const attrs = [
+    `${REFRESH_COOKIE}=${token}`,
+    `Path=${cookiePath}`,
+    'HttpOnly',
+    'SameSite=Lax',
+    `Expires=${new Date(expiresAt).toUTCString()}`,
+    ...(config.isProduction ? ['Secure'] : []),
+  ];
+  res.append('Set-Cookie', attrs.join('; '));
+}
+
+function clearRefreshCookie(res: Response): void {
+  res.append(
+    'Set-Cookie',
+    `${REFRESH_COOKIE}=; Path=${cookiePath}; HttpOnly; SameSite=Lax; Max-Age=0${config.isProduction ? '; Secure' : ''}`
+  );
+}
+
+function readCookie(req: { headers: { cookie?: string } }, name: string): string | undefined {
+  const raw = req.headers.cookie;
+  if (!raw) return undefined;
+  for (const part of raw.split(';')) {
+    const [k, ...rest] = part.trim().split('=');
+    if (k === name) return decodeURIComponent(rest.join('='));
+  }
+  return undefined;
+}
+
+/** Sends an auth result: the refresh token goes into the cookie, everything else into the body. */
+function sendAuth(res: Response, result: auth.AuthResult, status = 200): void {
+  const { refreshToken, ...body } = result;
+  if (refreshToken) setRefreshCookie(res, refreshToken, result.expiresAt);
+  sendOk(res, body, status);
+}
+
 const emailKey = (req: { body?: { email?: unknown } }) => String((req.body && req.body.email) || '').toLowerCase();
 authRouter.post(
   '/login',
@@ -34,7 +73,7 @@ authRouter.post(
   wrap((req, res) => {
     const result = auth.login(req.body || {}, req);
     resetRateLimit('auth', req, emailKey(req));
-    sendOk(res, result);
+    sendAuth(res, result);
   })
 );
 authRouter.post(
@@ -43,13 +82,24 @@ authRouter.post(
   wrap((req, res) => {
     const result = auth.loginSuperAdmin(req.body || {}, req);
     resetRateLimit('auth', req, emailKey(req));
-    sendOk(res, result);
+    sendAuth(res, result);
   })
 );
 authRouter.post(
   '/google',
   loginLimiter,
-  wrap(async (req, res) => sendOk(res, await auth.loginWithGoogle(req.body || {}, req)))
+  wrap(async (req, res) => sendAuth(res, await auth.loginWithGoogle(req.body || {}, req)))
+);
+
+/** Silent renewal of the access token from the httpOnly refresh cookie (rotated on every call). */
+authRouter.post(
+  '/refresh',
+  rateLimit({ name: 'refresh', windowMs: 60_000, max: 60 }),
+  wrap((req, res) => {
+    const result = auth.refreshSession(readCookie(req, REFRESH_COOKIE));
+    setRefreshCookie(res, result.refreshToken, result.expiresAt);
+    sendOk(res, { token: result.token, accessExpiresAt: result.accessExpiresAt, expiresAt: result.expiresAt });
+  })
 );
 
 authRouter.post(
@@ -143,6 +193,7 @@ authRouter.post(
   wrap((req, res) => {
     const user = currentUser(req);
     auth.logout(user.id, user.sessionId);
+    clearRefreshCookie(res);
     sendOk(res, { loggedOut: true });
   })
 );

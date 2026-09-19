@@ -126,6 +126,14 @@ export function planPeriodAmount(id: PlanId, interval: BillingInterval): number 
   return interval === 'yearly' ? plan.yearlyPrice * 12 : plan.monthlyPrice;
 }
 
+/** One-off / recurring add-ons owners can buy per listing (INR, excluding GST). */
+export const ADDONS = {
+  /** NestIn Verified site visit + 8-point checklist; badge valid for VERIFICATION_VALIDITY_MONTHS. */
+  verificationVisit: 1499,
+  /** Promoted placement at the top of search results, per listing per month. */
+  featuredPerMonth: 999,
+} as const;
+
 export function formatInr(amount: number): string {
   return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 }
