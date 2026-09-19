@@ -30,12 +30,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       </div>
       {onReset && (
         <div className="pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<Icon name="refresh" size={14} />}
-            onClick={onReset}
-          >
+          <Button variant="outline" size="sm" leftIcon={<Icon name="refresh" size={14} />} onClick={onReset}>
             {resetText}
           </Button>
         </div>

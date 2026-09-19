@@ -10,6 +10,23 @@ import { HttpError } from './errors.js';
 
 export const razorpayEnabled = () => config.razorpay.enabled;
 
+/**
+ * Whether a payment may be recorded as a simulated success. Only ever true outside production (or
+ * with an explicit ALLOW_SIMULATED_PAYMENTS opt-in for staging); production without gateway keys
+ * refuses online payments rather than silently giving them away.
+ */
+export const simulatedPaymentsAllowed = () => !razorpayEnabled() && config.allowSimulatedPayments;
+
+/** Guard for every checkout entry point: a real gateway or an allowed simulation, never neither. */
+export function assertPaymentsAvailable(): void {
+  if (razorpayEnabled() || simulatedPaymentsAllowed()) return;
+  throw new HttpError(
+    503,
+    'PAYMENTS_UNAVAILABLE',
+    'Online payments are not configured on this server. Please contact support or pay offline.'
+  );
+}
+
 export interface RazorpayOrder {
   id: string;
   amount: number; // paise

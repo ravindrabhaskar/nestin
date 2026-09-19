@@ -17,6 +17,19 @@ jobs:
       - run: npm ci
       - name: Type check
         run: npm run typecheck
+      - name: Lint (zero warnings)
+        run: npm run lint
+      - name: Format check
+        run: npm run format:check
+      - name: Line endings are LF
+        run: |
+          if git ls-files --eol | grep -E 'w/crlf|w/mixed'; then
+            echo "CRLF line endings found; run: git add --renormalize . && npm run format" && exit 1
+          fi
+      - name: Production config guard
+        run: node --import tsx -e "process.env.NODE_ENV='production'; import('./server/config.ts').then(m => { try { m.assertProductionConfig(); console.error('expected refusal'); process.exit(1) } catch (e) { console.log('refuses to start without secrets: OK') } })"
+        env:
+          JWT_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef
       - name: API integration tests
         run: npm run test:api
       - name: Build

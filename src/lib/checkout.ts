@@ -1,4 +1,4 @@
-import { ApiClient, type CheckoutOrder } from './apiClient';
+import { ApiClient, type CheckoutOrder, type SubscriptionView } from './apiClient';
 
 /**
  * Online payment flow. The server decides whether a real Razorpay order is used (keys configured) or
@@ -75,6 +75,38 @@ export async function payOnline(options: PayOptions): Promise<any> {
       handler: (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         ApiClient.tenant
           .completeCheckout({ paymentId: order.paymentId, ...response })
+          .then(resolve)
+          .catch(reject);
+      },
+    });
+    rzp.on('payment.failed', (r: unknown) =>
+      reject(new Error((r as { error?: { description?: string } })?.error?.description || 'Payment failed.'))
+    );
+    rzp.open();
+  });
+}
+
+/** Owner subscription upgrade/renewal — same gateway handshake as tenant payments. */
+export async function paySubscription(plan: string, interval: 'monthly' | 'yearly'): Promise<SubscriptionView> {
+  const order = await ApiClient.billing.checkout({ plan, interval });
+  if (order.simulated) return ApiClient.billing.completeCheckout({ invoiceId: order.invoiceId });
+
+  await loadRazorpay();
+  if (!window.Razorpay) throw new Error('Payment gateway unavailable.');
+  return new Promise((resolve, reject) => {
+    const rzp = new window.Razorpay!({
+      key: order.keyId,
+      amount: Math.round(order.amount * 100),
+      currency: order.currency,
+      name: 'NestIn',
+      description: order.description,
+      order_id: order.orderId,
+      prefill: order.prefill,
+      theme: { color: '#0f172a' },
+      modal: { ondismiss: () => reject(new Error('Payment was cancelled.')) },
+      handler: (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
+        ApiClient.billing
+          .completeCheckout({ invoiceId: order.invoiceId, ...response })
           .then(resolve)
           .catch(reject);
       },

@@ -38,7 +38,11 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
         .join(', ');
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
+    >
       <div
         className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95"
         role="dialog"
@@ -115,9 +119,7 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
             <span className="text-xs font-black text-slate-900 uppercase tracking-wide font-heading">
               Property Access Scope
             </span>
-            <p className="text-xs font-bold text-emerald-950">
-              {assignedPropertyNames}
-            </p>
+            <p className="text-xs font-bold text-emerald-950">{assignedPropertyNames}</p>
           </div>
 
           {/* Quick Actions Row */}
@@ -189,7 +191,9 @@ export const EmployeeDetailsModal: React.FC<EmployeeDetailsModalProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-1.5 truncate">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${isGranted ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                      <span
+                        className={`w-2 h-2 rounded-full shrink-0 ${isGranted ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                      />
                       <span className="font-bold truncate">{perm.label}</span>
                     </div>
 

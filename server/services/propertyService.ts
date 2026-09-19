@@ -1,12 +1,21 @@
-import type { OwnerPropertyListing, PropertyResidentReview, PropertyRoom } from '../../src/types/property';
+import {
+  VERIFICATION_CHECKLIST,
+  type OwnerPropertyListing,
+  type PropertyResidentReview,
+  type PropertyRoom,
+  type VerificationCheckId,
+} from '../../src/types/property';
+import { config } from '../config.js';
+import { getMeta, setMeta } from '../db/database.js';
 import { calculatePropertyCompleteness } from '../../src/lib/domain/propertyCompleteness';
 import { properties, users, bookings } from '../db/repositories.js';
-import { Collection } from '../db/database.js';
+import { Collection, getDb } from '../db/database.js';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors.js';
 import { isSafeId, newId, slugify } from '../lib/ids.js';
 import * as v from '../lib/validate.js';
 import { events, type EventContext } from '../lib/events.js';
 import type { AuthUser } from '../middleware/auth.js';
+import { assertCanAddProperty } from './billingService.js';
 
 const PROPERTY_TYPES = ['PG', 'Hostel', 'Co-living', 'Student Housing', 'Working Professionals'] as const;
 const CATEGORIES = ['Men', 'Women', 'Co-ed'] as const;
@@ -26,6 +35,7 @@ const SYSTEM_CONTROLLED = [
   'rejectionReason',
   'completenessScore',
   'status',
+  'verification',
 ];
 
 function nowIso() {
@@ -34,10 +44,91 @@ function nowIso() {
 
 export interface PublicPropertyFilters {
   city?: string;
+  area?: string;
   query?: string;
+  minRent?: number;
   maxRent?: number;
   category?: string;
+  type?: string;
+  verifiedOnly?: boolean;
+  availableOnly?: boolean;
+  sort?: 'relevance' | 'rent_asc' | 'rent_desc' | 'rating' | 'newest';
   limit?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PublicCatalogueResult {
+  items: OwnerPropertyListing[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+const SORTS: Record<NonNullable<PublicPropertyFilters['sort']>, string> = {
+  relevance: 'is_featured DESC, is_verified DESC, rating DESC, created_at DESC',
+  rent_asc: 'min_rent ASC, rating DESC',
+  rent_desc: 'min_rent DESC, rating DESC',
+  rating: 'rating DESC, is_verified DESC',
+  newest: 'created_at DESC',
+};
+
+/**
+ * Catalogue query executed in SQL over the indexed columns, so it stays fast well beyond the
+ * point where scanning every JSON document would not. Returns card projections.
+ */
+export function searchPublished(filters: PublicPropertyFilters = {}): PublicCatalogueResult {
+  const where: string[] = ["status = 'published'"];
+  const params: Array<string | number> = [];
+  if (filters.city) {
+    where.push('LOWER(city) = ?');
+    params.push(filters.city.toLowerCase());
+  }
+  if (filters.area) {
+    where.push('LOWER(area) LIKE ?');
+    params.push(`%${filters.area.toLowerCase()}%`);
+  }
+  if (filters.category && CATEGORIES.includes(filters.category as (typeof CATEGORIES)[number])) {
+    where.push('category = ?');
+    params.push(filters.category);
+  }
+  if (filters.type && PROPERTY_TYPES.includes(filters.type as (typeof PROPERTY_TYPES)[number])) {
+    where.push('type = ?');
+    params.push(filters.type);
+  }
+  if (filters.minRent) {
+    where.push('min_rent >= ?');
+    params.push(filters.minRent);
+  }
+  if (filters.maxRent) {
+    where.push('min_rent > 0 AND min_rent <= ?');
+    params.push(filters.maxRent);
+  }
+  if (filters.verifiedOnly) where.push('is_verified = 1');
+  if (filters.availableOnly) where.push('available_beds > 0');
+  if (filters.query) {
+    for (const term of filters.query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6)) {
+      where.push('search_text LIKE ?');
+      params.push(`%${term.replace(/[%_]/g, '')}%`);
+    }
+  }
+  const pageSize = Math.min(500, Math.max(1, Math.floor(filters.pageSize || filters.limit || 24)));
+  const page = Math.max(1, Math.floor(filters.page || 1));
+  const { items, total } = properties.search({
+    where,
+    params,
+    orderBy: SORTS[filters.sort || 'relevance'],
+    limit: pageSize,
+    offset: (page - 1) * pageSize,
+  });
+  return {
+    items: items.map(toCardListing),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
 }
 
 /** Removes owner-private information before a listing is exposed publicly. */
@@ -78,37 +169,19 @@ export function toCardListing(p: OwnerPropertyListing): OwnerPropertyListing {
   };
 }
 
-export function listPublished(filters: PublicPropertyFilters = {}): OwnerPropertyListing[] {
-  let list = properties.list({ status: 'published' });
-  if (filters.city) {
-    const city = filters.city.toLowerCase();
-    list = list.filter((p) => p.location?.city?.toLowerCase() === city);
-  }
-  if (filters.category && CATEGORIES.includes(filters.category as (typeof CATEGORIES)[number])) {
-    list = list.filter((p) => p.category === filters.category);
-  }
-  if (filters.maxRent) {
-    list = list.filter(
-      (p) => Math.min(p.pricing?.minRent || Infinity, ...p.rooms.map((r) => r.monthlyRent)) <= filters.maxRent!
-    );
-  }
-  if (filters.query) {
-    const q = filters.query.toLowerCase();
-    list = list.filter((p) =>
-      [p.name, p.location?.area, p.location?.city, p.location?.formattedAddress, ...(p.tags || [])].some((s) =>
-        s?.toLowerCase().includes(q)
-      )
-    );
-  }
-  return list.slice(0, filters.limit || 500).map(toCardListing);
+/** Legacy links may carry an older suffix; resolve them through the indexed slug column, not a table scan. */
+function findBySlugPrefix(key: string) {
+  if (key.length < 8) return null;
+  const escaped = key.replace(/[\\%_]/g, '\\$&');
+  const row = getDb()
+    .prepare("SELECT id FROM properties WHERE slug LIKE ? ESCAPE '\\' ORDER BY slug LIMIT 1")
+    .get(`${escaped}%`) as { id: string } | undefined;
+  return row ? properties.get(row.id) : null;
 }
 
 export function getPublicBySlugOrId(slugOrId: string, viewer?: AuthUser | null): OwnerPropertyListing {
   const key = slugOrId.toLowerCase();
-  const prop =
-    properties.findOne({ slug: key }) ||
-    properties.get(slugOrId) ||
-    properties.list().find((p) => p.slug.startsWith(key) || key.startsWith(p.slug));
+  const prop = properties.findOne({ slug: key }) || properties.get(slugOrId) || findBySlugPrefix(key);
   if (!prop) throw notFound('Property');
   const isOwnerSide = viewer && (viewer.role === 'super_admin' || (viewer.ownerId && viewer.ownerId === prop.ownerId));
   if (prop.status !== 'published' && !isOwnerSide) throw notFound('Property');
@@ -163,14 +236,14 @@ function validateRooms(rooms: unknown): PropertyRoom[] {
 }
 
 function uniqueSlug(base: string, excludeId?: string): string {
-  let slug = slugify(base) || 'property';
+  const slug = slugify(base) || 'property';
   let attempt = slug;
   let n = 0;
   while (true) {
     const existing = properties.findOne({ slug: attempt });
     if (!existing || existing.id === excludeId) return attempt;
     n += 1;
-    attempt = `${slug}-${1000 + Math.floor(Math.random() * 9000)}`;
+    attempt = `${slug}-${n + 1}`;
     if (n > 20) attempt = `${slug}-${Date.now().toString(36)}`;
   }
 }
@@ -188,6 +261,7 @@ export function create(
   const owner = users.findById(ownerId);
   if (!owner) throw forbidden('Owner account not found');
   v.assertDocumentSize(body);
+  assertCanAddProperty(ownerId);
 
   const draft = v.omitKeys(body as Record<string, unknown>, SYSTEM_CONTROLLED) as Partial<OwnerPropertyListing>;
   const name = v.str(draft.name || 'Untitled Property Listing', 'Property name', { max: 120 });
@@ -364,35 +438,170 @@ export function submitForVerification(
   };
 }
 
+export interface ApproveOptions {
+  isNestinVerified?: boolean;
+  isFeatured?: boolean;
+  isZeroBrokerage?: boolean;
+  /** Verification evidence; required (all items true) when granting the Verified badge. */
+  checklist?: Partial<Record<VerificationCheckId, boolean>>;
+  notes?: string;
+  siteVisitDate?: string;
+  evidenceUrls?: string[];
+}
+
+function parseVerificationInput(
+  body: Record<string, unknown>
+): Pick<ApproveOptions, 'checklist' | 'notes' | 'siteVisitDate' | 'evidenceUrls'> {
+  const rawChecklist =
+    body.checklist && typeof body.checklist === 'object' ? (body.checklist as Record<string, unknown>) : {};
+  const checklist: Partial<Record<VerificationCheckId, boolean>> = {};
+  for (const item of VERIFICATION_CHECKLIST) checklist[item.id] = rawChecklist[item.id] === true;
+  return {
+    checklist,
+    notes: v.optionalStr(body.notes, 'Verification notes', 4000),
+    siteVisitDate: body.siteVisitDate ? v.isoDate(body.siteVisitDate, 'Site visit date', false) : undefined,
+    evidenceUrls: v
+      .arr<unknown>(body.evidenceUrls, 'Evidence', 20)
+      .filter((u): u is string => typeof u === 'string' && /^(\/|https?:\/\/)/.test(u))
+      .map((u) => u.slice(0, 500)),
+  };
+}
+
+function verificationExpiry(from: Date): string {
+  const d = new Date(from);
+  d.setMonth(d.getMonth() + config.verification.validityMonths);
+  return d.toISOString();
+}
+
+/**
+ * Publishes a listing. Granting the "NestIn Verified" badge requires every checklist item to be
+ * confirmed — the badge is the platform's core trust promise and must be backed by evidence.
+ */
 export function adminApprove(
   actor: AuthUser,
   id: string,
-  options: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean },
+  options: Record<string, unknown>,
   ctx: EventContext
 ): OwnerPropertyListing {
   const prop = properties.get(id);
   if (!prop) throw notFound('Property');
+  const grantVerified = options.isNestinVerified === undefined ? true : !!options.isNestinVerified;
+  const evidence = parseVerificationInput(options);
+  const now = nowIso();
+
+  if (grantVerified) {
+    const missing = VERIFICATION_CHECKLIST.filter((item) => !evidence.checklist?.[item.id]);
+    if (missing.length) {
+      throw badRequest('Every verification check must be confirmed before granting the Verified badge.', {
+        missing: missing.map((m) => ({ id: m.id, label: m.label })),
+      });
+    }
+    if (!evidence.siteVisitDate) throw badRequest('Record the site visit date to grant the Verified badge.');
+    prop.verification = {
+      status: 'verified',
+      checklist: evidence.checklist!,
+      notes: evidence.notes,
+      siteVisitDate: evidence.siteVisitDate,
+      evidenceUrls: evidence.evidenceUrls,
+      verifiedBy: actor.id,
+      verifiedByName: actor.fullName,
+      verifiedAt: now,
+      expiresAt: verificationExpiry(new Date()),
+    };
+    prop.caretaker = {
+      ...prop.caretaker,
+      isIdentityVerified: !!evidence.checklist?.caretakerIdentity,
+      isBackgroundVerified: !!evidence.checklist?.caretakerBackground,
+    };
+    prop.documents = prop.documents.map((d) => ({ ...d, status: 'verified' as const }));
+  } else {
+    prop.verification = {
+      status: 'unverified',
+      checklist: evidence.checklist || {},
+      notes: evidence.notes,
+      siteVisitDate: evidence.siteVisitDate,
+      evidenceUrls: evidence.evidenceUrls,
+    };
+  }
+
   prop.status = 'published';
-  prop.isNestinVerified = options.isNestinVerified ?? true;
-  prop.isFeatured = options.isFeatured ?? prop.isFeatured;
-  prop.isZeroBrokerage = options.isZeroBrokerage ?? prop.isZeroBrokerage;
+  prop.isNestinVerified = grantVerified;
+  prop.isFeatured = options.isFeatured === undefined ? prop.isFeatured : !!options.isFeatured;
+  prop.isZeroBrokerage = options.isZeroBrokerage === undefined ? prop.isZeroBrokerage : !!options.isZeroBrokerage;
   prop.rejectionReason = undefined;
-  prop.caretaker = { ...prop.caretaker, isIdentityVerified: true, isBackgroundVerified: true };
-  prop.documents = prop.documents.map((d) => ({ ...d, status: 'verified' as const }));
   prop.systemMetrics = {
     ...prop.systemMetrics,
-    publishedAt: prop.systemMetrics.publishedAt || nowIso(),
-    lastUpdatedAt: nowIso(),
+    publishedAt: prop.systemMetrics.publishedAt || now,
+    lastUpdatedAt: now,
   };
   properties.replace(prop);
   events.publish(
     'PropertyApproved',
     'Property',
     id,
-    { ...options },
+    { isNestinVerified: grantVerified, isFeatured: prop.isFeatured, isZeroBrokerage: prop.isZeroBrokerage },
     { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId: prop.ownerId }
   );
   return prop;
+}
+
+/** Removes the Verified badge (safety incident, failed re-verification, fraud). The listing stays live. */
+export function adminRevokeVerification(
+  actor: AuthUser,
+  id: string,
+  reason: string,
+  ctx: EventContext
+): OwnerPropertyListing {
+  const prop = properties.get(id);
+  if (!prop) throw notFound('Property');
+  const why = v.str(reason, 'Reason', { max: 1000 });
+  prop.isNestinVerified = false;
+  prop.isFeatured = false;
+  prop.verification = { ...(prop.verification || { checklist: {} }), status: 'revoked', revokedReason: why };
+  prop.systemMetrics.lastUpdatedAt = nowIso();
+  properties.replace(prop);
+  events.publish(
+    'PropertyVerificationRevoked',
+    'Property',
+    id,
+    { reason: why },
+    { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId: prop.ownerId }
+  );
+  return prop;
+}
+
+/**
+ * Expires Verified badges older than the configured validity window and asks owners to schedule a
+ * re-verification visit. Run daily; idempotent.
+ */
+export function runVerificationExpiry(now = new Date()): { expired: number; dueSoon: number } {
+  let expired = 0;
+  let dueSoon = 0;
+  const soon = now.getTime() + 30 * 86_400_000;
+  for (const prop of properties.list({ status: 'published' })) {
+    const ver = prop.verification;
+    if (!prop.isNestinVerified || !ver?.expiresAt) continue;
+    const expiresAt = Date.parse(ver.expiresAt);
+    if (expiresAt <= now.getTime()) {
+      prop.isNestinVerified = false;
+      prop.verification = { ...ver, status: 'expired' };
+      prop.systemMetrics.lastUpdatedAt = nowIso();
+      properties.replace(prop);
+      events.publish('PropertyVerificationExpired', 'Property', prop.id, {}, { ownerId: prop.ownerId });
+      expired += 1;
+    } else if (expiresAt <= soon && !getMeta(`verification-due:${prop.id}:${ver.verifiedAt}`)) {
+      setMeta(`verification-due:${prop.id}:${ver.verifiedAt}`, nowIso());
+      dueSoon += 1;
+      events.publish(
+        'PropertyVerificationDueSoon',
+        'Property',
+        prop.id,
+        { expiresAt: ver.expiresAt },
+        { ownerId: prop.ownerId }
+      );
+    }
+  }
+  return { expired, dueSoon };
 }
 
 export function adminReject(actor: AuthUser, id: string, reason: string, ctx: EventContext): OwnerPropertyListing {

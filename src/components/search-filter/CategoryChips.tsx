@@ -15,11 +15,7 @@ interface CategoryChipsProps {
   counts: CategoryCounts;
 }
 
-export const CategoryChips: React.FC<CategoryChipsProps> = ({
-  currentGender,
-  onSelectCategory,
-  counts,
-}) => {
+export const CategoryChips: React.FC<CategoryChipsProps> = ({ currentGender, onSelectCategory, counts }) => {
   const CATEGORIES = [
     {
       id: 'Any',
@@ -82,9 +78,7 @@ export const CategoryChips: React.FC<CategoryChipsProps> = ({
               <span>{cat.label}</span>
               <span
                 className={`text-[10px] px-2.5 py-0.5 rounded-full font-black tracking-tight transition-colors ${
-                  isSelected
-                    ? 'bg-slate-950 text-white shadow-xs'
-                    : 'bg-slate-200/80 text-slate-800'
+                  isSelected ? 'bg-slate-950 text-white shadow-xs' : 'bg-slate-200/80 text-slate-800'
                 }`}
               >
                 {cat.count}

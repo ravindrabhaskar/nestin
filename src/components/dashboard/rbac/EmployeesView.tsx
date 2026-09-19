@@ -14,15 +14,8 @@ interface EmployeesViewProps {
 }
 
 export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles }) => {
-  const {
-    employees,
-    roles,
-    toggleEmployeeStatus,
-    deleteEmployee,
-    changeEmployeeRole,
-    bulkAssignRole,
-    bulkSetStatus,
-  } = useRBAC();
+  const { employees, roles, toggleEmployeeStatus, deleteEmployee, changeEmployeeRole, bulkAssignRole, bulkSetStatus } =
+    useRBAC();
 
   // Search and Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,14 +90,11 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
   };
 
   const handleToggleRowSelect = (empId: string) => {
-    setSelectedEmployeeIds((prev) =>
-      prev.includes(empId) ? prev.filter((id) => id !== empId) : [...prev, empId]
-    );
+    setSelectedEmployeeIds((prev) => (prev.includes(empId) ? prev.filter((id) => id !== empId) : [...prev, empId]));
   };
 
   const isAllSelected =
-    filteredEmployees.length > 0 &&
-    filteredEmployees.every((e) => selectedEmployeeIds.includes(e.id));
+    filteredEmployees.length > 0 && filteredEmployees.every((e) => selectedEmployeeIds.includes(e.id));
 
   // Role change with prompt
   const handleInitiateRoleChange = (employee: Employee, newRoleId: string) => {
@@ -188,16 +178,12 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
-              Employees
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">Employees</h1>
             <span className="text-[11px] font-black uppercase px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 font-heading">
               {employees.length} Team Members
             </span>
           </div>
-          <p className="text-sm text-slate-500 font-medium mt-1">
-            Manage your team and control their access.
-          </p>
+          <p className="text-sm text-slate-500 font-medium mt-1">Manage your team and control their access.</p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -231,11 +217,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search */}
           <div className="relative">
-            <Icon
-              name="search"
-              size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+            <Icon name="search" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search by name, email, or phone..."
@@ -315,11 +297,13 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
                 <option value="" disabled>
                   Assign Role...
                 </option>
-                {roles.filter((r) => !r.isOwnerRole).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
+                {roles
+                  .filter((r) => !r.isOwnerRole)
+                  .map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
               </select>
 
               <button
@@ -398,9 +382,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
                   return (
                     <tr
                       key={emp.id}
-                      className={`hover:bg-slate-50/60 transition-colors ${
-                        isSelected ? 'bg-emerald-50/30' : ''
-                      }`}
+                      className={`hover:bg-slate-50/60 transition-colors ${isSelected ? 'bg-emerald-50/30' : ''}`}
                     >
                       {/* Checkbox */}
                       <td className="py-4 px-4 text-center">
@@ -427,9 +409,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
                             <div className="text-xs font-black text-slate-900 group-hover:text-emerald-950 font-heading">
                               {emp.name}
                             </div>
-                            <div className="text-[11px] text-slate-500 font-medium">
-                              {emp.email}
-                            </div>
+                            <div className="text-[11px] text-slate-500 font-medium">{emp.email}</div>
                           </div>
                         </div>
                       </td>
@@ -511,8 +491,8 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
                             isOwner
                               ? 'cursor-not-allowed opacity-80 bg-emerald-50 text-emerald-800'
                               : emp.status === 'active'
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 cursor-pointer'
-                              : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 cursor-pointer'
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 cursor-pointer'
+                                : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 cursor-pointer'
                           }`}
                           title={isOwner ? 'Owner account is permanently active' : 'Click to toggle status'}
                         >
@@ -526,9 +506,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
                       </td>
 
                       {/* Last Active */}
-                      <td className="py-4 px-4 text-xs text-slate-500 font-medium">
-                        {emp.lastActive}
-                      </td>
+                      <td className="py-4 px-4 text-xs text-slate-500 font-medium">{emp.lastActive}</td>
 
                       {/* Action Menu */}
                       <td className="py-4 px-4 text-right">

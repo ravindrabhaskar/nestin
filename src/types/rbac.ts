@@ -1,14 +1,9 @@
 export type AuthorityLevel = 'full' | 'high' | 'medium' | 'low' | 'limited';
 
-export type PermissionActionType = 'view' | 'create' | 'edit' | 'delete' | 'approve' | 'export' | 'manage' | 'refund' | 'publish';
+export type PermissionActionType =
+  'view' | 'create' | 'edit' | 'delete' | 'approve' | 'export' | 'manage' | 'refund' | 'publish';
 
-export type PermissionGroupKey = 
-  | 'OVERVIEW'
-  | 'PROPERTY MANAGEMENT'
-  | 'CRM'
-  | 'BUSINESS'
-  | 'COMMUNICATION'
-  | 'SETTINGS';
+export type PermissionGroupKey = 'OVERVIEW' | 'PROPERTY MANAGEMENT' | 'CRM' | 'BUSINESS' | 'COMMUNICATION' | 'SETTINGS';
 
 export interface PermissionDefinition {
   id: string;

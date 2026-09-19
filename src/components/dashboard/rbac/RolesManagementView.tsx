@@ -62,10 +62,7 @@ export const RolesManagementView: React.FC = () => {
         }}
       />
 
-      <AuditLogsModal
-        isOpen={isAuditLogsModalOpen}
-        onClose={() => setIsAuditLogsModalOpen(false)}
-      />
+      <AuditLogsModal isOpen={isAuditLogsModalOpen} onClose={() => setIsAuditLogsModalOpen(false)} />
 
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -140,11 +137,7 @@ export const RolesManagementView: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Search */}
           <div className="relative w-full sm:w-80">
-            <Icon
-              name="search"
-              size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+            <Icon name="search" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search permissions or modules..."

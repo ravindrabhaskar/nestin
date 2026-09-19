@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Search, MapPin, ArrowRight, X, Compass, Sparkles, Landmark, Building2, Waves } from 'lucide-react';
-import { INDIAN_CITIES_DATA } from '../data/citiesData';
-import { CityItem } from '../types';
+import { Search, MapPin, ArrowRight, X, Sparkles, Landmark, Building2, Waves } from 'lucide-react';
+import { useCities, cityStaysLabel } from '../lib/usePlatformData';
 import { LazyImage } from '../components/LazyImage';
 
 interface Attraction {
@@ -12,122 +11,123 @@ interface Attraction {
 }
 
 const CITY_ATTRACTIONS_MAP: Record<string, Attraction[]> = {
-  'Bengaluru': [
+  Bengaluru: [
     { name: 'Vidhana Soudha', type: 'landmark' },
-    { name: 'Lalbagh', type: 'nature' }
+    { name: 'Lalbagh', type: 'nature' },
   ],
-  'Hyderabad': [
+  Hyderabad: [
     { name: 'Charminar', type: 'landmark' },
-    { name: 'Golconda Fort', type: 'landmark' }
+    { name: 'Golconda Fort', type: 'landmark' },
   ],
-  'Pune': [
+  Pune: [
     { name: 'Shaniwar Wada', type: 'landmark' },
-    { name: 'Aga Khan Palace', type: 'landmark' }
+    { name: 'Aga Khan Palace', type: 'landmark' },
   ],
   'Delhi NCR': [
     { name: 'India Gate', type: 'landmark' },
-    { name: 'Qutub Minar', type: 'landmark' }
+    { name: 'Qutub Minar', type: 'landmark' },
   ],
-  'Delhi': [
+  Delhi: [
     { name: 'India Gate', type: 'landmark' },
-    { name: 'Qutub Minar', type: 'landmark' }
+    { name: 'Qutub Minar', type: 'landmark' },
   ],
-  'Chennai': [
+  Chennai: [
     { name: 'Kapaleeshwarar', type: 'landmark' },
-    { name: 'Marina Beach', type: 'waves' }
+    { name: 'Marina Beach', type: 'waves' },
   ],
-  'Mumbai': [
+  Mumbai: [
     { name: 'Gateway of India', type: 'landmark' },
-    { name: 'Marine Drive', type: 'waves' }
+    { name: 'Marine Drive', type: 'waves' },
   ],
-  'Noida': [
+  Noida: [
     { name: 'Noida Skyline', type: 'building' },
-    { name: 'Worlds of Wonder', type: 'nature' }
+    { name: 'Worlds of Wonder', type: 'nature' },
   ],
-  'Gurugram': [
+  Gurugram: [
     { name: 'CyberHub', type: 'building' },
-    { name: 'Cyber City', type: 'building' }
+    { name: 'Cyber City', type: 'building' },
   ],
-  'Ahmedabad': [
+  Ahmedabad: [
     { name: 'Sabarmati Riverfront', type: 'waves' },
-    { name: 'Atal Bridge', type: 'landmark' }
+    { name: 'Atal Bridge', type: 'landmark' },
   ],
-  'Jaipur': [
+  Jaipur: [
     { name: 'Hawa Mahal', type: 'landmark' },
-    { name: 'Amer Fort', type: 'landmark' }
+    { name: 'Amer Fort', type: 'landmark' },
   ],
-  'Kolkata': [
+  Kolkata: [
     { name: 'Victoria Memorial', type: 'landmark' },
-    { name: 'Howrah Bridge', type: 'landmark' }
+    { name: 'Howrah Bridge', type: 'landmark' },
   ],
-  'Kochi': [
+  Kochi: [
     { name: 'Chinese Fishing Nets', type: 'waves' },
-    { name: 'Fort Kochi', type: 'landmark' }
+    { name: 'Fort Kochi', type: 'landmark' },
   ],
   'Chandigarh / Mohali': [
     { name: 'Capitol Complex', type: 'building' },
-    { name: 'Rock Garden', type: 'nature' }
+    { name: 'Rock Garden', type: 'nature' },
   ],
-  'Chandigarh': [
+  Chandigarh: [
     { name: 'Capitol Complex', type: 'building' },
-    { name: 'Rock Garden', type: 'nature' }
+    { name: 'Rock Garden', type: 'nature' },
   ],
-  'Indore': [
+  Indore: [
     { name: 'Rajwada Palace', type: 'landmark' },
-    { name: 'Lal Bagh', type: 'landmark' }
+    { name: 'Lal Bagh', type: 'landmark' },
   ],
-  'Visakhapatnam': [
+  Visakhapatnam: [
     { name: 'RK Beach', type: 'waves' },
-    { name: 'Kailasagiri', type: 'nature' }
+    { name: 'Kailasagiri', type: 'nature' },
   ],
-  'Coimbatore': [
+  Coimbatore: [
     { name: 'Adiyogi Shiva', type: 'landmark' },
-    { name: 'Marudamalai', type: 'landmark' }
+    { name: 'Marudamalai', type: 'landmark' },
   ],
-  'Bhubaneswar': [
+  Bhubaneswar: [
     { name: 'Lingaraj Temple', type: 'landmark' },
-    { name: 'Udayagiri Caves', type: 'nature' }
+    { name: 'Udayagiri Caves', type: 'nature' },
   ],
-  'Lucknow': [
+  Lucknow: [
     { name: 'Rumi Darwaza', type: 'landmark' },
-    { name: 'Bara Imambara', type: 'landmark' }
+    { name: 'Bara Imambara', type: 'landmark' },
   ],
-  'Mysore': [
+  Mysore: [
     { name: 'Mysore Palace', type: 'landmark' },
-    { name: 'Chamundi Hill', type: 'nature' }
+    { name: 'Chamundi Hill', type: 'nature' },
   ],
-  'Surat': [
+  Surat: [
     { name: 'Dumas Beach', type: 'waves' },
-    { name: 'Surat Castle', type: 'landmark' }
+    { name: 'Surat Castle', type: 'landmark' },
   ],
-  'Nagpur': [
+  Nagpur: [
     { name: 'Deekshabhoomi', type: 'landmark' },
-    { name: 'Futala Lake', type: 'waves' }
+    { name: 'Futala Lake', type: 'waves' },
   ],
-  'Vadodara': [
+  Vadodara: [
     { name: 'Laxmi Vilas Palace', type: 'landmark' },
-    { name: 'Sayaji Baug', type: 'nature' }
+    { name: 'Sayaji Baug', type: 'nature' },
   ],
-  'Warangal': [
+  Warangal: [
     { name: '1000 Pillar Temple', type: 'landmark' },
-    { name: 'Warangal Fort', type: 'landmark' }
-  ]
+    { name: 'Warangal Fort', type: 'landmark' },
+  ],
 };
 
 export const CitiesPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const { value: allCities } = useCities();
 
   const filteredCities = useMemo(() => {
-    if (!searchQuery.trim()) return INDIAN_CITIES_DATA;
+    if (!searchQuery.trim()) return allCities;
     const q = searchQuery.toLowerCase().trim();
-    return INDIAN_CITIES_DATA.filter((city) => {
+    return allCities.filter((city) => {
       const nameMatch = city.name.toLowerCase().includes(q);
       const stateMatch = city.state?.toLowerCase().includes(q);
       const localityMatch = city.popularLocalities?.some((loc) => loc.toLowerCase().includes(q));
       return nameMatch || stateMatch || localityMatch;
     });
-  }, [searchQuery]);
+  }, [searchQuery, allCities]);
 
   const handleCityClick = (cityName: string) => {
     navigate(`/find-pg?city=${encodeURIComponent(cityName)}`);
@@ -144,7 +144,7 @@ export const CitiesPage: React.FC = () => {
           </span>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black font-heading tracking-tight text-[#121820] leading-[1.1]">
-            Verified stays in <span className="text-[#a3e635]">20+ Indian</span> cities.
+            Verified stays across <span className="text-[#a3e635]">Indian</span> cities.
           </h1>
 
           <p className="text-slate-600 text-base sm:text-lg max-w-2xl font-normal leading-relaxed pt-1">
@@ -192,12 +192,16 @@ export const CitiesPage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {filteredCities.map((city, idx) => {
-              const propertyCountText = city.stays || (city.verifiedCount ? `${city.verifiedCount.toLocaleString()}+ properties` : '2,000+ properties');
+              const propertyCountText = cityStaysLabel(city, 'properties');
               const startingRentText = city.startingRent
                 ? `Starting ₹${city.startingRent.toLocaleString('en-IN')}/month`
-                : (city.avgPrice ? `Starting ${city.avgPrice}` : 'Starting ₹5,500/month');
+                : 'Be the first owner to list here';
 
-              const attractions = CITY_ATTRACTIONS_MAP[city.name] || (city.landmarks ? city.landmarks.map((l) => ({ name: l, type: 'landmark' as const })) : [{ name: 'Famous Landmarks', type: 'landmark' as const }]);
+              const attractions =
+                CITY_ATTRACTIONS_MAP[city.name] ||
+                (city.landmarks
+                  ? city.landmarks.map((l) => ({ name: l, type: 'landmark' as const }))
+                  : [{ name: 'Famous Landmarks', type: 'landmark' as const }]);
 
               return (
                 <motion.div
@@ -231,14 +235,17 @@ export const CitiesPage: React.FC = () => {
 
                       <div className="flex items-center gap-1.5 overflow-hidden">
                         {attractions.slice(0, 2).map((item, i) => {
-                          const IconComp = item.type === 'building' ? Building2 : item.type === 'waves' ? Waves : Landmark;
+                          const IconComp =
+                            item.type === 'building' ? Building2 : item.type === 'waves' ? Waves : Landmark;
                           return (
                             <span
                               key={i}
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/20 text-white text-[11px] font-medium shadow-sm transition-transform duration-300 group-hover:scale-105"
                             >
                               <IconComp className="w-3 h-3 text-[#a3e635] shrink-0" />
-                              <span className="truncate max-w-[90px] sm:max-w-[110px] font-sans text-white/95">{item.name}</span>
+                              <span className="truncate max-w-[90px] sm:max-w-[110px] font-sans text-white/95">
+                                {item.name}
+                              </span>
                             </span>
                           );
                         })}
@@ -257,13 +264,9 @@ export const CitiesPage: React.FC = () => {
                   <div className="p-5 sm:p-6 flex items-center justify-between gap-4 bg-white">
                     <div className="space-y-0.5 min-w-0">
                       <div className="text-sm sm:text-base font-bold text-[#121820] font-heading truncate">
-                        {propertyCountText.toLowerCase().includes('properties') || propertyCountText.toLowerCase().includes('stays')
-                          ? propertyCountText.replace('Stays', 'properties').replace('stays', 'properties')
-                          : `${propertyCountText} properties`}
+                        {propertyCountText}
                       </div>
-                      <div className="text-xs sm:text-sm text-slate-500 font-normal truncate">
-                        {startingRentText}
-                      </div>
+                      <div className="text-xs sm:text-sm text-slate-500 font-normal truncate">{startingRentText}</div>
                     </div>
 
                     {/* EXPLORE PILL BUTTON */}
@@ -288,4 +291,3 @@ export const CitiesPage: React.FC = () => {
     </div>
   );
 };
-

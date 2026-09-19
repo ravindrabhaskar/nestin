@@ -5,10 +5,7 @@ interface PropertyButtonsProps {
   onBookNow: (e: React.MouseEvent) => void;
 }
 
-export const PropertyButtons: React.FC<PropertyButtonsProps> = ({
-  onViewDetails,
-  onBookNow,
-}) => {
+export const PropertyButtons: React.FC<PropertyButtonsProps> = ({ onViewDetails, onBookNow }) => {
   return (
     <div className="flex items-center gap-2 justify-between w-full">
       <button
@@ -29,4 +26,3 @@ export const PropertyButtons: React.FC<PropertyButtonsProps> = ({
     </div>
   );
 };
-

@@ -48,6 +48,8 @@ import { VisitorsView } from '../components/dashboard/crm/VisitorsView';
 import { CustomersView } from '../components/dashboard/crm/CustomersView';
 import { EmployeesView } from '../components/dashboard/rbac/EmployeesView';
 import { RolesManagementView } from '../components/dashboard/rbac/RolesManagementView';
+import { SubscriptionView } from '../components/dashboard/SubscriptionView';
+import { OwnerNotificationsView } from '../components/dashboard/OwnerNotificationsView';
 import { exportMonthlyReportPDF } from '../utils/pdfExport';
 
 interface OwnerDashboardProps {
@@ -89,7 +91,6 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
   const publishedPropertiesCount = ownerProperties.filter((p) => p.status === 'published').length;
   const pendingPropertiesCount = ownerProperties.filter((p) => p.status === 'pending_approval').length;
 
-  let totalBeds = 0;
   let totalOccupiedBeds = 0;
   let totalAvailableBeds = 0;
 
@@ -99,7 +100,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
       totalAvailableBeds += r.availableBedsCount;
     });
   });
-  totalBeds = totalOccupiedBeds + totalAvailableBeds;
+  let totalBeds = totalOccupiedBeds + totalAvailableBeds;
   if (totalBeds === 0) {
     totalBeds = ownerProperties.reduce((acc, p) => acc + (p.details.totalBeds || 0), 0);
   }
@@ -259,7 +260,10 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
 
       {/* MOBILE SIDEBAR BACKDROP */}
       {mobileSidebarOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-40 bg-black/60 md:hidden"
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
@@ -351,6 +355,8 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
                           Employees: '/owner/employees',
                           'Roles & Permissions': '/owner/roles-permissions',
                           Support: '/owner/support',
+                          Subscription: '/owner/subscription',
+                          Notifications: '/owner/notifications',
                         };
                         if (routeMap[item.name]) {
                           navigate(routeMap[item.name]);
@@ -490,10 +496,10 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
                   {activeNav === 'Properties'
                     ? 'Property Portfolio'
                     : activeNav === 'Reports'
-                    ? 'Financial Reports'
-                    : activeNav === 'Analytics'
-                    ? 'Occupancy & Revenue Analytics'
-                    : 'Nestin Owner Hub'}
+                      ? 'Financial Reports'
+                      : activeNav === 'Analytics'
+                        ? 'Occupancy & Revenue Analytics'
+                        : 'Nestin Owner Hub'}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
                   {activeNav === 'Properties'
@@ -538,7 +544,7 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
             />
           ) : activeNav === 'Visitors' ? (
             <VisitorsView
-              onNavigateToLead={(lId) => {
+              onNavigateToLead={() => {
                 setActiveNav('Leads');
                 navigate('/owner/leads');
               }}
@@ -575,8 +581,17 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
             />
           ) : activeNav === 'Roles & Permissions' ? (
             <RolesManagementView />
+          ) : activeNav === 'Subscription' ? (
+            <SubscriptionView showToast={showToast} />
+          ) : activeNav === 'Notifications' ? (
+            <OwnerNotificationsView showToast={showToast} />
           ) : activeNav === 'Support' ? (
-            <SupportDesk fetchTickets={ApiClient.crm.supportTickets} reply={ApiClient.crm.replySupport} resolve={ApiClient.crm.resolveSupport} onNotice={showToast} />
+            <SupportDesk
+              fetchTickets={ApiClient.crm.supportTickets}
+              reply={ApiClient.crm.replySupport}
+              resolve={ApiClient.crm.resolveSupport}
+              onNotice={showToast}
+            />
           ) : (
             <>
               {/* MONTHLY ACCOUNTING PDF DOWNLOAD BANNER */}
@@ -650,12 +665,8 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
                           <Icon className="w-4 h-4" />
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-slate-950 font-heading">
-                        {m.value}
-                      </div>
-                      <p className="text-[11px] text-slate-500 font-medium">
-                        {m.subtext}
-                      </p>
+                      <div className="text-2xl font-black text-slate-950 font-heading">{m.value}</div>
+                      <p className="text-[11px] text-slate-500 font-medium">{m.subtext}</p>
                     </div>
                   );
                 })}
@@ -694,13 +705,19 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
                       {ownerProperties.slice(0, 5).map((p) => {
-                        const totalBedsForProp = p.rooms.reduce((acc, r) => acc + r.availableBedsCount + r.occupiedBedsCount, 0) || p.details.totalBeds;
+                        const totalBedsForProp =
+                          p.rooms.reduce((acc, r) => acc + r.availableBedsCount + r.occupiedBedsCount, 0) ||
+                          p.details.totalBeds;
                         return (
                           <tr key={p.id} className="hover:bg-slate-50/50">
                             <td className="py-3.5">
                               <div className="flex items-center gap-3">
                                 <img
-                                  src={p.coverImage || p.gallery[0]?.url || 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=200'}
+                                  src={
+                                    p.coverImage ||
+                                    p.gallery[0]?.url ||
+                                    'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=200'
+                                  }
                                   alt={p.name}
                                   referrerPolicy="no-referrer"
                                   className="w-10 h-10 rounded-xl object-cover"
@@ -801,7 +818,12 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
 
       {/* TENANT PREVIEW MODAL */}
       {previewProperty && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col overflow-hidden" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col overflow-hidden"
+          data-lenis-prevent="true"
+        >
           <div className="flex-1 overflow-y-auto bg-[#FAF9F5]" data-lenis-prevent="true">
             <PropertyDetailsView
               property={previewProperty}

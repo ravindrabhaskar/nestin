@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { OwnerPropertyListing, PropertyRoom, PropertyResidentReview } from '../types/property';
 import { PropertyListing } from '../types';
 import { calculatePropertyCompleteness } from '../lib/domain/propertyCompleteness';
-import { ApiClient } from '../lib/apiClient';
+import { type ApproveOptions, ApiClient } from '../lib/apiClient';
 import { reportSyncError, syncBus } from '../lib/syncBus';
 import { useAuth } from './AuthContext';
 
@@ -22,11 +22,10 @@ interface PropertyListingContextType {
   duplicateProperty: (id: string) => string;
   archiveProperty: (id: string) => void;
   submitForVerification: (id: string) => { success: boolean; message: string; missingFields?: string[] };
-  adminApproveProperty: (
-    id: string,
-    options?: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }
-  ) => void;
+  /** Resolves with the server record; rejects (and rolls back) when the verification checklist is incomplete. */
+  adminApproveProperty: (id: string, options?: ApproveOptions) => Promise<OwnerPropertyListing>;
   adminRejectProperty: (id: string, reason: string) => void;
+  adminRevokeVerification: (id: string, reason: string) => Promise<OwnerPropertyListing>;
   updateBedStatus: (
     propertyId: string,
     roomId: string,
@@ -459,10 +458,7 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
     return { success: true, message: 'Property successfully submitted for verification & review!' };
   };
 
-  const adminApproveProperty = (
-    id: string,
-    options?: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }
-  ) => {
+  const adminApproveProperty = (id: string, options?: ApproveOptions) => {
     const prop = propertiesRef.current.find((p) => p.id === id);
     if (prop)
       upsertLocal({
@@ -472,14 +468,23 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
         isFeatured: options?.isFeatured ?? prop.isFeatured,
         rejectionReason: undefined,
       });
-    ApiClient.admin
+    return ApiClient.admin
       .approveProperty(id, options)
-      .then(upsertLocal)
+      .then((saved) => {
+        upsertLocal(saved);
+        return saved as OwnerPropertyListing;
+      })
       .catch((err) => {
         if (prop) upsertLocal(prop);
-        reportSyncError('Could not approve the listing', err);
+        throw err;
       });
   };
+
+  const adminRevokeVerification = (id: string, reason: string) =>
+    ApiClient.admin.revokeVerification(id, reason).then((saved) => {
+      upsertLocal(saved);
+      return saved as OwnerPropertyListing;
+    });
 
   const adminRejectProperty = (id: string, reason: string) => {
     const prop = propertiesRef.current.find((p) => p.id === id);
@@ -612,6 +617,7 @@ export const PropertyListingProvider: React.FC<{ children: ReactNode }> = ({ chi
         submitForVerification,
         adminApproveProperty,
         adminRejectProperty,
+        adminRevokeVerification,
         updateBedStatus,
         addTenantReview,
         bookRoom,

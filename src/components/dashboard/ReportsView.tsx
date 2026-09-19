@@ -1,23 +1,5 @@
-import React, { useState } from 'react';
-import {
-  FileText,
-  FileDown,
-  Download,
-  Calendar,
-  Building2,
-  TrendingUp,
-  CreditCard,
-  BedDouble,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
-  IndianRupee,
-  Receipt,
-  Printer,
-  Sparkles,
-  ArrowUpRight,
-  Filter
-} from 'lucide-react';
+import React from 'react';
+import { FileText, FileDown, Download, ArrowUpRight, Filter } from 'lucide-react';
 import {
   exportMonthlyReportPDF,
   SAMPLE_PROPERTIES_FINANCIAL,
@@ -33,16 +15,7 @@ interface ReportsViewProps {
   showToast: (msg: string) => void;
 }
 
-export const ReportsView: React.FC<ReportsViewProps> = ({
-  ownerName,
-  ownerEmail,
-  onOpenExportModal,
-  showToast,
-}) => {
-  const [selectedMonth, setSelectedMonth] = useState('August');
-  const [selectedYear, setSelectedYear] = useState(2026);
-  const [activeTab, setActiveTab] = useState<'all' | 'revenue' | 'occupancy' | 'expenses'>('all');
-
+export const ReportsView: React.FC<ReportsViewProps> = ({ ownerName, ownerEmail, onOpenExportModal, showToast }) => {
   const totalBilled = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.monthlyRevenueBilled, 0);
   const totalCollected = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.revenueCollected, 0);
   const totalExpenses = SAMPLE_EXPENSES.reduce((acc, e) => acc + e.amount, 0);
@@ -113,12 +86,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
             <div className="text-[10px] font-bold text-slate-500 uppercase">Gross Billed Rent</div>
-            <div className="text-xl font-black text-slate-900 font-heading mt-0.5">
-              {formatCurrency(totalBilled)}
-            </div>
-            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
-              3 Properties Active
-            </div>
+            <div className="text-xl font-black text-slate-900 font-heading mt-0.5">{formatCurrency(totalBilled)}</div>
+            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">3 Properties Active</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
@@ -126,9 +95,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             <div className="text-xl font-black text-emerald-700 font-heading mt-0.5">
               {formatCurrency(totalCollected)}
             </div>
-            <div className="text-[10px] text-slate-500 font-medium mt-0.5">
-              95.3% Collection Efficiency
-            </div>
+            <div className="text-[10px] text-slate-500 font-medium mt-0.5">95.3% Collection Efficiency</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
@@ -143,9 +110,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
             <div className="text-[10px] font-bold text-slate-500 uppercase">Net Owner Cash Flow</div>
-            <div className="text-xl font-black text-slate-900 font-heading mt-0.5">
-              {formatCurrency(netPayout)}
-            </div>
+            <div className="text-xl font-black text-slate-900 font-heading mt-0.5">{formatCurrency(netPayout)}</div>
             <div className="text-[10px] text-slate-500 font-medium mt-0.5">
               After ₹{(totalExpenses / 1000).toFixed(0)}k Deductions
             </div>
@@ -157,9 +122,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-black text-slate-900 font-heading">
-              Ready-to-Download Monthly Statements
-            </h3>
+            <h3 className="text-base font-black text-slate-900 font-heading">Ready-to-Download Monthly Statements</h3>
             <p className="text-xs text-slate-500">
               One-click PDF download for accounting, IT return filing, and CA verification
             </p>
@@ -224,19 +187,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   <h4 className="text-lg font-black font-heading">
                     {item.month} {item.year}
                   </h4>
-                  <div
-                    className={`text-xs mt-0.5 ${
-                      item.isCurrent ? 'text-slate-300' : 'text-slate-500'
-                    }`}
-                  >
+                  <div className={`text-xs mt-0.5 ${item.isCurrent ? 'text-slate-300' : 'text-slate-500'}`}>
                     Statement & Ledger Report
                   </div>
                 </div>
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                    item.isCurrent
-                      ? 'bg-white/10 text-[#a3e635]'
-                      : 'bg-slate-100 text-slate-700'
+                    item.isCurrent ? 'bg-white/10 text-[#a3e635]' : 'bg-slate-100 text-slate-700'
                   }`}
                 >
                   <FileText className="w-5 h-5 stroke-[2]" />
@@ -245,21 +202,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 
               <div className="space-y-1.5 text-xs pt-2 border-t border-slate-200/20">
                 <div className="flex justify-between">
-                  <span className={item.isCurrent ? 'text-slate-400' : 'text-slate-500'}>
-                    Total Revenue:
-                  </span>
+                  <span className={item.isCurrent ? 'text-slate-400' : 'text-slate-500'}>Total Revenue:</span>
                   <span className="font-bold">{item.revenue}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className={item.isCurrent ? 'text-slate-400' : 'text-slate-500'}>
-                    Occupancy Rate:
-                  </span>
+                  <span className={item.isCurrent ? 'text-slate-400' : 'text-slate-500'}>Occupancy Rate:</span>
                   <span className="font-bold">{item.occupancy}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className={item.isCurrent ? 'text-slate-400' : 'text-slate-500'}>
-                    Occupied Capacity:
-                  </span>
+                  <span className={item.isCurrent ? 'text-slate-400' : 'text-slate-500'}>Occupied Capacity:</span>
                   <span className="font-bold">{item.beds}</span>
                 </div>
               </div>
@@ -285,12 +236,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-base font-black text-slate-900 font-heading">
-              Property Performance Breakdown
-            </h3>
-            <p className="text-xs text-slate-500">
-              Live occupancy and rent collection numbers for August 2026
-            </p>
+            <h3 className="text-base font-black text-slate-900 font-heading">Property Performance Breakdown</h3>
+            <p className="text-xs text-slate-500">Live occupancy and rent collection numbers for August 2026</p>
           </div>
           <button
             type="button"
@@ -330,15 +277,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     </span>
                   </td>
                   <td className="p-3 text-right">{formatCurrency(p.monthlyRevenueBilled)}</td>
-                  <td className="p-3 text-right font-bold text-emerald-700">
-                    {formatCurrency(p.revenueCollected)}
-                  </td>
-                  <td className="p-3 text-right text-rose-600 font-semibold">
-                    {formatCurrency(p.expenses)}
-                  </td>
-                  <td className="p-3 pr-4 text-right font-black text-slate-950">
-                    {formatCurrency(p.netPayout)}
-                  </td>
+                  <td className="p-3 text-right font-bold text-emerald-700">{formatCurrency(p.revenueCollected)}</td>
+                  <td className="p-3 text-right text-rose-600 font-semibold">{formatCurrency(p.expenses)}</td>
+                  <td className="p-3 pr-4 text-right font-black text-slate-950">{formatCurrency(p.netPayout)}</td>
                 </tr>
               ))}
             </tbody>
@@ -346,7 +287,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
               <tr className="border-t-2 border-slate-200 bg-slate-100/70 font-black text-slate-950 text-xs">
                 <td className="p-3 pl-4 rounded-l-xl">CONSOLIDATED TOTALS</td>
                 <td className="p-3">All Properties</td>
-                <td className="p-3 text-center">{occupiedBeds} / {totalBeds} Beds</td>
+                <td className="p-3 text-center">
+                  {occupiedBeds} / {totalBeds} Beds
+                </td>
                 <td className="p-3 text-center">
                   <span className="px-2 py-0.5 bg-slate-900 text-[#a3e635] rounded-full font-bold text-[10px]">
                     {((occupiedBeds / totalBeds) * 100).toFixed(1)}%
@@ -355,9 +298,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 <td className="p-3 text-right">{formatCurrency(totalBilled)}</td>
                 <td className="p-3 text-right text-emerald-800">{formatCurrency(totalCollected)}</td>
                 <td className="p-3 text-right text-rose-700">{formatCurrency(totalExpenses)}</td>
-                <td className="p-3 pr-4 text-right text-slate-950 rounded-r-xl">
-                  {formatCurrency(netPayout)}
-                </td>
+                <td className="p-3 pr-4 text-right text-slate-950 rounded-r-xl">{formatCurrency(netPayout)}</td>
               </tr>
             </tfoot>
           </table>
@@ -368,12 +309,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-base font-black text-slate-900 font-heading">
-              Recent Tenant Rent Receipts & Payments
-            </h3>
-            <p className="text-xs text-slate-500">
-              Live settlement log included in the monthly accounting statement
-            </p>
+            <h3 className="text-base font-black text-slate-900 font-heading">Recent Tenant Rent Receipts & Payments</h3>
+            <p className="text-xs text-slate-500">Live settlement log included in the monthly accounting statement</p>
           </div>
           <button
             type="button"
@@ -416,16 +353,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                         t.status === 'Settled'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : t.status === 'Pending'
-                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
                       {t.status}
                     </span>
                   </td>
-                  <td className="p-3 pr-4 text-right font-black text-slate-950">
-                    {formatCurrency(t.amount)}
-                  </td>
+                  <td className="p-3 pr-4 text-right font-black text-slate-950">{formatCurrency(t.amount)}</td>
                 </tr>
               ))}
             </tbody>

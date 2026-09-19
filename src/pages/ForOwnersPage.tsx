@@ -7,31 +7,22 @@ import {
   CalendarCheck,
   CheckCircle2,
   DollarSign,
-  Layers,
   TrendingUp,
   ShieldCheck,
   Sparkles,
   ArrowRight,
   ChevronDown,
   BedDouble,
-  Clock,
-  FileText,
-  Mail,
-  Phone,
-  HelpCircle,
   Check,
-  Lock,
-  Eye,
-  Sliders,
   ChevronRight,
   PlusCircle,
   UserCheck,
   BarChart3,
   CreditCard,
-  Grid
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { NestInAuthModal } from '../components/NestInAuthModal';
+import { PricingSection } from '../components/PricingSection';
 
 export const ForOwnersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -65,56 +56,64 @@ export const ForOwnersPage: React.FC = () => {
       icon: Building2,
       tag: 'Listings & Beds',
       title: 'List Your Property',
-      description: 'Publish your PG and showcase available rooms and beds to verified tenants with high-resolution photos and amenities.',
+      description:
+        'Publish your PG and showcase available rooms and beds to verified tenants with high-resolution photos and amenities.',
       cta: 'Explore Listing Tools',
     },
     {
       icon: Sparkles,
       tag: 'Inquiry Management',
       title: 'Manage Leads',
-      description: 'Track enquiries and move prospective tenants smoothly through your booking pipeline from contact to agreement.',
+      description:
+        'Track enquiries and move prospective tenants smoothly through your booking pipeline from contact to agreement.',
       cta: 'Manage Pipeline',
     },
     {
       icon: CalendarCheck,
       tag: 'Visit Scheduling',
       title: 'Manage Visits',
-      description: 'Schedule and track physical property walkthroughs without relying on disorganized spreadsheets or lost messages.',
+      description:
+        'Schedule and track physical property walkthroughs without relying on disorganized spreadsheets or lost messages.',
       cta: 'Schedule Visits',
     },
     {
       icon: CheckCircle2,
       tag: 'Reservations',
       title: 'Manage Bookings',
-      description: 'Track booking requests, confirmations, cancellations, and move-ins with clear status tracking and digital records.',
+      description:
+        'Track booking requests, confirmations, cancellations, and move-ins with clear status tracking and digital records.',
       cta: 'Track Bookings',
     },
     {
       icon: UserCheck,
       tag: 'Tenant Directory',
       title: 'Manage Tenants',
-      description: 'Keep resident records, KYC documents, room allotments, and emergency contacts securely organized in one place.',
+      description:
+        'Keep resident records, KYC documents, room allotments, and emergency contacts securely organized in one place.',
       cta: 'View KYC Vault',
     },
     {
       icon: CreditCard,
       tag: 'Rent Collection',
       title: 'Track Payments',
-      description: 'Monitor rent payments, pending dues, security deposits, and historic rent collection records with zero confusion.',
+      description:
+        'Monitor rent payments, pending dues, security deposits, and historic rent collection records with zero confusion.',
       cta: 'Track Collections',
     },
     {
       icon: BedDouble,
       tag: 'Inventory Sync',
       title: 'Monitor Vacancies',
-      description: 'Know exactly which rooms and beds are occupied or available across sharing types in real time to avoid double-booking.',
+      description:
+        'Know exactly which rooms and beds are occupied or available across sharing types in real time to avoid double-booking.',
       cta: 'View Bed Matrix',
     },
     {
       icon: BarChart3,
       tag: 'Performance Analytics',
       title: 'Business Insights',
-      description: 'Understand occupancy percentages, monthly booking trends, revenue collection, and property performance at a glance.',
+      description:
+        'Understand occupancy percentages, monthly booking trends, revenue collection, and property performance at a glance.',
       cta: 'Analyze Metrics',
     },
   ];
@@ -124,22 +123,26 @@ export const ForOwnersPage: React.FC = () => {
     {
       number: '01',
       title: 'Create Your Owner Account',
-      description: 'Sign in securely with Google and create your verified Nestin Owner profile in less than 60 seconds.',
+      description:
+        'Sign in securely with Google and create your verified Nestin Owner profile in less than 60 seconds.',
     },
     {
       number: '02',
       title: 'Add Your Property',
-      description: 'Enter your PG details, locality, room sharing types, bed capacities, pricing, included amenities, and photos.',
+      description:
+        'Enter your PG details, locality, room sharing types, bed capacities, pricing, included amenities, and photos.',
     },
     {
       number: '03',
       title: 'Publish & Get Leads',
-      description: 'Publish available vacancies to start receiving direct enquiries and visit requests from verified tenants.',
+      description:
+        'Publish available vacancies to start receiving direct enquiries and visit requests from verified tenants.',
     },
     {
       number: '04',
       title: 'Manage Everything',
-      description: 'Handle incoming leads, scheduled visits, room allotments, tenant KYC, and rent tracking from your Owner Dashboard.',
+      description:
+        'Handle incoming leads, scheduled visits, room allotments, tenant KYC, and rent tracking from your Owner Dashboard.',
     },
   ];
 
@@ -171,11 +174,13 @@ export const ForOwnersPage: React.FC = () => {
     },
     {
       title: 'Better property visibility',
-      description: 'Showcase your property to thousands of college students and working professionals actively seeking stays.',
+      description:
+        'Showcase your property to thousands of college students and working professionals actively seeking stays.',
     },
     {
       title: 'More professional tenant experience',
-      description: 'Provide residents with transparent digital confirmations, verified safety badges, and prompt communication.',
+      description:
+        'Provide residents with transparent digital confirmations, verified safety badges, and prompt communication.',
     },
   ];
 
@@ -189,7 +194,7 @@ export const ForOwnersPage: React.FC = () => {
     {
       question: 'Do I need a subscription to list my property?',
       answer:
-        'No subscription is required to list your property and start receiving initial enquiries. You can publish your PG, manage vacancies, and view leads on the Starter tier. Advanced management features such as multi-property tracking, automated rent reminders, and team access are available in our upcoming Professional plans.',
+        'No. The Starter plan is free forever: publish one property, manage leads, visits and bookings, and collect rent online. New owner accounts also get a 14-day Professional trial. Professional (₹999/month, or ₹799/month billed yearly) adds up to 10 properties and 10 staff, automated rent reminders, analytics and PDF statements; Business (₹2,999/month) removes the limits and adds priority support. Prices exclude 18% GST and you can change plans from Owner Hub → Subscription at any time.',
     },
     {
       question: 'Can I manage multiple properties?',
@@ -273,7 +278,8 @@ export const ForOwnersPage: React.FC = () => {
 
               {/* Supporting Text */}
               <p className="text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-xl">
-                List your property, reach verified tenants, manage bookings, track payments, and run your PG from one simple platform.
+                List your property, reach verified tenants, manage bookings, track payments, and run your PG from one
+                simple platform.
               </p>
 
               {/* Primary & Secondary CTAs */}
@@ -367,9 +373,7 @@ export const ForOwnersPage: React.FC = () => {
                       <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">
                         Occupancy
                       </span>
-                      <span className="text-lg font-black text-slate-900 font-heading block mt-0.5">
-                        94%
-                      </span>
+                      <span className="text-lg font-black text-slate-900 font-heading block mt-0.5">94%</span>
                       <span className="text-[10px] text-slate-500">32 / 34 Beds</span>
                     </div>
 
@@ -377,9 +381,7 @@ export const ForOwnersPage: React.FC = () => {
                       <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">
                         Monthly Revenue
                       </span>
-                      <span className="text-lg font-black text-slate-900 font-heading block mt-0.5">
-                        ₹3,42,000
-                      </span>
+                      <span className="text-lg font-black text-slate-900 font-heading block mt-0.5">₹3,42,000</span>
                       <span className="text-[10px] text-[#5fa000] font-semibold">+12% vs last mo</span>
                     </div>
 
@@ -387,9 +389,7 @@ export const ForOwnersPage: React.FC = () => {
                       <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">
                         Today's Visits
                       </span>
-                      <span className="text-lg font-black text-slate-900 font-heading block mt-0.5">
-                        5 Visits
-                      </span>
+                      <span className="text-lg font-black text-slate-900 font-heading block mt-0.5">5 Visits</span>
                       <span className="text-[10px] text-amber-600 font-medium">Scheduled</span>
                     </div>
                   </div>
@@ -460,7 +460,8 @@ export const ForOwnersPage: React.FC = () => {
               Everything You Need to Run Your PG
             </h2>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-              Purpose-built tools to streamline your daily property operations, from marketing vacancies to collecting monthly rent.
+              Purpose-built tools to streamline your daily property operations, from marketing vacancies to collecting
+              monthly rent.
             </p>
           </div>
 
@@ -543,21 +544,15 @@ export const ForOwnersPage: React.FC = () => {
                 <div className="space-y-4">
                   {/* Step Number Badge */}
                   <div className="flex items-center justify-between">
-                    <span className="text-3xl sm:text-4xl font-black font-heading text-[#5fa000]">
-                      {step.number}
-                    </span>
+                    <span className="text-3xl sm:text-4xl font-black font-heading text-[#5fa000]">{step.number}</span>
                     <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
                       Step {idx + 1}
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-black font-heading text-slate-900 leading-snug">
-                    {step.title}
-                  </h3>
+                  <h3 className="text-lg font-black font-heading text-slate-900 leading-snug">{step.title}</h3>
 
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    {step.description}
-                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{step.description}</p>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 flex items-center text-xs font-bold text-slate-400">
@@ -579,9 +574,7 @@ export const ForOwnersPage: React.FC = () => {
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black font-heading text-slate-900 tracking-tight">
               Your PG Business, At a Glance
             </h2>
-            <p className="text-sm sm:text-base text-slate-500 font-sans">
-              Everything important, in one place.
-            </p>
+            <p className="text-sm sm:text-base text-slate-500 font-sans">Everything important, in one place.</p>
           </div>
 
           {/* Large Owner Dashboard Preview Container */}
@@ -676,9 +669,7 @@ export const ForOwnersPage: React.FC = () => {
               <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-1.5">
                 <div className="flex items-center justify-between text-slate-500 text-xs font-bold font-heading">
                   <span>Upcoming Visits</span>
-                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 text-[10px] font-bold">
-                    Today
-                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 text-[10px] font-bold">Today</span>
                 </div>
                 <div className="text-xl font-black text-slate-900 font-heading">5 Visits Scheduled</div>
                 <p className="text-xs text-slate-500">Next walkthrough at 4:30 PM</p>
@@ -777,12 +768,8 @@ export const ForOwnersPage: React.FC = () => {
                   <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-[#5fa000]">
                     <Check className="w-4 h-4 stroke-[3]" />
                   </div>
-                  <h3 className="text-base font-black font-heading text-slate-900">
-                    {benefit.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                    {benefit.description}
-                  </p>
+                  <h3 className="text-base font-black font-heading text-slate-900">{benefit.title}</h3>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{benefit.description}</p>
                 </div>
               </div>
             ))}
@@ -835,16 +822,17 @@ export const ForOwnersPage: React.FC = () => {
                 <div className="w-8 h-8 rounded-xl bg-[#a3e635]/20 flex items-center justify-center text-slate-950">
                   <ShieldCheck className="w-4 h-4 text-[#5fa000]" />
                 </div>
-                <h3 className="text-sm font-black font-heading text-slate-900 mt-2">
-                  {pillar.title}
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  {pillar.desc}
-                </p>
+                <h3 className="text-sm font-black font-heading text-slate-900 mt-2">{pillar.title}</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">{pillar.desc}</p>
               </div>
             ))}
           </div>
         </section>
+
+        {/* ========================================================================= */}
+        {/* 6b. PRICING                                                                */}
+        {/* ========================================================================= */}
+        <PricingSection onChoosePlan={handleListPG} onRequestDemo={handleRequestDemo} />
 
         {/* ========================================================================= */}
         {/* 7. FREQUENTLY ASKED QUESTIONS (FAQ Accordion)                             */}
@@ -880,9 +868,7 @@ export const ForOwnersPage: React.FC = () => {
                     </span>
                     <span
                       className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 ${
-                        isOpen
-                          ? 'bg-[#a3e635] text-slate-950 rotate-180'
-                          : 'bg-slate-100 text-slate-600'
+                        isOpen ? 'bg-[#a3e635] text-slate-950 rotate-180' : 'bg-slate-100 text-slate-600'
                       }`}
                     >
                       <ChevronDown className="w-4 h-4" />

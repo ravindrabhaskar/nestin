@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
-import { motion } from 'motion/react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { INDIAN_CITIES_DATA } from '../data/citiesData';
+import { useCities } from '../lib/usePlatformData';
 import { CityItem } from '../types';
 import { CityCard } from './cities/CityCard';
 import { useNavigate } from 'react-router-dom';
@@ -12,11 +11,8 @@ interface CityCarouselProps {
   isLoading?: boolean;
 }
 
-export const CityCarousel: React.FC<CityCarouselProps> = ({
-  onSelectCity,
-  onViewAllCities,
-  isLoading = false,
-}) => {
+export const CityCarousel: React.FC<CityCarouselProps> = ({ onSelectCity, onViewAllCities, isLoading = false }) => {
+  const { value: cities } = useCities();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -50,7 +46,9 @@ export const CityCarousel: React.FC<CityCarouselProps> = ({
         {/* HEADER ROW */}
         <div className="flex items-end justify-between gap-4">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white font-heading leading-[1.15] tracking-tight">
-            Explore PGs in<br />popular cities.
+            Explore PGs in
+            <br />
+            popular cities.
           </h2>
 
           <button
@@ -81,16 +79,12 @@ export const CityCarousel: React.FC<CityCarouselProps> = ({
               ref={scrollRef}
               className="flex gap-5 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory scroll-smooth items-stretch"
             >
-              {INDIAN_CITIES_DATA.map((city, idx) => (
+              {cities.map((city, idx) => (
                 <div
                   key={city.id}
                   className="snap-start shrink-0 w-64 sm:w-72 lg:w-[calc(25%-0.9375rem)] min-w-[260px]"
                 >
-                  <CityCard
-                    city={city}
-                    onClick={() => handleCardClick(city)}
-                    index={idx}
-                  />
+                  <CityCard city={city} onClick={() => handleCardClick(city)} index={idx} />
                 </div>
               ))}
             </div>
@@ -121,5 +115,3 @@ export const CityCarousel: React.FC<CityCarouselProps> = ({
     </section>
   );
 };
-
-

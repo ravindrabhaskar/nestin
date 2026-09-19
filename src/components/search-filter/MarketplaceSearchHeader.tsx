@@ -8,11 +8,9 @@ import {
   List,
   Map as MapIcon,
   X,
-  Sparkles,
   Building2,
   GraduationCap,
   Briefcase,
-  Command,
   Loader2,
 } from 'lucide-react';
 import { ViewMode } from '../../types';
@@ -247,12 +245,8 @@ export const MarketplaceSearchHeader: React.FC<MarketplaceSearchHeaderProps> = (
                                 <MapPin className="w-4 h-4" />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="text-xs font-bold text-slate-900 truncate">
-                                  {item.title}
-                                </div>
-                                <div className="text-[11px] text-slate-500 truncate font-normal">
-                                  {item.subtitle}
-                                </div>
+                                <div className="text-xs font-bold text-slate-900 truncate">{item.title}</div>
+                                <div className="text-[11px] text-slate-500 truncate font-normal">{item.subtitle}</div>
                               </div>
                             </button>
                           ))}

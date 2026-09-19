@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { CityItem } from '../../types';
 import { LazyImage } from '../LazyImage';
+import { cityStaysLabel } from '../../lib/usePlatformData';
 
 interface CityCardProps {
   city: CityItem;
@@ -11,7 +12,7 @@ interface CityCardProps {
 }
 
 export const CityCard: React.FC<CityCardProps> = ({ city, onClick, index = 0, className = '' }) => {
-  const staysCount = city.stays || (city.verifiedCount ? `${city.verifiedCount.toLocaleString()}+ stays` : '2,000+ stays');
+  const staysCount = cityStaysLabel(city);
 
   return (
     <motion.div
@@ -42,15 +43,9 @@ export const CityCard: React.FC<CityCardProps> = ({ city, onClick, index = 0, cl
 
       {/* BOTTOM CONTENT: CITY NAME & STAYS */}
       <div className="relative z-20 p-6 space-y-0.5">
-        <h3 className="text-xl sm:text-2xl font-bold text-white font-heading tracking-tight">
-          {city.name}
-        </h3>
-        <p className="text-sm text-slate-300 font-normal">
-          {staysCount.toLowerCase().includes('stays') ? staysCount.toLowerCase() : `${staysCount} stays`}
-        </p>
+        <h3 className="text-xl sm:text-2xl font-bold text-white font-heading tracking-tight">{city.name}</h3>
+        <p className="text-sm text-slate-300 font-normal">{staysCount}</p>
       </div>
     </motion.div>
   );
 };
-
-

@@ -1,27 +1,11 @@
-import { PropertyRoom, RoomBed } from './property';
-
 // ---------------------------------------------------------------------------
 // CRM ENTITY TYPES
 // ---------------------------------------------------------------------------
 
 export type LeadStage =
-  | 'New'
-  | 'Contacted'
-  | 'Visit Scheduled'
-  | 'Visited'
-  | 'Interested'
-  | 'Booking Requested'
-  | 'Converted'
-  | 'Lost';
+  'New' | 'Contacted' | 'Visit Scheduled' | 'Visited' | 'Interested' | 'Booking Requested' | 'Converted' | 'Lost';
 
-export type LeadSource =
-  | 'Nestin'
-  | 'Website'
-  | 'Phone'
-  | 'WhatsApp'
-  | 'Walk-in'
-  | 'Referral'
-  | 'Other';
+export type LeadSource = 'Nestin' | 'Website' | 'Phone' | 'WhatsApp' | 'Walk-in' | 'Referral' | 'Other';
 
 export interface CRMActivityLog {
   id: string;
@@ -58,19 +42,9 @@ export interface LeadItem {
   timeline: CRMActivityLog[];
 }
 
-export type BookingStatus =
-  | 'Pending'
-  | 'Confirmed'
-  | 'Rejected'
-  | 'Cancelled'
-  | 'Completed';
+export type BookingStatus = 'Pending' | 'Confirmed' | 'Rejected' | 'Cancelled' | 'Completed';
 
-export type PaymentStatus =
-  | 'Paid'
-  | 'Partial'
-  | 'Pending'
-  | 'Overdue'
-  | 'Refunded';
+export type PaymentStatus = 'Paid' | 'Partial' | 'Pending' | 'Overdue' | 'Refunded';
 
 export interface BookingItem {
   id: string;
@@ -108,12 +82,7 @@ export interface BookingItem {
   timeline: CRMActivityLog[];
 }
 
-export type VisitorStatus =
-  | 'Scheduled'
-  | 'Confirmed'
-  | 'Completed'
-  | 'Cancelled'
-  | 'No-show';
+export type VisitorStatus = 'Scheduled' | 'Confirmed' | 'Completed' | 'Cancelled' | 'No-show';
 
 export interface VisitorItem {
   id: string;
@@ -135,11 +104,7 @@ export interface VisitorItem {
   timeline: CRMActivityLog[];
 }
 
-export type CustomerTenantStatus =
-  | 'Active'
-  | 'Upcoming'
-  | 'Vacating'
-  | 'Inactive';
+export type CustomerTenantStatus = 'Active' | 'Upcoming' | 'Vacating' | 'Inactive';
 
 export interface CustomerDocumentItem {
   id: string;

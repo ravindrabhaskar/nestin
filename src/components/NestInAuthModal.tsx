@@ -1,19 +1,8 @@
+import { useFocusTrap } from '../lib/useFocusTrap';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import {
-  X,
-  AlertCircle,
-  Building2,
-  User,
-  Mail,
-  Lock,
-  Phone,
-  ArrowRight,
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2
-} from 'lucide-react';
+import { X, AlertCircle, Building2, User, Mail, Lock, Phone, ArrowRight } from 'lucide-react';
 import { NestInLogo } from './NestInLogo';
 import { useAuth } from '../context/AuthContext';
 import { ApiClient } from '../lib/apiClient';
@@ -43,6 +32,7 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
     return '/profile';
   };
   useScrollLock(isOpen);
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen, onClose);
 
   const [role, setRole] = useState<'tenant' | 'owner'>(initialRole);
   const [mode, setMode] = useState<'login' | 'signup'>(initialTab);
@@ -157,7 +147,11 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -173,6 +167,7 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            ref={trapRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="nestin-auth-title"
@@ -194,21 +189,24 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                 <NestInLogo variant="light" size="sm" showTagline={false} />
               </div>
 
-              <h2 id="nestin-auth-title" className="text-xl sm:text-2xl font-black text-[#121820] font-heading tracking-tight">
+              <h2
+                id="nestin-auth-title"
+                className="text-xl sm:text-2xl font-black text-[#121820] font-heading tracking-tight"
+              >
                 {role === 'owner'
                   ? mode === 'login'
                     ? 'Owner Portal Sign In'
                     : 'Register Property'
                   : mode === 'login'
-                  ? 'Welcome back'
-                  : 'Create your account'}
+                    ? 'Welcome back'
+                    : 'Create your account'}
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 {role === 'owner'
                   ? 'Manage your PG properties, occupancy, and leads in one unified dashboard.'
                   : mode === 'login'
-                  ? 'Access verified student stays, bookings, and platform features.'
-                  : 'Join thousands of students and residents across India.'}
+                    ? 'Access verified student stays, bookings, and platform features.'
+                    : 'Join thousands of students and residents across India.'}
               </p>
 
               {authMessage && (
@@ -230,9 +228,7 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                     setErrorMsg('');
                   }}
                   className={`py-2 px-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    role === 'tenant'
-                      ? 'bg-white text-[#121820] shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
+                    role === 'tenant' ? 'bg-white text-[#121820] shadow-xs' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   <User className="w-3.5 h-3.5" />
@@ -245,9 +241,7 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                     setErrorMsg('');
                   }}
                   className={`py-2 px-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                    role === 'owner'
-                      ? 'bg-[#0F5132] text-white shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
+                    role === 'owner' ? 'bg-[#0F5132] text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   <Building2 className={`w-3.5 h-3.5 ${role === 'owner' ? 'text-[#a3e635]' : ''}`} />
@@ -264,9 +258,7 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                     setErrorMsg('');
                   }}
                   className={`py-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
-                    mode === 'login'
-                      ? 'bg-white text-[#121820] shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
+                    mode === 'login' ? 'bg-white text-[#121820] shadow-xs' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   Sign In
@@ -278,9 +270,7 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                     setErrorMsg('');
                   }}
                   className={`py-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
-                    mode === 'signup'
-                      ? 'bg-white text-[#121820] shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800'
+                    mode === 'signup' ? 'bg-white text-[#121820] shadow-xs' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   {role === 'owner' ? 'Join as Partner' : 'Register'}
@@ -316,17 +306,15 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                       />
                     </svg>
-                    <span>
-                      {role === 'owner'
-                        ? 'Continue with Google as Owner'
-                        : 'Continue with Google'}
-                    </span>
+                    <span>{role === 'owner' ? 'Continue with Google as Owner' : 'Continue with Google'}</span>
                   </>
                 )}
               </button>
 
               {!googleEnabled && (
-                <p className="text-[10px] text-slate-400 text-center -mt-2">Google Sign-In is not configured on this deployment yet — use email &amp; password.</p>
+                <p className="text-[10px] text-slate-400 text-center -mt-2">
+                  Google Sign-In is not configured on this deployment yet — use email &amp; password.
+                </p>
               )}
 
               {demoMode && (
@@ -404,7 +392,11 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-[11px] font-bold text-slate-700">Password</label>
                     {mode === 'login' && (
-                      <button type="button" onClick={handleForgotPassword} className="text-[11px] font-bold text-slate-500 hover:text-slate-900 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={handleForgotPassword}
+                        className="text-[11px] font-bold text-slate-500 hover:text-slate-900 cursor-pointer"
+                      >
                         Forgot password?
                       </button>
                     )}
@@ -445,9 +437,7 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                   type="submit"
                   disabled={isEmailLoading || isGoogleLoading}
                   className={`w-full py-3 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 mt-2 font-heading ${
-                    role === 'owner'
-                      ? 'bg-[#0F5132] hover:bg-[#146c43]'
-                      : 'bg-[#0F5132] hover:bg-[#146c43]'
+                    role === 'owner' ? 'bg-[#0F5132] hover:bg-[#146c43]' : 'bg-[#0F5132] hover:bg-[#146c43]'
                   }`}
                 >
                   {isEmailLoading ? (
@@ -460,8 +450,8 @@ export const NestInAuthModal: React.FC<NestInAuthModalProps> = ({
                             ? 'Sign In to Owner Dashboard'
                             : 'Create Owner Account'
                           : mode === 'login'
-                          ? 'Sign In'
-                          : 'Create Account'}
+                            ? 'Sign In'
+                            : 'Create Account'}
                       </span>
                       <ArrowRight className="w-3.5 h-3.5 text-[#a3e635]" />
                     </>

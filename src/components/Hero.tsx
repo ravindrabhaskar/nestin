@@ -91,14 +91,9 @@ export const Hero: React.FC<HeroProps> = ({ onSearch }) => {
             transition={{ duration: 0.6, delay: 0.15 }}
             className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.18] font-heading"
           >
-            Find your space.{' '}
-            <span className="text-[#a3e635]">
-              Move in with
-            </span>
+            Find your space. <span className="text-[#a3e635]">Move in with</span>
             <br className="hidden sm:block" />
-            <span className="text-[#a3e635] sm:mt-1 inline-block">
-              confidence.
-            </span>
+            <span className="text-[#a3e635] sm:mt-1 inline-block">confidence.</span>
           </motion.h1>
 
           <motion.p
@@ -319,12 +314,7 @@ export const Hero: React.FC<HeroProps> = ({ onSearch }) => {
 
               {/* Video Player */}
               <div className="relative aspect-video w-full bg-black">
-                <video
-                  controls
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-cover"
-                >
+                <video controls autoPlay playsInline className="w-full h-full object-cover">
                   <source
                     src="https://assets.mixkit.co/videos/preview/mixkit-modern-interior-design-of-a-living-room-41315-large.mp4"
                     type="video/mp4"
@@ -340,7 +330,8 @@ export const Hero: React.FC<HeroProps> = ({ onSearch }) => {
                     NestIn Premium Co-living & PG Spaces
                   </h4>
                   <p className="text-emerald-100/80 text-xs sm:text-sm mt-0.5 font-sans">
-                    100% On-site verified rooms with air conditioning, attached bath, bi-weekly cleaning & high-speed Wi-Fi.
+                    100% On-site verified rooms with air conditioning, attached bath, bi-weekly cleaning & high-speed
+                    Wi-Fi.
                   </p>
                 </div>
                 <button

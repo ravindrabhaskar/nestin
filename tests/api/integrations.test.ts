@@ -216,6 +216,9 @@ describe('uploads, checkout, password reset, support desk, webhooks', () => {
       messaging: { email: 'log', whatsapp: 'log' },
       storage: 'local',
       payments: 'simulated',
+      push: 'disabled',
+      platformFeePercent: 0,
+      trialDays: 14,
     });
   });
 

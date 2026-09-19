@@ -240,7 +240,13 @@ export interface TenantSupportTicket {
   createdAt: string;
   updatedAt?: string;
   priority?: 'Low' | 'Medium' | 'High' | 'low' | 'medium' | 'high';
-  messages?: { id?: string; sender: 'user' | 'support'; senderName?: string; text?: string; message?: string; timestamp: string }[];
+  messages?: {
+    id?: string;
+    sender: 'user' | 'support';
+    senderName?: string;
+    text?: string;
+    message?: string;
+    timestamp: string;
+  }[];
   responses?: { sender: 'user' | 'support'; message: string; timestamp: string }[];
 }
-

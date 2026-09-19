@@ -1,6 +1,7 @@
+import { PushNotificationsCard } from '../components/PushNotificationsCard';
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Check, Shield, ExternalLink } from 'lucide-react';
+import { Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
 import { SecurityPanel } from '../components/profile/SecurityPanel';
@@ -53,7 +54,10 @@ export const TenantSettingsPage: React.FC = () => {
     offersAndUpdates: ns?.offers ?? false,
   });
 
-  const [searchPrefs, setSearchPrefs] = useState<typeof DEFAULT_SEARCH_PREFS>(() => ({ ...DEFAULT_SEARCH_PREFS, ...((user?.searchPreferences as Partial<typeof DEFAULT_SEARCH_PREFS>) || {}) }));
+  const [searchPrefs, setSearchPrefs] = useState<typeof DEFAULT_SEARCH_PREFS>(() => ({
+    ...DEFAULT_SEARCH_PREFS,
+    ...((user?.searchPreferences as Partial<typeof DEFAULT_SEARCH_PREFS>) || {}),
+  }));
 
   const ps = user?.privacySettings;
   const [privacySettings, setPrivacySettings] = useState({
@@ -111,13 +115,10 @@ export const TenantSettingsPage: React.FC = () => {
       const exists = prev.amenities.includes(amenity);
       return {
         ...prev,
-        amenities: exists
-          ? prev.amenities.filter((a: string) => a !== amenity)
-          : [...prev.amenities, amenity],
+        amenities: exists ? prev.amenities.filter((a: string) => a !== amenity) : [...prev.amenities, amenity],
       };
     });
   };
-
 
   // Header texts based on active tab
   const getPageInfo = () => {
@@ -148,11 +149,7 @@ export const TenantSettingsPage: React.FC = () => {
   const pageInfo = getPageInfo();
 
   return (
-    <TenantAccountLayout
-      title={pageInfo.title}
-      subtitle={pageInfo.subtitle}
-      activeNav={`/settings/${activeTab}`}
-    >
+    <TenantAccountLayout title={pageInfo.title} subtitle={pageInfo.subtitle} activeNav={`/settings/${activeTab}`}>
       {/* SUCCESS TOAST NOTIFICATION */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-[#a3e635] px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-xs font-bold font-heading border border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -164,13 +161,11 @@ export const TenantSettingsPage: React.FC = () => {
       {/* 1. NOTIFICATIONS TAB */}
       {activeTab === 'notifications' && (
         <form onSubmit={handleSaveNotifications} className="space-y-6">
+          <PushNotificationsCard onNotice={showToast} />
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-8">
-
             {/* GROUP 1: BOOKINGS */}
             <div>
-              <h3 className="text-sm font-bold font-heading text-slate-900 mb-1">
-                Bookings
-              </h3>
+              <h3 className="text-sm font-bold font-heading text-slate-900 mb-1">Bookings</h3>
               <p className="text-xs text-slate-500 mb-4">
                 Notifications regarding your PG reservations and room allotment.
               </p>
@@ -178,9 +173,7 @@ export const TenantSettingsPage: React.FC = () => {
               <div className="divide-y divide-slate-100">
                 <div className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-slate-900 font-heading">
-                      Booking confirmations
-                    </div>
+                    <div className="text-xs font-semibold text-slate-900 font-heading">Booking confirmations</div>
                     <div className="text-xs text-slate-500">
                       Receive immediate confirmation when you reserve a bed or room.
                     </div>
@@ -189,9 +182,7 @@ export const TenantSettingsPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={notifications.bookingConfirmations}
-                      onChange={(e) =>
-                        setNotifications({ ...notifications, bookingConfirmations: e.target.checked })
-                      }
+                      onChange={(e) => setNotifications({ ...notifications, bookingConfirmations: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
@@ -200,9 +191,7 @@ export const TenantSettingsPage: React.FC = () => {
 
                 <div className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-slate-900 font-heading">
-                      Booking updates
-                    </div>
+                    <div className="text-xs font-semibold text-slate-900 font-heading">Booking updates</div>
                     <div className="text-xs text-slate-500">
                       Get notified about check-in status, room allotment, and move-in details.
                     </div>
@@ -211,9 +200,7 @@ export const TenantSettingsPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={notifications.bookingUpdates}
-                      onChange={(e) =>
-                        setNotifications({ ...notifications, bookingUpdates: e.target.checked })
-                      }
+                      onChange={(e) => setNotifications({ ...notifications, bookingUpdates: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
@@ -222,9 +209,7 @@ export const TenantSettingsPage: React.FC = () => {
 
                 <div className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-slate-900 font-heading">
-                      Cancellation updates
-                    </div>
+                    <div className="text-xs font-semibold text-slate-900 font-heading">Cancellation updates</div>
                     <div className="text-xs text-slate-500">
                       Updates regarding booking cancellations and deposit refunds.
                     </div>
@@ -233,9 +218,7 @@ export const TenantSettingsPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={notifications.cancellationUpdates}
-                      onChange={(e) =>
-                        setNotifications({ ...notifications, cancellationUpdates: e.target.checked })
-                      }
+                      onChange={(e) => setNotifications({ ...notifications, cancellationUpdates: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
@@ -246,30 +229,20 @@ export const TenantSettingsPage: React.FC = () => {
 
             {/* GROUP 2: VISITS */}
             <div>
-              <h3 className="text-sm font-bold font-heading text-slate-900 mb-1">
-                Visits
-              </h3>
-              <p className="text-xs text-slate-500 mb-4">
-                Reminders and updates for scheduled PG property tours.
-              </p>
+              <h3 className="text-sm font-bold font-heading text-slate-900 mb-1">Visits</h3>
+              <p className="text-xs text-slate-500 mb-4">Reminders and updates for scheduled PG property tours.</p>
 
               <div className="divide-y divide-slate-100">
                 <div className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-slate-900 font-heading">
-                      Visit confirmations
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Confirmation when an in-person PG visit is scheduled.
-                    </div>
+                    <div className="text-xs font-semibold text-slate-900 font-heading">Visit confirmations</div>
+                    <div className="text-xs text-slate-500">Confirmation when an in-person PG visit is scheduled.</div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0">
                     <input
                       type="checkbox"
                       checked={notifications.visitConfirmations}
-                      onChange={(e) =>
-                        setNotifications({ ...notifications, visitConfirmations: e.target.checked })
-                      }
+                      onChange={(e) => setNotifications({ ...notifications, visitConfirmations: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
@@ -278,9 +251,7 @@ export const TenantSettingsPage: React.FC = () => {
 
                 <div className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-slate-900 font-heading">
-                      Visit reminders
-                    </div>
+                    <div className="text-xs font-semibold text-slate-900 font-heading">Visit reminders</div>
                     <div className="text-xs text-slate-500">
                       Helpful reminder message before your scheduled PG tour.
                     </div>
@@ -289,9 +260,7 @@ export const TenantSettingsPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={notifications.visitReminders}
-                      onChange={(e) =>
-                        setNotifications({ ...notifications, visitReminders: e.target.checked })
-                      }
+                      onChange={(e) => setNotifications({ ...notifications, visitReminders: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
@@ -300,9 +269,7 @@ export const TenantSettingsPage: React.FC = () => {
 
                 <div className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-slate-900 font-heading">
-                      Visit changes
-                    </div>
+                    <div className="text-xs font-semibold text-slate-900 font-heading">Visit changes</div>
                     <div className="text-xs text-slate-500">
                       Notifications if a visit timing or host caretaker changes.
                     </div>
@@ -311,9 +278,7 @@ export const TenantSettingsPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={notifications.visitChanges}
-                      onChange={(e) =>
-                        setNotifications({ ...notifications, visitChanges: e.target.checked })
-                      }
+                      onChange={(e) => setNotifications({ ...notifications, visitChanges: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
@@ -324,19 +289,13 @@ export const TenantSettingsPage: React.FC = () => {
 
             {/* GROUP 3: NESTIN */}
             <div>
-              <h3 className="text-sm font-bold font-heading text-slate-900 mb-1">
-                Nestin
-              </h3>
-              <p className="text-xs text-slate-500 mb-4">
-                Recommendations and announcements from Nestin.
-              </p>
+              <h3 className="text-sm font-bold font-heading text-slate-900 mb-1">Nestin</h3>
+              <p className="text-xs text-slate-500 mb-4">Recommendations and announcements from Nestin.</p>
 
               <div className="divide-y divide-slate-100">
                 <div className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-slate-900 font-heading">
-                      Property recommendations
-                    </div>
+                    <div className="text-xs font-semibold text-slate-900 font-heading">Property recommendations</div>
                     <div className="text-xs text-slate-500">
                       Curated PG matches based on your preferred city, locality, and budget.
                     </div>
@@ -356,9 +315,7 @@ export const TenantSettingsPage: React.FC = () => {
 
                 <div className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-xs font-semibold text-slate-900 font-heading">
-                      Offers and updates
-                    </div>
+                    <div className="text-xs font-semibold text-slate-900 font-heading">Offers and updates</div>
                     <div className="text-xs text-slate-500">
                       Special move-in offers, rent discounts, and platform announcements.
                     </div>
@@ -367,9 +324,7 @@ export const TenantSettingsPage: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={notifications.offersAndUpdates}
-                      onChange={(e) =>
-                        setNotifications({ ...notifications, offersAndUpdates: e.target.checked })
-                      }
+                      onChange={(e) => setNotifications({ ...notifications, offersAndUpdates: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-slate-900"></div>
@@ -386,7 +341,6 @@ export const TenantSettingsPage: React.FC = () => {
                 Save preferences
               </button>
             </div>
-
           </div>
         </form>
       )}
@@ -395,13 +349,10 @@ export const TenantSettingsPage: React.FC = () => {
       {activeTab === 'preferences' && (
         <form onSubmit={handleSaveSearchPrefs} className="space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-6">
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* PREFERRED CITY */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  Preferred City
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Preferred City</label>
                 <select
                   value={searchPrefs.city}
                   onChange={(e) => setSearchPrefs({ ...searchPrefs, city: e.target.value })}
@@ -419,9 +370,7 @@ export const TenantSettingsPage: React.FC = () => {
 
               {/* PREFERRED AREA */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  Preferred Area
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Preferred Area</label>
                 <input
                   type="text"
                   value={searchPrefs.area}
@@ -433,9 +382,7 @@ export const TenantSettingsPage: React.FC = () => {
 
               {/* MONTHLY BUDGET */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  Monthly Budget
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Monthly Budget</label>
                 <select
                   value={searchPrefs.budget}
                   onChange={(e) => setSearchPrefs({ ...searchPrefs, budget: e.target.value })}
@@ -451,9 +398,7 @@ export const TenantSettingsPage: React.FC = () => {
 
               {/* ROOM TYPE */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  Room Type
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Room Type</label>
                 <select
                   value={searchPrefs.roomType}
                   onChange={(e) => setSearchPrefs({ ...searchPrefs, roomType: e.target.value })}
@@ -468,9 +413,7 @@ export const TenantSettingsPage: React.FC = () => {
 
               {/* MOVE-IN DATE */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  Move-in Date
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Move-in Date</label>
                 <select
                   value={searchPrefs.moveInDate}
                   onChange={(e) => setSearchPrefs({ ...searchPrefs, moveInDate: e.target.value })}
@@ -491,25 +434,31 @@ export const TenantSettingsPage: React.FC = () => {
                 Preferred Amenities (Optional)
               </label>
               <div className="flex flex-wrap gap-2">
-                {['AC', 'Food', 'Furnished', 'Attached Bathroom', 'High-speed WiFi', 'Power Backup', 'Washing Machine'].map(
-                  (amenity) => {
-                    const isSelected = searchPrefs.amenities.includes(amenity);
-                    return (
-                      <button
-                        key={amenity}
-                        type="button"
-                        onClick={() => toggleAmenity(amenity)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer font-heading ${
-                          isSelected
-                            ? 'bg-slate-900 text-[#a3e635] shadow-2xs'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
-                        }`}
-                      >
-                        {amenity}
-                      </button>
-                    );
-                  }
-                )}
+                {[
+                  'AC',
+                  'Food',
+                  'Furnished',
+                  'Attached Bathroom',
+                  'High-speed WiFi',
+                  'Power Backup',
+                  'Washing Machine',
+                ].map((amenity) => {
+                  const isSelected = searchPrefs.amenities.includes(amenity);
+                  return (
+                    <button
+                      key={amenity}
+                      type="button"
+                      onClick={() => toggleAmenity(amenity)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer font-heading ${
+                        isSelected
+                          ? 'bg-slate-900 text-[#a3e635] shadow-2xs'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                      }`}
+                    >
+                      {amenity}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -521,7 +470,6 @@ export const TenantSettingsPage: React.FC = () => {
                 Save preferences
               </button>
             </div>
-
           </div>
         </form>
       )}
@@ -533,13 +481,10 @@ export const TenantSettingsPage: React.FC = () => {
       {activeTab === 'privacy' && (
         <form onSubmit={handleSavePrivacy} className="space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-6">
-
             <div className="divide-y divide-slate-100">
               <div className="py-3.5 flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-xs font-semibold text-slate-900 font-heading">
-                    Personalized recommendations
-                  </div>
+                  <div className="text-xs font-semibold text-slate-900 font-heading">Personalized recommendations</div>
                   <div className="text-xs text-slate-500">
                     Allow Nestin to suggest PGs and coliving spaces based on your browsing activity.
                   </div>
@@ -587,9 +532,7 @@ export const TenantSettingsPage: React.FC = () => {
 
               <div className="py-3.5 flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-xs font-semibold text-slate-900 font-heading">
-                    Marketing communications
-                  </div>
+                  <div className="text-xs font-semibold text-slate-900 font-heading">Marketing communications</div>
                   <div className="text-xs text-slate-500">
                     Receive promotional emails and WhatsApp updates about new PG listings.
                   </div>
@@ -615,7 +558,10 @@ export const TenantSettingsPage: React.FC = () => {
             <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center gap-4 text-xs text-slate-500">
               <a
                 href="#privacy"
-                onClick={(e) => { e.preventDefault(); showToast('Viewing Privacy Policy.'); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  showToast('Viewing Privacy Policy.');
+                }}
                 className="hover:text-slate-900 underline flex items-center gap-1"
               >
                 <span>Privacy Policy</span>
@@ -624,7 +570,10 @@ export const TenantSettingsPage: React.FC = () => {
               <span className="text-slate-300">•</span>
               <a
                 href="#terms"
-                onClick={(e) => { e.preventDefault(); showToast('Viewing Terms of Service.'); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  showToast('Viewing Terms of Service.');
+                }}
                 className="hover:text-slate-900 underline flex items-center gap-1"
               >
                 <span>Terms of Service</span>
@@ -640,11 +589,9 @@ export const TenantSettingsPage: React.FC = () => {
                 Save preferences
               </button>
             </div>
-
           </div>
         </form>
       )}
-
     </TenantAccountLayout>
   );
 };

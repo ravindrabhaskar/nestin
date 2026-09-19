@@ -25,7 +25,9 @@ export const config = {
   appUrl: process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`,
 
   databasePath: isTest ? ':memory:' : process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'nestin.db'),
-  seedDemoData: process.env.SEED_DEMO_DATA !== 'false',
+  // Demo data is opt-out in development but opt-in in production: a live deployment must never
+  // carry the documented demo accounts unless the operator explicitly asks for them.
+  seedDemoData: isProduction ? process.env.SEED_DEMO_DATA === 'true' : process.env.SEED_DEMO_DATA !== 'false',
 
   jwtSecret: requireSecret('JWT_SECRET', () => devSecret),
   jwtTtlSeconds: Number(process.env.JWT_TTL_SECONDS || 60 * 60 * 24 * 7),
@@ -42,6 +44,8 @@ export const config = {
   },
 
   demoPassword: process.env.DEMO_PASSWORD || 'NestIn@2026',
+  /** In production, online payments are only accepted through a configured gateway — never simulated. */
+  allowSimulatedPayments: !isProduction || process.env.ALLOW_SIMULATED_PAYMENTS === 'true',
 
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -104,6 +108,43 @@ export const config = {
     enabled: process.env.DISABLE_JOBS !== 'true' && !isTest,
   },
 
+  billing: {
+    /** Percentage of every online rent/deposit payment retained by the platform (0 disables). */
+    platformFeePercent: Math.min(20, Math.max(0, Number(process.env.PLATFORM_FEE_PERCENT || 0))),
+    /** Days a Professional trial lasts for newly registered owners (0 = no trial). */
+    trialDays: Math.max(0, Number(process.env.PLAN_TRIAL_DAYS || 14)),
+    /** GST applied to subscription invoices (India: 18%). */
+    gstPercent: Math.max(0, Number(process.env.SUBSCRIPTION_GST_PERCENT || 18)),
+  },
+
+  verification: {
+    /** Months a "NestIn Verified" badge stays valid before a re-verification visit is due. */
+    validityMonths: Math.max(1, Number(process.env.VERIFICATION_VALIDITY_MONTHS || 12)),
+  },
+
+  backups: {
+    enabled: process.env.DISABLE_BACKUPS !== 'true' && !isTest,
+    dir: process.env.BACKUP_DIR || '',
+    keep: Math.max(1, Number(process.env.BACKUP_KEEP || 14)),
+    /** When set with an S3 driver, backups are also copied to the bucket under this prefix. */
+    s3Prefix: process.env.BACKUP_S3_PREFIX || 'backups/',
+  },
+
+  push: {
+    publicKey: process.env.VAPID_PUBLIC_KEY || '',
+    privateKey: process.env.VAPID_PRIVATE_KEY || '',
+    subject: process.env.VAPID_SUBJECT || 'mailto:support@nestin.local',
+    get enabled() {
+      return !!(this.publicKey && this.privateKey);
+    },
+  },
+
+  logging: {
+    /** "json" (default in production) emits one JSON object per request; "pretty" is for terminals; "off" silences. */
+    format: (process.env.LOG_FORMAT || (isProduction ? 'json' : isTest ? 'off' : 'pretty')) as
+      'json' | 'pretty' | 'off',
+  },
+
   rateLimit: {
     authWindowMs: 15 * 60 * 1000,
     authMaxAttempts: Number(process.env.AUTH_MAX_ATTEMPTS || 20),
@@ -113,3 +154,32 @@ export const config = {
 };
 
 export type AppConfig = typeof config;
+
+/**
+ * Production start-up invariants. Anything here is a mis-configuration that would otherwise fail
+ * silently (free plans, public demo accounts), so the process refuses to boot instead.
+ */
+export function assertProductionConfig(c: AppConfig = config): void {
+  if (!c.isProduction) return;
+  const problems: string[] = [];
+  if (c.seedDemoData && c.demoPassword === 'NestIn@2026') {
+    problems.push('SEED_DEMO_DATA=true requires a non-default DEMO_PASSWORD');
+  }
+  if (!c.razorpay.enabled && !c.allowSimulatedPayments) {
+    problems.push(
+      'RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are not set; online payments would be simulated. Configure the gateway or set ALLOW_SIMULATED_PAYMENTS=true for a staging deployment.'
+    );
+  }
+  if (c.razorpay.enabled && !c.razorpay.webhookSecret) {
+    problems.push('RAZORPAY_WEBHOOK_SECRET must be set when Razorpay keys are configured');
+  }
+  if (!c.superAdmin.password || !c.superAdmin.accessCode) {
+    problems.push('SUPER_ADMIN_PASSWORD and SUPER_ADMIN_ACCESS_CODE must be set');
+  }
+  if (!process.env.METRICS_TOKEN) {
+    problems.push('METRICS_TOKEN must be set so /metrics is not exposed');
+  }
+  if (problems.length) {
+    throw new Error(['Refusing to start in production:', ...problems.map((p) => ` - ${p}`)].join('\n'));
+  }
+}

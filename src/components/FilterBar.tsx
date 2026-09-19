@@ -23,11 +23,7 @@ export const DEFAULT_FILTERS: FindPGFilterState = {
   sortBy: 'nearest',
 };
 
-export const FilterBar: React.FC<FilterBarProps> = React.memo(({
-  filters,
-  onFilterChange,
-  totalCount,
-}) => {
+export const FilterBar: React.FC<FilterBarProps> = React.memo(({ filters, onFilterChange, totalCount }) => {
   const locationTitle = filters.searchQuery || 'Kukatpally, Hyderabad';
 
   return (
@@ -41,4 +37,3 @@ export const FilterBar: React.FC<FilterBarProps> = React.memo(({
 });
 
 FilterBar.displayName = 'FilterBar';
-

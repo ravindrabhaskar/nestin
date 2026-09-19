@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NestIn — You're offline</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #053222; color: #fff; font-family: Inter, system-ui, sans-serif; text-align: center; padding: 24px; }
+      img { width: 96px; height: 96px; border-radius: 24px; }
+      h1 { font-size: 22px; margin: 20px 0 8px; }
+      p { color: #b8d9c7; font-size: 14px; max-width: 360px; margin: 0 auto 20px; line-height: 1.5; }
+      button { background: #a3e635; color: #0a0a0a; border: 0; padding: 12px 22px; border-radius: 999px; font-weight: 800; font-size: 14px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <img src="/icons/icon-192.png" alt="NestIn" />
+      <h1>You're offline</h1>
+      <p>NestIn needs a connection to load listings, bookings and payments. Check your network and try again.</p>
+      <button onclick="location.reload()">Retry</button>
+    </div>
+  </body>
+</html>

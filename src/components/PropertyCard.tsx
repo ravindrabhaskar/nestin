@@ -15,11 +15,7 @@ interface PropertyCardProps {
   onBookNow: (property: PropertyListing) => void;
 }
 
-export const PropertyCard: React.FC<PropertyCardProps> = React.memo(({
-  property,
-  onViewDetails,
-  onBookNow,
-}) => {
+export const PropertyCard: React.FC<PropertyCardProps> = React.memo(({ property, onViewDetails, onBookNow }) => {
   const { isWishlisted, toggleWishlist, showQuickLoginToast } = useWishlist();
   const { isAuthenticated } = useAuth();
   const isLiked = isWishlisted(property.id);
@@ -29,17 +25,10 @@ export const PropertyCard: React.FC<PropertyCardProps> = React.memo(({
   const reviewsCount = property.reviewsCount || property.reviews || 117;
 
   const sharingList = property.sharing || ['Double', 'Triple'];
-  const amenitiesList = property.amenities || [
-    'WiFi',
-    'Laundry',
-    'Kitchen',
-    'Power Backup',
-  ];
+  const amenitiesList = property.amenities || ['WiFi', 'Laundry', 'Kitchen', 'Power Backup'];
   const availabilityText = property.available || '01 Aug 2026';
   const distanceText = property.distance || '3.4 km away';
-  const addressText =
-    property.address ||
-    `${property.area || 'Madhapur'}, ${property.city || 'Hyderabad'}`;
+  const addressText = property.address || `${property.area || 'Madhapur'}, ${property.city || 'Hyderabad'}`;
 
   const fullLocationString = `${addressText} • ${distanceText}`;
   const priceToDisplay = property.price || property.rent || 16500;
@@ -94,16 +83,14 @@ export const PropertyCard: React.FC<PropertyCardProps> = React.memo(({
               toggleWishlist(property);
             }}
             className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md hover:bg-white flex items-center justify-center shadow-md active:scale-90 transition-transform z-10 cursor-pointer"
-            aria-label={isLiked ? "Remove from favorites" : "Save to favorites"}
-            title={isLiked ? "Remove from favorites" : "Save to favorites"}
+            aria-label={isLiked ? 'Remove from favorites' : 'Save to favorites'}
+            title={isLiked ? 'Remove from favorites' : 'Save to favorites'}
           >
             <Icon
               name="heart"
               size={16}
               className={`transition-colors ${
-                isLiked
-                  ? 'fill-red-500 text-red-500 scale-110'
-                  : 'text-slate-800 hover:text-slate-950'
+                isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-800 hover:text-slate-950'
               }`}
             />
           </button>
@@ -158,10 +145,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = React.memo(({
       </div>
 
       {/* FOOTER ACTION BUTTONS: VIEW DETAILS & BOOK NOW */}
-      <div
-        className="p-4 sm:p-5 pt-0 mt-auto border-t border-slate-100 bg-white"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="p-4 sm:p-5 pt-0 mt-auto border-t border-slate-100 bg-white" onClick={(e) => e.stopPropagation()}>
         <PropertyButtons
           onViewDetails={(e) => {
             e.stopPropagation();

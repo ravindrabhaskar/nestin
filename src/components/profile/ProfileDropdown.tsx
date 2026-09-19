@@ -76,9 +76,7 @@ export const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ isOpen, onClos
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="font-bold text-sm text-slate-900 truncate font-heading">
-                {user.name}
-              </div>
+              <div className="font-bold text-sm text-slate-900 truncate font-heading">{user.name}</div>
               <p className="text-xs text-slate-500 truncate">{user.email}</p>
             </div>
           </div>

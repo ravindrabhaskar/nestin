@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Building2, User, Phone, Mail, IndianRupee, Calendar, Layers, FileText } from 'lucide-react';
+import { X, Sparkles, User, Phone, Mail, IndianRupee, Calendar } from 'lucide-react';
 import { usePropertyListing } from '../../../context/PropertyListingContext';
 import { useCRM } from '../../../context/CRMContext';
 import { useRBAC } from '../../../context/RBACContext';
@@ -74,7 +74,11 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ onClose, onSuccess }
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+    >
       <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
         {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -144,9 +148,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ onClose, onSuccess }
           {/* Email & Location */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Email Address
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Email Address</label>
               <div className="relative">
                 <Mail className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                 <input
@@ -193,9 +195,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ onClose, onSuccess }
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Interested Room Type
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Interested Room Type</label>
               <select
                 value={roomType}
                 onChange={(e) => setRoomType(e.target.value)}
@@ -213,9 +213,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ onClose, onSuccess }
           {/* Budget & Preferred Move-in Date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Monthly Budget (₹)
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Monthly Budget (₹)</label>
               <div className="relative">
                 <IndianRupee className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                 <input
@@ -229,9 +227,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ onClose, onSuccess }
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Target Move-in Date
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Target Move-in Date</label>
               <div className="relative">
                 <Calendar className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                 <input
@@ -247,9 +243,7 @@ export const AddLeadModal: React.FC<AddLeadModalProps> = ({ onClose, onSuccess }
           {/* Lead Source & Assigned Employee */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Enquiry Source
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Enquiry Source</label>
               <select
                 value={source}
                 onChange={(e) => setSource(e.target.value as LeadSource)}

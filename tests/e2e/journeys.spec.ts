@@ -61,7 +61,7 @@ test.describe('Marketing site & marketplace', () => {
         .click(),
     ]);
     expect(resp.status()).toBe(201);
-    await expect(page.getByText(/NST-\d{6}/)).toBeVisible();
+    await expect(page.getByText(/TKT-\d{6}/)).toBeVisible();
   });
 });
 
@@ -95,5 +95,121 @@ test.describe('Authenticated journeys (real backend)', () => {
   test('protected owner route blocks anonymous users', async ({ page }) => {
     await page.goto('/owner/dashboard');
     await expect(page.getByText(/Access Restricted/i)).toBeVisible({ timeout: 15_000 });
+  });
+});
+
+test.describe('Go-to-market surfaces', () => {
+  test('landing stats and city cards show live numbers, never seed figures', async ({ page, request }) => {
+    const stats = (await (await request.get('/api/v1/public/stats')).json()).data;
+    await page.goto('/');
+    const section = page.getByLabel('Platform statistics');
+    await expect(section).toContainText('Verified stays');
+    await section.scrollIntoViewIfNeeded(); // counters animate once in view
+    await expect(section).toContainText(Number(stats.verifiedListings).toLocaleString('en-IN'), { timeout: 15_000 });
+    await expect(page.getByText(/15,000\+|2L\+ Happy/)).toHaveCount(0);
+    await page.goto('/cities');
+    await expect(page.getByText(/\d+ properties|Launching soon/).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/2,000\+ properties/)).toHaveCount(0);
+  });
+
+  test('pricing section and legal pages render', async ({ page }) => {
+    await page.goto('/for-owners');
+    await expect(page.getByRole('heading', { name: /Start free/ })).toBeVisible();
+    await expect(page.getByText('₹799').first()).toBeVisible(); // yearly is the default
+    await page.getByRole('button', { name: 'Monthly', exact: true }).click();
+    await expect(page.getByText('₹999').first()).toBeVisible();
+    for (const [path, heading] of [
+      ['/terms', 'Terms of Service'],
+      ['/privacy', 'Privacy Policy'],
+      ['/refund-policy', 'Refund & Cancellation Policy'],
+    ] as const) {
+      await page.goto(path);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText(heading);
+    }
+    const manifest = await page.request.get('/manifest.webmanifest');
+    expect(manifest.ok()).toBeTruthy();
+  });
+
+  test('owner sees their subscription and usage; simulated upgrade activates the plan', async ({ page }) => {
+    const dialog = await loginViaModal(page, 'owner', 'owner@nestin.com');
+    await expect(dialog).toBeHidden({ timeout: 20_000 });
+    await page.goto('/owner/subscription');
+    await expect(page.getByRole('heading', { name: 'Subscription & Billing' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Current plan')).toBeVisible();
+    await expect(page.getByText(/Properties/).first()).toBeVisible();
+    await page
+      .getByTestId('plan-card-business')
+      .getByRole('button', { name: /Upgrade|Switch|Renew|Activate now/ })
+      .click();
+    await expect(page.getByText(/Business plan is now active|Business plan active/).first()).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByText(/SUB-\d{4}-\d{4}/).first()).toBeVisible();
+  });
+
+  test('admin verification requires the checklist; billing and ops tabs load', async ({ page }) => {
+    await page.goto('/admin/login');
+    await page.getByPlaceholder('admin@nestin.io').fill('admin@nestin.io');
+    await page.locator('input[type="password"]').fill('Admin@NestIn2026');
+    await page.getByPlaceholder('NESTIN-SUPER-ADMIN-2026').fill('NESTIN-SUPER-ADMIN-2026');
+    await page.locator('button[type="submit"]').click();
+    await page.waitForURL((url) => url.pathname.startsWith('/admin') && !url.pathname.includes('login'), {
+      timeout: 20_000,
+    });
+    await expect(page.getByRole('button', { name: /All Properties/ })).toBeVisible({ timeout: 20_000 });
+    await page.getByRole('button', { name: /All Properties/ }).click();
+    await page.getByRole('button', { name: 'Audit' }).first().click();
+    await expect(page.getByText('Verification checklist')).toBeVisible();
+    await page.getByRole('button', { name: /Verify & Publish Live/ }).click();
+    await expect(page.getByRole('alert')).toContainText(/checklist/i);
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Verification checklist')).toBeHidden();
+    await page.getByRole('button', { name: 'Billing' }).click();
+    await expect(page.getByText('MRR')).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Operations' }).click();
+    await expect(page.getByText('Backup history')).toBeVisible({ timeout: 15_000 });
+  });
+});
+
+test.describe('Hardening guards', () => {
+  test('no Content-Security-Policy violations or console errors on the main surfaces', async ({ page }) => {
+    const problems: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') problems.push(msg.text());
+    });
+    page.on('pageerror', (err) => problems.push(err.message));
+
+    await page.goto('/');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.goto('/find-pg?city=Hyderabad');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.goto('/terms');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+    // Signing in exercises the API, contexts and (for admins) the dashboards that used to 403.
+    await loginViaModal(page, 'owner', 'owner@nestin.com');
+    await expect(page).toHaveURL(/\/owner/);
+
+    const csp = problems.filter((p) => /Content Security Policy|Refused to/i.test(p));
+    expect(csp, csp.join('\n')).toEqual([]);
+    const fatal = problems.filter((p) => !/favicon|third-party cookie|net::ERR_/.test(p));
+    expect(fatal, fatal.join('\n')).toEqual([]);
+  });
+
+  test('super admin console loads without owner-scoped 403 errors', async ({ page }) => {
+    const failed: string[] = [];
+    page.on('response', (res) => {
+      if (res.url().includes('/api/') && res.status() === 403) failed.push(res.url());
+    });
+    await page.goto('/admin/login');
+    await page.getByPlaceholder('admin@nestin.io').fill('admin@nestin.io');
+    await page.locator('input[type="password"]').fill('Admin@NestIn2026');
+    await page.getByPlaceholder('NESTIN-SUPER-ADMIN-2026').fill('NESTIN-SUPER-ADMIN-2026');
+    await page.locator('button[type="submit"]').click();
+    await page.waitForURL((url) => url.pathname.startsWith('/admin') && !url.pathname.includes('login'), {
+      timeout: 20_000,
+    });
+    await expect(page.getByRole('button', { name: /All Properties/ })).toBeVisible({ timeout: 20_000 });
+    expect(failed, failed.join('\n')).toEqual([]);
   });
 });

@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, SlidersHorizontal, CalendarCheck, KeyRound, X, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Search,
+  SlidersHorizontal,
+  CalendarCheck,
+  KeyRound,
+  X,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { STEPS_DATA } from '../data/landingData';
 
 const STEP_ICONS = [
@@ -72,7 +81,8 @@ export const StepsSection: React.FC<StepsSectionProps> = ({ onStepAction }) => {
     setTouchEnd(null);
   };
 
-  const activeData = hoveredStep !== null ? STEPS_DATA[hoveredStep] : (activeStep !== null ? STEPS_DATA[activeStep] : null);
+  const activeData =
+    hoveredStep !== null ? STEPS_DATA[hoveredStep] : activeStep !== null ? STEPS_DATA[activeStep] : null;
 
   // Precise path length stops corresponding to step circle centers
   const pathLengthValue = (highlightedStep + 1) / 4;
@@ -85,10 +95,7 @@ export const StepsSection: React.FC<StepsSectionProps> = ({ onStepAction }) => {
           SIMPLE STEPS
         </span>
         <h2 className="text-h1 sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#121820] leading-[1.15]">
-          Simple steps to your{' '}
-          <span className="text-[#a3e635]">
-            new home.
-          </span>
+          Simple steps to your <span className="text-[#a3e635]">new home.</span>
         </h2>
         <p className="text-slate-500 text-body max-w-2xl mx-auto">
           From searching to viewing to moving in — finding a verified stay stays effortless.
@@ -130,7 +137,6 @@ export const StepsSection: React.FC<StepsSectionProps> = ({ onStepAction }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-6 relative z-10">
           {STEPS_DATA.map((stepItem, idx) => {
             const isHighlighted = highlightedStep === idx;
-            const isClicked = activeStep === idx;
 
             return (
               <motion.div
@@ -194,9 +200,7 @@ export const StepsSection: React.FC<StepsSectionProps> = ({ onStepAction }) => {
                     </span>
                   </h3>
 
-                  <p className="text-slate-500 text-xs sm:text-sm leading-relaxed px-2">
-                    {stepItem.description}
-                  </p>
+                  <p className="text-slate-500 text-xs sm:text-sm leading-relaxed px-2">{stepItem.description}</p>
                 </div>
 
                 {/* Bottom CTA Link */}
@@ -236,9 +240,7 @@ export const StepsSection: React.FC<StepsSectionProps> = ({ onStepAction }) => {
                 type="button"
                 onClick={() => setActiveStep(idx)}
                 className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  highlightedStep === idx
-                    ? 'w-7 bg-[#a3e635]'
-                    : 'w-2.5 bg-slate-200 hover:bg-slate-300'
+                  highlightedStep === idx ? 'w-7 bg-[#a3e635]' : 'w-2.5 bg-slate-200 hover:bg-slate-300'
                 }`}
                 aria-label={`Go to step ${idx + 1}`}
               />
@@ -288,18 +290,12 @@ export const StepsSection: React.FC<StepsSectionProps> = ({ onStepAction }) => {
                     <span className="text-xs font-black tracking-widest text-slate-950 bg-[#a3e635] px-3 py-1 rounded-full uppercase font-heading">
                       STEP {activeData.step}
                     </span>
-                    <span className="text-xs font-bold text-slate-400 font-heading">
-                      VERIFIED PROCESS
-                    </span>
+                    <span className="text-xs font-bold text-slate-400 font-heading">VERIFIED PROCESS</span>
                   </div>
 
-                  <h4 className="text-xl sm:text-2xl font-extrabold text-[#121820] font-heading">
-                    {activeData.title}
-                  </h4>
+                  <h4 className="text-xl sm:text-2xl font-extrabold text-[#121820] font-heading">{activeData.title}</h4>
 
-                  <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-                    {activeData.popoverText}
-                  </p>
+                  <p className="text-sm sm:text-base text-slate-600 leading-relaxed">{activeData.popoverText}</p>
 
                   <div className="pt-2">
                     <button
@@ -322,6 +318,3 @@ export const StepsSection: React.FC<StepsSectionProps> = ({ onStepAction }) => {
     </section>
   );
 };
-
-
-

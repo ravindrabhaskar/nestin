@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ApiClient, ApiError, tokenStore } from '../lib/apiClient';
+import { disablePush } from '../lib/pwa';
 import { UserLivingPreferences, UserNotificationSettings, UserPrivacySettings, TenantDocument } from '../types';
 import {
   DEFAULT_LIVING_PREFERENCES,
@@ -366,7 +367,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     try {
-      if (tokenStore.get()) await ApiClient.auth.logout();
+      if (tokenStore.get()) {
+        // Detach this device's push subscription first so the next person to sign in here never
+        // receives the previous account's notifications.
+        await disablePush().catch(() => undefined);
+        await ApiClient.auth.logout();
+      }
     } catch {
       // token may already be invalid
     } finally {

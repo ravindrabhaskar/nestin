@@ -286,12 +286,10 @@ export const exportMonthlyReportPDF = (options: ReportExportOptions): void => {
   // Aggregate metrics
   const totalBeds = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.totalBeds, 0);
   const occupiedBeds = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.occupiedBeds, 0);
-  const vacantBeds = totalBeds - occupiedBeds;
   const overallOccupancy = ((occupiedBeds / totalBeds) * 100).toFixed(1);
 
   const totalBilled = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.monthlyRevenueBilled, 0);
   const totalCollected = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.revenueCollected, 0);
-  const totalDues = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.pendingDues, 0);
   const totalExpenses = SAMPLE_EXPENSES.reduce((acc, e) => acc + e.amount, 0);
   const netOperatingIncome = totalCollected - totalExpenses;
 
@@ -328,7 +326,12 @@ export const exportMonthlyReportPDF = (options: ReportExportOptions): void => {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.text(`Statement Period: ${month} ${year}`, pageWidth - 15, 13, { align: 'right' });
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, pageWidth - 15, 18, { align: 'right' });
+  doc.text(
+    `Generated: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+    pageWidth - 15,
+    18,
+    { align: 'right' }
+  );
   doc.text(`Doc ID: NST-AC-${year}${month.substring(0, 3).toUpperCase()}-0892`, pageWidth - 15, 23, { align: 'right' });
 
   currentY = 36;
@@ -455,16 +458,18 @@ export const exportMonthlyReportPDF = (options: ReportExportOptions): void => {
 
   autoTable(doc, {
     startY: currentY,
-    head: [[
-      'Property Name',
-      'Location',
-      'Occupancy',
-      'Rate',
-      'Billed (INR)',
-      'Collected (INR)',
-      'Expenses (INR)',
-      'Net Payout (INR)',
-    ]],
+    head: [
+      [
+        'Property Name',
+        'Location',
+        'Occupancy',
+        'Rate',
+        'Billed (INR)',
+        'Collected (INR)',
+        'Expenses (INR)',
+        'Net Payout (INR)',
+      ],
+    ],
     body: propertyTableData,
     theme: 'grid',
     headStyles: {
@@ -660,7 +665,12 @@ export const exportMonthlyReportPDF = (options: ReportExportOptions): void => {
   doc.setFontSize(7.5);
   doc.setTextColor(slate900[0], slate900[1], slate900[2]);
   doc.text('System Authorized Signatory: Nestin Digital Treasury System', 20, currentY + 27);
-  doc.text(`Digital Verification Hash: SHA256:${Math.random().toString(36).substring(2, 12).toUpperCase()}`, pageWidth - 20, currentY + 27, { align: 'right' });
+  doc.text(
+    `Digital Verification Hash: SHA256:${Math.random().toString(36).substring(2, 12).toUpperCase()}`,
+    pageWidth - 20,
+    currentY + 27,
+    { align: 'right' }
+  );
 
   // 8. ADD PAGE NUMBERS & SYSTEM FOOTER ACROSS ALL PAGES
   const totalPages = doc.getNumberOfPages();

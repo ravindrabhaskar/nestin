@@ -71,15 +71,15 @@ export const SEO: React.FC<SEOProps> = ({
         {
           '@type': 'WebSite',
           '@id': `${canonicalUrl}/#website`,
-          'url': canonicalUrl,
-          'name': 'Nestin',
-          'description': description,
-          'potentialAction': [
+          url: canonicalUrl,
+          name: 'Nestin',
+          description: description,
+          potentialAction: [
             {
               '@type': 'SearchAction',
-              'target': {
+              target: {
                 '@type': 'EntryPoint',
-                'urlTemplate': `${canonicalUrl}/?search={search_term_string}`,
+                urlTemplate: `${canonicalUrl}/?search={search_term_string}`,
               },
               'query-input': 'required name=search_term_string',
             },
@@ -88,13 +88,13 @@ export const SEO: React.FC<SEOProps> = ({
         {
           '@type': 'Organization',
           '@id': `${canonicalUrl}/#organization`,
-          'name': 'Nestin',
-          'url': canonicalUrl,
-          'logo': {
+          name: 'Nestin',
+          url: canonicalUrl,
+          logo: {
             '@type': 'ImageObject',
-            'url': ogImage,
+            url: ogImage,
           },
-          'sameAs': [
+          sameAs: [
             'https://twitter.com/nestin_india',
             'https://facebook.com/nestin',
             'https://instagram.com/nestin_india',
@@ -103,12 +103,12 @@ export const SEO: React.FC<SEOProps> = ({
         {
           '@type': 'RealEstateAgent',
           '@id': `${canonicalUrl}/#realestate`,
-          'name': 'Nestin Co-Living & Hostels',
-          'image': ogImage,
-          'priceRange': '₹₹',
-          'address': {
+          name: 'Nestin Co-Living & Hostels',
+          image: ogImage,
+          priceRange: '₹₹',
+          address: {
             '@type': 'PostalAddress',
-            'addressCountry': 'IN',
+            addressCountry: 'IN',
           },
         },
       ],
@@ -122,7 +122,6 @@ export const SEO: React.FC<SEOProps> = ({
       document.head.appendChild(scriptElement);
     }
     scriptElement.textContent = JSON.stringify(schemaData, null, 2);
-
   }, [title, description, canonicalUrl, ogImage, ogType, twitterHandle]);
 
   return null;

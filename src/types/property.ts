@@ -36,13 +36,35 @@ export interface PropertyMediaItem {
   id: string;
   url: string;
   title: string;
-  category: 'Exterior' | 'Living Area' | 'Bedrooms' | 'Bathrooms' | 'Kitchen' | 'Dining' | 'Common Areas' | 'Study Area' | 'Gym' | 'Parking' | 'Other';
+  category:
+    | 'Exterior'
+    | 'Living Area'
+    | 'Bedrooms'
+    | 'Bathrooms'
+    | 'Kitchen'
+    | 'Dining'
+    | 'Common Areas'
+    | 'Study Area'
+    | 'Gym'
+    | 'Parking'
+    | 'Other';
   isCover?: boolean;
 }
 
 export interface PropertyNearbyPlace {
   id: string;
-  category: 'Metro' | 'Bus Stop' | 'College' | 'University' | 'Company' | 'Hospital' | 'Mall' | 'ATM' | 'Restaurant' | 'Medical Store' | 'Other';
+  category:
+    | 'Metro'
+    | 'Bus Stop'
+    | 'College'
+    | 'University'
+    | 'Company'
+    | 'Hospital'
+    | 'Mall'
+    | 'ATM'
+    | 'Restaurant'
+    | 'Medical Store'
+    | 'Other';
   name: string;
   distanceKm: number;
   travelTime: string;
@@ -83,6 +105,36 @@ export interface PropertyResidentReview {
   images?: string[];
 }
 
+/** Items an operator must confirm before a listing earns the "NestIn Verified" badge. */
+export const VERIFICATION_CHECKLIST = [
+  { id: 'ownershipDocuments', label: 'Ownership / registration documents match the listed address' },
+  { id: 'licenses', label: 'PG licence and fire-safety NOC are valid and current' },
+  { id: 'siteVisit', label: 'Physical site visit completed by NestIn staff' },
+  { id: 'photosMatch', label: 'Listing photos match the property as seen on the visit' },
+  { id: 'caretakerIdentity', label: 'Caretaker identity checked against a government ID' },
+  { id: 'caretakerBackground', label: 'Caretaker background / police verification on file' },
+  { id: 'safety', label: 'CCTV, emergency exits and basic safety equipment present' },
+  { id: 'pricingAccurate', label: 'Rent, deposit and included charges confirmed with the owner' },
+] as const;
+
+export type VerificationCheckId = (typeof VERIFICATION_CHECKLIST)[number]['id'];
+
+export interface PropertyVerification {
+  status: 'unverified' | 'verified' | 'expired' | 'revoked';
+  checklist: Partial<Record<VerificationCheckId, boolean>>;
+  /** Free-text evidence: visit findings, licence numbers, who was met. */
+  notes?: string;
+  siteVisitDate?: string;
+  /** Uploaded evidence (visit photos, licence scans) as private file URLs. */
+  evidenceUrls?: string[];
+  verifiedBy?: string;
+  verifiedByName?: string;
+  verifiedAt?: string;
+  /** When the badge lapses unless re-verified. */
+  expiresAt?: string;
+  revokedReason?: string;
+}
+
 export interface OwnerPropertyListing {
   id: string;
   /** True when this record is a lightweight catalogue projection (reviews, policies, gallery trimmed). */
@@ -97,7 +149,7 @@ export interface OwnerPropertyListing {
   status: PropertyListingStatus;
   rejectionReason?: string;
   completenessScore: number;
-  
+
   // Basic info
   yearEstablished?: number;
   floors: number;
@@ -112,6 +164,8 @@ export interface OwnerPropertyListing {
   isNestinVerified: boolean;
   isFeatured: boolean;
   isZeroBrokerage: boolean;
+  /** Operator verification record behind `isNestinVerified` (system-controlled). */
+  verification?: PropertyVerification;
 
   // Media
   coverImage: string;

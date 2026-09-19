@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { PropertyListing } from '../types';
-import { MapPin, Star, ExternalLink, ArrowRight } from 'lucide-react';
 
 interface InteractiveMapProps {
   properties: PropertyListing[];
@@ -15,13 +14,13 @@ interface InteractiveMapProps {
 const CITY_COORDS: Record<string, [number, number]> = {
   bengaluru: [12.9716, 77.5946],
   bangalore: [12.9716, 77.5946],
-  hyderabad: [17.3850, 78.4867],
-  mumbai: [19.0760, 72.8777],
-  delhi: [28.6139, 77.2090],
-  'delhi ncr': [28.6139, 77.2090],
+  hyderabad: [17.385, 78.4867],
+  mumbai: [19.076, 72.8777],
+  delhi: [28.6139, 77.209],
+  'delhi ncr': [28.6139, 77.209],
   gurugram: [28.4595, 77.0266],
   gurgaon: [28.4595, 77.0266],
-  noida: [28.5355, 77.3910],
+  noida: [28.5355, 77.391],
   chennai: [13.0827, 80.2707],
   pune: [18.5204, 73.8567],
   kolkata: [22.5726, 88.3639],
@@ -50,10 +49,18 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const markersRef = useRef<{ [id: string]: L.Marker }>({});
+  // The map is created once; the property list only seeds its initial centre, and the marker
+  // click handlers should always call the latest callbacks without re-creating every marker.
+  const initialPropertiesRef = useRef(properties);
+  const callbacksRef = useRef({ onSelectProperty, onOpenDetail });
+  useEffect(() => {
+    callbacksRef.current = { onSelectProperty, onOpenDetail };
+  }, [onSelectProperty, onOpenDetail]);
 
   // Initialize Map
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    const properties = initialPropertiesRef.current;
 
     // Default center to Bengaluru or first property
     let defaultLat = 12.9716;
@@ -154,8 +161,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       `;
 
       popupContent.addEventListener('click', () => {
-        onSelectProperty(prop);
-        if (onOpenDetail) onOpenDetail(prop);
+        callbacksRef.current.onSelectProperty(prop);
+        callbacksRef.current.onOpenDetail?.(prop);
       });
 
       marker.bindPopup(popupContent, {
@@ -164,7 +171,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
       });
 
       marker.on('click', () => {
-        onSelectProperty(prop);
+        callbacksRef.current.onSelectProperty(prop);
       });
 
       markersRef.current[prop.id] = marker;
@@ -188,7 +195,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     if (selectedMarker) {
       selectedMarker.openPopup();
     }
-  }, [selectedProperty]);
+  }, [selectedProperty, properties]);
 
   return (
     <div className={`relative rounded-3xl overflow-hidden border border-slate-200/90 shadow-sm ${className}`}>

@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  CheckCircle2,
-  Clock,
-  XCircle,
-  AlertCircle,
-  Download,
-  Printer,
-  X,
-  CreditCard,
-} from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, AlertCircle, Download, Printer, X, CreditCard } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
 import { TenantPaymentItem } from '../types';
 import { ApiClient, tokenStore } from '../lib/apiClient';
@@ -18,7 +9,9 @@ import { payOnline } from '../lib/checkout';
 
 /** Downloads the server-generated receipt with the session token attached. */
 async function downloadReceipt(payment: TenantPaymentItem) {
-  const res = await fetch(`/api/v1/tenant/payments/${payment.id}/receipt`, { headers: { Authorization: `Bearer ${tokenStore.get() || ''}` } });
+  const res = await fetch(`/api/v1/tenant/payments/${payment.id}/receipt`, {
+    headers: { Authorization: `Bearer ${tokenStore.get() || ''}` },
+  });
   if (!res.ok) throw new Error('Receipt is not available for this payment.');
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
@@ -31,7 +24,11 @@ async function downloadReceipt(payment: TenantPaymentItem) {
 
 export const TenantPaymentsPage: React.FC = () => {
   const { user } = useAuth();
-  const { data: payments, setData: setPayments, isLoading } = useApiResource<TenantPaymentItem[]>(() => ApiClient.tenant.payments(), [], {
+  const {
+    data: payments,
+    setData: setPayments,
+    isLoading,
+  } = useApiResource<TenantPaymentItem[]>(() => ApiClient.tenant.payments(), [], {
     enabled: !!user,
     key: user?.id,
     label: 'Could not load your payments',
@@ -123,11 +120,15 @@ export const TenantPaymentsPage: React.FC = () => {
       activeNav="/payments"
     >
       <div className="space-y-6">
-
         {/* PAY RENT ONLINE */}
-        <form onSubmit={handlePayRent} className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col sm:flex-row sm:items-end gap-3">
+        <form
+          onSubmit={handlePayRent}
+          className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col sm:flex-row sm:items-end gap-3"
+        >
           <div className="flex-1">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 font-heading">Pay rent or dues online</label>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 font-heading">
+              Pay rent or dues online
+            </label>
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-slate-500">₹</span>
               <input
@@ -140,7 +141,11 @@ export const TenantPaymentsPage: React.FC = () => {
               />
             </div>
             {payNotice && (
-              <p className={`mt-2 text-xs font-semibold ${payNotice.kind === 'ok' ? 'text-emerald-700' : 'text-rose-600'}`}>{payNotice.text}</p>
+              <p
+                className={`mt-2 text-xs font-semibold ${payNotice.kind === 'ok' ? 'text-emerald-700' : 'text-rose-600'}`}
+              >
+                {payNotice.text}
+              </p>
             )}
           </div>
           <button
@@ -197,7 +202,6 @@ export const TenantPaymentsPage: React.FC = () => {
 
         {/* PAYMENTS CONTAINER */}
         <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs">
-
           {/* DESKTOP TABLE */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs font-sans">
@@ -219,18 +223,12 @@ export const TenantPaymentsPage: React.FC = () => {
                         <div className="font-bold text-slate-900 font-heading">{item.title}</div>
                         <div className="text-[11px] text-slate-400 font-mono mt-0.5">{item.id}</div>
                       </td>
-                      <td className="py-4 px-5 text-slate-700 font-medium">
-                        {item.propertyName}
-                      </td>
-                      <td className="py-4 px-5 text-slate-600">
-                        {item.date}
-                      </td>
+                      <td className="py-4 px-5 text-slate-700 font-medium">{item.propertyName}</td>
+                      <td className="py-4 px-5 text-slate-600">{item.date}</td>
                       <td className="py-4 px-5 font-bold font-heading text-slate-900">
                         ₹{item.amount.toLocaleString()}
                       </td>
-                      <td className="py-4 px-5">
-                        {getStatusBadge(item.status)}
-                      </td>
+                      <td className="py-4 px-5">{getStatusBadge(item.status)}</td>
                       <td className="py-4 px-5 text-right space-x-2">
                         {item.status === 'Pending' && (
                           <button
@@ -293,25 +291,23 @@ export const TenantPaymentsPage: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="p-8 text-center text-slate-400 text-xs">
-                No payment records found.
-              </div>
+              <div className="p-8 text-center text-slate-400 text-xs">No payment records found.</div>
             )}
           </div>
-
         </div>
-
       </div>
 
       {/* RECEIPT / INVOICE MODAL */}
       {selectedReceipt && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150 font-sans">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-bold font-heading text-slate-900">
-                  Payment Receipt
-                </h3>
+                <h3 className="text-base font-bold font-heading text-slate-900">Payment Receipt</h3>
                 <p className="text-xs text-slate-500">Ref: {selectedReceipt.id}</p>
               </div>
               <button
@@ -342,14 +338,18 @@ export const TenantPaymentsPage: React.FC = () => {
               </div>
               <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-sm">
                 <span className="font-bold text-slate-900 font-heading">Total Paid</span>
-                <span className="font-extrabold text-slate-900 font-heading">₹{selectedReceipt.amount.toLocaleString()}</span>
+                <span className="font-extrabold text-slate-900 font-heading">
+                  ₹{selectedReceipt.amount.toLocaleString()}
+                </span>
               </div>
             </div>
 
             <div className="pt-2 flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={() => downloadReceipt(selectedReceipt).catch((err) => setPayNotice({ kind: 'err', text: err.message }))}
+                onClick={() =>
+                  downloadReceipt(selectedReceipt).catch((err) => setPayNotice({ kind: 'err', text: err.message }))
+                }
                 className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer font-heading"
               >
                 <Download className="w-3.5 h-3.5" />

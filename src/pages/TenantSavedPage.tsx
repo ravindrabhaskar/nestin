@@ -75,7 +75,9 @@ export const TenantSavedPage: React.FC = () => {
 
                     <div className="flex items-center gap-1 text-xs text-slate-500">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{(pg as any).location}, {(pg as any).city}</span>
+                      <span className="truncate">
+                        {(pg as any).location}, {(pg as any).city}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -108,12 +110,8 @@ export const TenantSavedPage: React.FC = () => {
           <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
             <Bookmark className="w-5 h-5" />
           </div>
-          <h3 className="text-sm font-bold font-heading text-slate-900">
-            No saved PGs yet.
-          </h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Save PGs you like while exploring Nestin.
-          </p>
+          <h3 className="text-sm font-bold font-heading text-slate-900">No saved PGs yet.</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto">Save PGs you like while exploring Nestin.</p>
           <div className="pt-2">
             <button
               type="button"

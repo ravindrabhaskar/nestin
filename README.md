@@ -1,6 +1,6 @@
 # NestIn — Find Your Space
 
-Verified PG, hostel and co-living marketplace for Indian cities, with a resident portal, an owner CRM (leads → visits → bookings → customers → payments), staff role-based access control, and a platform admin console.
+Verified PG, hostel and co-living marketplace for Indian cities, with a resident portal, an owner CRM (leads → visits → bookings → customers → payments), staff role-based access control, owner subscriptions (Starter / Professional / Business), an evidence-backed verification workflow, and a platform admin console with billing and operations panels. Installable as a PWA with web push.
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind 4, React Router 7
 - **Backend:** Node 22+, Express, built-in `node:sqlite` (no native add-ons), scrypt + HS256 JWT sessions
@@ -32,6 +32,7 @@ Demo data (and these accounts) only exist when `SEED_DEMO_DATA=true` (default in
 Other scripts:
 
 ```bash
+npm run check          # typecheck + lint (zero warnings) + prettier — also runs as the pre-commit hook
 npm run typecheck      # tsc over server, client and tests
 npm run test:api       # API integration tests (in-memory DB, ~3 s)
 npm run test:e2e       # Playwright journeys against an isolated server on :3100
@@ -66,6 +67,13 @@ tests/e2e/                    Playwright specs
 docs/                         Audit report
 ```
 
+### Business model & verification
+
+- **Plans.** Every owner workspace has one subscription (`subscriptions` table). New owners get a `PLAN_TRIAL_DAYS` Professional trial, then Starter (1 property, 1 staff). Upgrades go through `/billing/checkout` (Razorpay order + signature verification, or simulated without keys), produce a GST invoice, and are reconciled nightly (7-day grace, then downgrade). Operators can grant complimentary plans from Admin → Billing.
+- **Platform fee.** `PLATFORM_FEE_PERCENT` of every online tenant payment is recorded as `platformFee` on the payment; Admin → Billing shows MRR, subscription revenue and fees.
+- **Verified badge.** Approving a listing with the badge requires all eight checklist items (documents, licences, site visit, photos, caretaker ID + background, safety, pricing), a site-visit date and notes; the record (`property.verification`) carries who verified, when, and an expiry. Badges can be revoked; the sweep expires stale ones and warns 30 days ahead.
+- **Honest marketing.** The landing page, city pages and About page read `/public/stats` and the enriched `/properties/public/cities` — there are no hard-coded inventory numbers in the UI.
+
 ### Domain & tenancy model
 
 - **Owner tenancy.** Every CRM/RBAC/property record carries `ownerId`. Owners see their own tenancy; employees act inside their employer's tenancy with the permissions of their role (+ per-employee overrides); super admins see everything.
@@ -83,10 +91,16 @@ All endpoints live under `/api/v1` and return `{ success, data | error, metadata
 | `crm` | `GET snapshot`; support desk (`GET support`, `POST support/:id/messages|resolve`); `POST/PUT/DELETE leads|visitors|customers`; bookings `POST`, `PUT :id`, `POST :id/approve|reject|cancel|complete-move-in`; `POST customers/:id/payments|move-out`; activity & notifications |
 | `rbac` | `GET catalog|snapshot`; roles `POST/PUT/DELETE`; employees `POST/PUT/DELETE`, `POST :id/reset-password`; `POST audit` |
 | `tenant` | bookings (`GET`, `POST`, `POST :id/cancel`), `POST visits`, payments (`GET`, `POST checkout`, `POST checkout/complete`, receipt), documents, support tickets, wishlist, notifications |
+| `billing` | `GET /` (plan, usage vs limits, invoices), `POST checkout` (Razorpay or simulated), `POST checkout/complete`, `POST cancel` |
+| `push` | `GET config` (VAPID public key), `POST subscribe|unsubscribe` |
 | `files` | `POST` multipart upload (`purpose`: avatar, property, document); `GET :key` authenticated access to private files |
 | `webhooks` | `POST razorpay` (raw body, HMAC verified, idempotent) |
-| `admin` | `GET stats|users|properties|bookings|inbound|audit|support|outbox|integrations`, `PUT users/:id/status`, `POST properties/:id/approve|reject`, `PATCH properties/:id/badges`, `PUT inbound/:id` |
-| `public` | `POST contact|owner-demo|newsletter` (rate limited) |
+| `admin` | `GET stats|users|properties|bookings|inbound|audit|support|outbox|integrations`, `PUT users/:id/status`, `POST properties/:id/approve` (requires the verification checklist + site-visit date for the Verified badge) `|reject|revoke-verification`, `POST properties/verification-sweep`, `PATCH properties/:id/badges`, `PUT inbound/:id`, `GET billing`, `PUT billing/:ownerId`, `GET ops/backups|ops/metrics`, `POST ops/backups` |
+| `public` | `GET stats` (live platform numbers for the landing page), `POST contact|owner-demo|newsletter` (rate limited) |
+
+The public catalogue (`GET /properties/public`) filters, sorts and paginates in SQL: `city`, `area`, `q`, `category`, `type`, `minRent`, `maxRent`, `verified=true`, `available=true`, `sort=relevance|rent_asc|rent_desc|rating|newest`, `page`, `pageSize`; totals are returned in `metadata`. Without `page` it returns the whole catalogue (≤500) for the client-side facet UI.
+
+`GET /metrics` (outside `/api`) exposes Prometheus counters and latency histograms per route; it requires `Authorization: Bearer $METRICS_TOKEN`.
 
 Authorization: `Authorization: Bearer <jwt>`. Tokens are bound to a server session; logout, password change, staff deactivation and account suspension revoke them immediately. Auth routes are rate limited per IP + email.
 
@@ -94,20 +108,25 @@ Authorization: `Authorization: Bearer <jwt>`. Tokens are bound to a server sessi
 
 ## Configuration
 
-Copy `.env.example` to `.env`. Everything is optional in development; production requires:
+Copy `.env.example` to `.env`. Everything is optional in development. In production the server checks its configuration on start-up (`assertProductionConfig` in `server/config.ts`) and refuses to boot with a clear message rather than running insecurely; it requires:
 
 | Variable | Purpose |
 |---|---|
 | `JWT_SECRET` | ≥ 32 random characters. `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
 | `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`, `SUPER_ADMIN_ACCESS_CODE` | Admin console credentials (created on first start) |
 | `DATABASE_PATH` | SQLite file (default `./data/nestin.db`; `/data/nestin.db` in Docker) |
-| `SEED_DEMO_DATA` | `false` for a clean production database |
+| `SEED_DEMO_DATA` | Demo workspace + catalogue. Default `true` in development, **`false` in production** (opt in with `SEED_DEMO_DATA=true`, which then also requires a non-default `DEMO_PASSWORD`). |
 | `GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` | Enables "Continue with Google" (Google Identity Services; verified server-side) |
-| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Live Razorpay checkout (orders + signature verification + webhook at `/api/v1/webhooks/razorpay`). Without keys, payments run through the same UI as simulated successes. |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Live Razorpay checkout (orders + signature verification + webhook at `/api/v1/webhooks/razorpay`). In development, missing keys make payments *simulated* successes. **In production the server refuses to start without keys** unless `ALLOW_SIMULATED_PAYMENTS=true` (staging only) — otherwise every checkout answers 503 `PAYMENTS_UNAVAILABLE`. |
 | `STORAGE_DRIVER`, `S3_*` | Uploads (listing photos, avatars, KYC documents). Local disk by default; any S3-compatible bucket when set. Private files are served only through authenticated/presigned URLs. |
 | `EMAIL_PROVIDER`, `RESEND_API_KEY` / `SENDGRID_API_KEY`, `EMAIL_FROM` | Transactional email (booking updates, password reset, email verification, rent reminders). Default `log` records to the admin Outbox without sending. |
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` | WhatsApp notifications for users who opt in. |
-| `RENT_DUE_DAY`, `DISABLE_JOBS` | Monthly rent-reminder job (in-process scheduler, idempotent per month). |
+| `RENT_DUE_DAY`, `DISABLE_JOBS` | Scheduler: monthly rent reminders (paid plans), subscription reconciliation, verification-expiry sweep, nightly backup. Every job is idempotent per period. |
+| `PLATFORM_FEE_PERCENT`, `PLAN_TRIAL_DAYS`, `SUBSCRIPTION_GST_PERCENT` | Business model: commission on online rent, Professional trial length for new owners, GST on subscription invoices. Plan prices/limits live in `src/lib/domain/plans.ts` and are enforced server-side (402 `PLAN_LIMIT`). |
+| `VERIFICATION_VALIDITY_MONTHS` | How long a "NestIn Verified" badge lasts before the sweep expires it and the owner is asked for a re-verification visit. |
+| `DISABLE_BACKUPS`, `BACKUP_DIR`, `BACKUP_KEEP`, `BACKUP_S3_PREFIX` | Nightly `VACUUM INTO` snapshots of the SQLite database, rotated locally and mirrored to S3 when configured. Admin → Operations lists them and can trigger one. |
+| `LOG_FORMAT`, `METRICS_TOKEN` | JSON request logs with correlation ids; bearer token for the Prometheus `/metrics` endpoint (required in production). |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Web Push. Generate with `npx web-push generate-vapid-keys`. Devices subscribe from Settings → Notifications (residents) or Owner Hub → Notifications. |
 | `DOMAIN` | Public hostname for the production stack (Caddy issues TLS automatically). |
 | `CORS_ORIGINS`, `TRUST_PROXY` | When the API is called from another origin / behind a proxy |
 
@@ -136,3 +155,11 @@ After the first start, open `/admin/login` with your `SUPER_ADMIN_*` credentials
 - **API integration (`tests/api`)** — boots the real app on an ephemeral port with an in-memory database and drives it over HTTP: authentication hardening (forged/tampered/`alg=none` tokens, rate limiting, escalation attempts), RBAC and tenancy isolation, the complete booking lifecycle with concurrency, the publishing workflow, admin operations.
 - **End-to-end (`tests/e2e`)** — Playwright starts an isolated server (`:3100`, fresh DB) and walks the real UI: marketplace, property page, contact form, resident and owner sign-in, protected routes.
 - **CI** — `.github/workflows/ci.yml` runs typecheck → API tests → build → e2e on every push/PR.
+
+### PWA
+
+`public/manifest.webmanifest`, `public/sw.js` (offline shell, cached assets, push handlers) and `public/offline.html` make the site installable; the service worker is registered in production builds only. Icons are generated from `Images/NESTIN_logo.png` into `public/icons/`.
+
+### Legal
+
+`/terms`, `/privacy` (DPDP Act 2023) and `/refund-policy` are rendered from `src/pages/LegalPages.tsx`. Replace the `LEGAL_ENTITY` placeholders (entity, address, grievance officer) and have counsel review before launch.

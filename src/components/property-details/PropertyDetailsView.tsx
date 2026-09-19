@@ -8,7 +8,6 @@ import {
   Calendar,
   Phone,
   MessageSquare,
-  BedDouble,
   Wifi,
   Wind,
   Sparkles,
@@ -17,7 +16,6 @@ import {
   Droplets,
   BookOpen,
   Navigation,
-  ChevronRight,
   Clock,
   ExternalLink,
   Share2,
@@ -27,17 +25,13 @@ import {
   Maximize2,
   Check,
   Award,
-  HelpCircle,
-  IndianRupee,
   Layers,
-  ArrowRight,
   Info,
   Monitor,
   Tablet,
   Smartphone,
-  Eye
 } from 'lucide-react';
-import { OwnerPropertyListing, PropertyRoom } from '../../types/property';
+import { OwnerPropertyListing } from '../../types/property';
 import { PropertyListing } from '../../types';
 import { usePropertyListing } from '../../context/PropertyListingContext';
 import { useAuth } from '../../context/AuthContext';
@@ -107,7 +101,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
   const [bookingDate, setBookingDate] = useState(defaultMoveInDate);
   const [visitDate, setVisitDate] = useState(defaultVisitDate);
   const [visitTime, setVisitTime] = useState('11:00 AM');
-  const [bookingSuccessData, setBookingSuccessData] = useState<{ number: string; room: string } | null>(null);
+  const [, setBookingSuccessData] = useState<{ number: string; room: string } | null>(null);
 
   useEffect(() => {
     if (initialOpenBooking) {
@@ -115,11 +109,11 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
     }
   }, [initialOpenBooking]);
 
+  // Pre-fill the booking form from the profile once; later edits by the user are kept.
   useEffect(() => {
-    if (user) {
-      if (user.name && !bookingTenantName) setBookingTenantName(user.name);
-      if (user.phone && !bookingPhone) setBookingPhone(user.phone);
-    }
+    if (!user) return;
+    if (user.name) setBookingTenantName((current) => current || user.name);
+    if (user.phone) setBookingPhone((current) => current || user.phone);
   }, [user]);
 
   const handleOpenBookingModal = (roomId?: string) => {
@@ -143,8 +137,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
     setTimeout(() => setActionNotice(null), 3500);
   };
 
-  const selectedRoom =
-    property.rooms.find((r) => r.id === selectedRoomId) || property.rooms[0] || null;
+  const selectedRoom = property.rooms.find((r) => r.id === selectedRoomId) || property.rooms[0] || null;
 
   const moveInCalc = calculateInitialMoveIn(property, selectedRoom || undefined);
 
@@ -155,10 +148,13 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
     ...property.gallery,
   ];
 
-  const currentPhoto = allPhotos[selectedPhotoIndex] || allPhotos[0] || {
-    url: property.coverImage || 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1400&q=85',
-    title: property.name,
-  };
+  const currentPhoto = allPhotos[selectedPhotoIndex] ||
+    allPhotos[0] || {
+      url:
+        property.coverImage ||
+        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1400&q=85',
+      title: property.name,
+    };
 
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -263,15 +259,15 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                 property.status === 'published'
                   ? 'bg-[#ecfccb] text-[#3f6212]'
                   : property.status === 'pending_approval'
-                  ? 'bg-amber-100 text-amber-900'
-                  : 'bg-slate-800 text-slate-300 border border-slate-700'
+                    ? 'bg-amber-100 text-amber-900'
+                    : 'bg-slate-800 text-slate-300 border border-slate-700'
               }`}
             >
               {property.status === 'published'
                 ? 'Status: Published'
                 : property.status === 'pending_approval'
-                ? 'Status: In Audit'
-                : 'Status: Draft (Unpublished)'}
+                  ? 'Status: In Audit'
+                  : 'Status: Draft (Unpublished)'}
             </span>
           </div>
 
@@ -340,8 +336,8 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
           isPreviewMode && previewDevice === 'mobile'
             ? 'max-w-md mx-auto my-6 border-8 border-slate-900 rounded-[44px] shadow-2xl overflow-hidden bg-[#FAF9F5]'
             : isPreviewMode && previewDevice === 'tablet'
-            ? 'max-w-3xl mx-auto my-6 border-8 border-slate-900 rounded-[32px] shadow-2xl overflow-hidden bg-[#FAF9F5]'
-            : 'max-w-7xl mx-auto'
+              ? 'max-w-3xl mx-auto my-6 border-8 border-slate-900 rounded-[32px] shadow-2xl overflow-hidden bg-[#FAF9F5]'
+              : 'max-w-7xl mx-auto'
         } px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-8`}
       >
         {/* ========================================================================= */}
@@ -539,9 +535,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-400 font-bold">
-                      Identity & Background Verified
-                    </div>
+                    <div className="text-[11px] text-slate-400 font-bold">Identity & Background Verified</div>
                   </div>
                 </div>
 
@@ -578,9 +572,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
               {/* 4 Metric Blocks */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-[#FAF9F5] rounded-2xl p-3.5 border border-slate-200/80 space-y-1">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Monthly Rent
-                  </div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Monthly Rent</div>
                   <div className="text-lg sm:text-xl font-black text-slate-950 font-heading">
                     ₹{moveInCalc.monthlyRent.toLocaleString('en-IN')}
                   </div>
@@ -608,9 +600,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                 </div>
 
                 <div className="bg-[#FAF9F5] rounded-2xl p-3.5 border border-slate-200/80 space-y-1">
-                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Maintenance
-                  </div>
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Maintenance</div>
                   <div className="text-lg sm:text-xl font-black text-slate-950 font-heading">
                     ₹{moveInCalc.maintenance.toLocaleString('en-IN')}
                   </div>
@@ -711,9 +701,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                             <span className="px-2 py-0.5 bg-slate-900 text-white rounded-md text-[10px] font-black uppercase">
                               {room.type}
                             </span>
-                            <h4 className="text-base font-black font-heading text-slate-900 mt-1">
-                              {room.name}
-                            </h4>
+                            <h4 className="text-base font-black font-heading text-slate-900 mt-1">{room.name}</h4>
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-black text-slate-950 font-heading">
@@ -726,9 +714,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                         {/* Room attributes */}
                         <div className="space-y-1.5 text-xs text-slate-600">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-slate-900">
-                              Size: {room.sizeSqFt || 200} sq ft
-                            </span>
+                            <span className="font-bold text-slate-900">Size: {room.sizeSqFt || 200} sq ft</span>
                             <span>•</span>
                             <span>{room.capacity || 1} Bed(s)</span>
                           </div>
@@ -748,9 +734,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                         <span
-                          className={`text-xs font-extrabold ${
-                            availBeds > 0 ? 'text-[#16a34a]' : 'text-amber-600'
-                          }`}
+                          className={`text-xs font-extrabold ${availBeds > 0 ? 'text-[#16a34a]' : 'text-amber-600'}`}
                         >
                           {availBeds > 0 ? `${availBeds} bed(s) left` : 'Available on request'}
                         </span>
@@ -781,9 +765,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">
-                    Amenities & Facilities
-                  </h3>
+                  <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">Amenities & Facilities</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Everything you need for productive work and hassle-free living.
                   </p>
@@ -807,13 +789,9 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                           <Icon className="w-5 h-5" />
                         </div>
                         <div>
-                          <div className="text-xs font-black text-slate-900 font-heading">
-                            {amenity.name}
-                          </div>
+                          <div className="text-xs font-black text-slate-900 font-heading">{amenity.name}</div>
                           {amenity.subtext && (
-                            <div className="text-[10px] text-slate-500 mt-0.5 font-medium">
-                              {amenity.subtext}
-                            </div>
+                            <div className="text-[10px] text-slate-500 mt-0.5 font-medium">{amenity.subtext}</div>
                           )}
                         </div>
                       </div>
@@ -827,26 +805,20 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
             {/* ========================================================================= */}
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-6">
               <div className="space-y-2">
-                <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">
-                  About {property.name}
-                </h3>
+                <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">About {property.name}</h3>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                   {property.longDescription || property.shortDescription}
                 </p>
               </div>
 
               <div className="pt-4 border-t border-slate-100 space-y-4">
-                <h3 className="text-base sm:text-lg font-black font-heading text-slate-950">
-                  House Rules & Policies
-                </h3>
+                <h3 className="text-base sm:text-lg font-black font-heading text-slate-950">House Rules & Policies</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Curfew */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-slate-700" />
-                      <span className="text-xs font-black text-slate-900 font-heading">
-                        Curfew Timings
-                      </span>
+                      <span className="text-xs font-black text-slate-900 font-heading">Curfew Timings</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
                       {property.policies.curfew || 'Main gate locks at 11:00 PM.'}
@@ -857,9 +829,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="w-4 h-4 text-slate-700" />
-                      <span className="text-xs font-black text-slate-900 font-heading">
-                        Visitor Policy
-                      </span>
+                      <span className="text-xs font-black text-slate-900 font-heading">Visitor Policy</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
                       {property.policies.visitorPolicy ||
@@ -871,13 +841,10 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <Info className="w-4 h-4 text-slate-700" />
-                      <span className="text-xs font-black text-slate-900 font-heading">
-                        Smoking & Alcohol
-                      </span>
+                      <span className="text-xs font-black text-slate-900 font-heading">Smoking & Alcohol</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {property.policies.smokingAndAlcohol ||
-                        'Strictly zero smoking inside bedrooms or dining halls.'}
+                      {property.policies.smokingAndAlcohol || 'Strictly zero smoking inside bedrooms or dining halls.'}
                     </p>
                   </div>
 
@@ -885,13 +852,10 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-slate-700" />
-                      <span className="text-xs font-black text-slate-900 font-heading">
-                        Cancellation Policy
-                      </span>
+                      <span className="text-xs font-black text-slate-900 font-heading">Cancellation Policy</span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {property.policies.cancellationPolicy ||
-                        '30 days prior written notice required before checkout.'}
+                      {property.policies.cancellationPolicy || '30 days prior written notice required before checkout.'}
                     </p>
                   </div>
                 </div>
@@ -904,9 +868,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">
-                    Nearby Hubs & Distances
-                  </h3>
+                  <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">Nearby Hubs & Distances</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Key transit, workplace, college, and dining hubs in the neighborhood.
                   </p>
@@ -923,17 +885,11 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                       <span className="px-2 py-0.5 bg-[#ecfccb] text-[#3f6212] rounded-md text-[10px] font-black uppercase font-heading">
                         {place.category}
                       </span>
-                      <div className="text-xs font-black text-slate-900 font-heading truncate">
-                        {place.name}
-                      </div>
+                      <div className="text-xs font-black text-slate-900 font-heading truncate">{place.name}</div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-xs font-black text-slate-900">
-                        {place.distanceKm} km
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-bold">
-                        {place.travelTime}
-                      </div>
+                      <div className="text-xs font-black text-slate-900">{place.distanceKm} km</div>
+                      <div className="text-[10px] text-slate-400 font-bold">{place.travelTime}</div>
                     </div>
                   </div>
                 ))}
@@ -946,12 +902,8 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">
-                    Location & Map
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {property.location.formattedAddress}
-                  </p>
+                  <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">Location & Map</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">{property.location.formattedAddress}</p>
                 </div>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
@@ -980,7 +932,9 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                 />
                 <div className="absolute bottom-3 left-3 bg-slate-950/90 text-white px-3 py-1.5 rounded-xl backdrop-blur-md text-[11px] font-bold border border-white/15 shadow-md flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5 text-[#a3e635]" />
-                  <span>{property.location.area}, {property.location.city}</span>
+                  <span>
+                    {property.location.area}, {property.location.city}
+                  </span>
                 </div>
               </div>
             </div>
@@ -994,9 +948,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                   <h3 className="text-lg sm:text-xl font-black font-heading text-slate-950">
                     Resident Reviews & Ratings
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    100% verified tenant reviews from stay check-ins.
-                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">100% verified tenant reviews from stay check-ins.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1051,9 +1003,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                           style={{ width: `${row.pct}%` }}
                         />
                       </div>
-                      <span className="w-8 text-[11px] font-bold text-slate-400 text-right">
-                        {row.pct}%
-                      </span>
+                      <span className="w-8 text-[11px] font-bold text-slate-400 text-right">{row.pct}%</span>
                     </div>
                   ))}
                 </div>
@@ -1095,9 +1045,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                       </div>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                      {rev.comment}
-                    </p>
+                    <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">{rev.comment}</p>
 
                     {rev.images && rev.images.length > 0 && (
                       <div className="flex items-center gap-2 pt-1">
@@ -1142,9 +1090,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
               {selectedRoom && (
                 <div className="p-3 bg-[#FAF9F5] rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase block">
-                      Active Selection
-                    </span>
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase block">Active Selection</span>
                     <span className="font-black text-slate-900">{selectedRoom.name}</span>
                   </div>
                   <span className="px-2 py-0.5 bg-slate-900 text-white rounded text-[10px] font-black">
@@ -1183,7 +1129,12 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => requireAuth(() => setShowScheduleVisitModal(true), 'Sign in to schedule a visit — the owner will confirm your slot.')}
+                  onClick={() =>
+                    requireAuth(
+                      () => setShowScheduleVisitModal(true),
+                      'Sign in to schedule a visit — the owner will confirm your slot.'
+                    )
+                  }
                   className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Calendar className="w-4 h-4 text-[#a3e635]" />
@@ -1228,9 +1179,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
               <div className="pt-4 border-t border-slate-100 flex items-start gap-3 text-xs text-slate-500">
                 <ShieldCheck className="w-5 h-5 text-[#65a30d] shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <span className="font-black text-slate-900 font-heading block">
-                    Nestin Guarantee Protection
-                  </span>
+                  <span className="font-black text-slate-900 font-heading block">Nestin Guarantee Protection</span>
                   <p className="text-[11px] leading-snug">
                     Full security deposit refund guaranteed if cancelled before move-in. 24/7 dedicated tenant support.
                   </p>
@@ -1247,12 +1196,15 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 1. BOOK MOVE-IN MODAL */}
       {showBookingModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          data-lenis-prevent="true"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 border border-slate-200 shadow-2xl animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-lg font-black text-slate-950 font-heading">
-                Book Move-in & Token Reserve
-              </h3>
+              <h3 className="text-lg font-black text-slate-950 font-heading">Book Move-in & Token Reserve</h3>
               <button
                 type="button"
                 onClick={() => setShowBookingModal(false)}
@@ -1315,7 +1267,9 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
               </div>
 
               {bookingError && (
-                <div className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{bookingError}</div>
+                <div className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                  {bookingError}
+                </div>
               )}
 
               <button
@@ -1332,12 +1286,15 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 2. SCHEDULE VISIT MODAL */}
       {showScheduleVisitModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          data-lenis-prevent="true"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 border border-slate-200 shadow-2xl animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-lg font-black text-slate-950 font-heading">
-                Schedule In-Person Visit
-              </h3>
+              <h3 className="text-lg font-black text-slate-950 font-heading">Schedule In-Person Visit</h3>
               <button
                 type="button"
                 onClick={() => setShowScheduleVisitModal(false)}
@@ -1359,7 +1316,9 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                     preferredRoom: selectedRoom?.name,
                   });
                   setShowScheduleVisitModal(false);
-                  triggerNotice(`Visit scheduled for ${visitDate} at ${visitTime}! The property team has been notified.`);
+                  triggerNotice(
+                    `Visit scheduled for ${visitDate} at ${visitTime}! The property team has been notified.`
+                  );
                 } catch (err) {
                   triggerNotice(err instanceof Error ? err.message : 'Could not schedule the visit. Please try again.');
                 }
@@ -1396,7 +1355,8 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
               </div>
 
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 font-medium">
-                Host Contact: <strong className="text-slate-900">{property.caretaker.name}</strong> ({property.caretaker.phone})
+                Host Contact: <strong className="text-slate-900">{property.caretaker.name}</strong> (
+                {property.caretaker.phone})
               </div>
 
               <button
@@ -1412,14 +1372,17 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 3. CALL MODAL */}
       {showCallModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          data-lenis-prevent="true"
+        >
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 border border-slate-200 shadow-2xl text-center">
             <div className="w-12 h-12 rounded-full bg-[#ecfccb] text-[#4d7c0f] flex items-center justify-center mx-auto">
               <Phone className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-black text-slate-950 font-heading">
-              Call Property Host
-            </h3>
+            <h3 className="text-lg font-black text-slate-950 font-heading">Call Property Host</h3>
             <p className="text-xs text-slate-500">
               Speak directly with verified caretaker <strong>{property.caretaker.name}</strong>.
             </p>
@@ -1447,12 +1410,15 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 4. CHAT HOST MODAL */}
       {showChatModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          data-lenis-prevent="true"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-base font-black text-slate-950 font-heading">
-                Chat with {property.caretaker.name}
-              </h3>
+              <h3 className="text-base font-black text-slate-950 font-heading">Chat with {property.caretaker.name}</h3>
               <button type="button" onClick={() => setShowChatModal(false)} className="p-1 cursor-pointer">
                 <X className="w-5 h-5 text-slate-400" />
               </button>
@@ -1486,12 +1452,15 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 5. WRITE REVIEW MODAL */}
       {showReviewModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          data-lenis-prevent="true"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-2xl">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-base font-black text-slate-950 font-heading">
-                Write Verified Resident Review
-              </h3>
+              <h3 className="text-base font-black text-slate-950 font-heading">Write Verified Resident Review</h3>
               <button type="button" onClick={() => setShowReviewModal(false)} className="p-1 cursor-pointer">
                 <X className="w-5 h-5 text-slate-400" />
               </button>
@@ -1518,9 +1487,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                       type="button"
                       onClick={() => setNewReviewRating(star)}
                       className={`px-3 py-1.5 rounded-xl font-bold cursor-pointer ${
-                        newReviewRating === star
-                          ? 'bg-slate-900 text-[#a3e635]'
-                          : 'bg-slate-100 text-slate-600'
+                        newReviewRating === star ? 'bg-slate-900 text-[#a3e635]' : 'bg-slate-100 text-slate-600'
                       }`}
                     >
                       {star} ★
@@ -1564,7 +1531,12 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 6. ALL PHOTOS GALLERY FULLSCREEN MODAL */}
       {showGalleryModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/95 p-4 sm:p-8 flex flex-col justify-between" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/95 p-4 sm:p-8 flex flex-col justify-between"
+          data-lenis-prevent="true"
+        >
           <div className="flex items-center justify-between text-white pb-4">
             <h3 className="text-base sm:text-lg font-black font-heading">
               {property.name} — Photos ({allPhotos.length})
@@ -1590,7 +1562,12 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 7. VIDEO TOUR MODAL */}
       {showVideoModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          data-lenis-prevent="true"
+        >
           <div className="bg-slate-950 rounded-3xl max-w-3xl w-full p-5 border border-white/10 space-y-3">
             <div className="flex items-center justify-between text-white">
               <h3 className="text-sm font-black uppercase tracking-wider text-[#a3e635]">Video Tour Walkthrough</h3>
@@ -1614,11 +1591,22 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
       {/* 8. 360 TOUR MODAL */}
       {showTour360Modal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          data-lenis-prevent="true"
+        >
           <div className="bg-slate-950 rounded-3xl max-w-4xl w-full p-5 border border-white/10 space-y-3">
             <div className="flex items-center justify-between text-white">
-              <h3 className="text-sm font-black uppercase tracking-wider text-[#a3e635]">360° Virtual Tour Experience</h3>
-              <button type="button" onClick={() => setShowTour360Modal(false)} className="p-1 text-white cursor-pointer">
+              <h3 className="text-sm font-black uppercase tracking-wider text-[#a3e635]">
+                360° Virtual Tour Experience
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowTour360Modal(false)}
+                className="p-1 text-white cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>

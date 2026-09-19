@@ -49,10 +49,7 @@ export const NewsletterSection: React.FC = () => {
 
         {/* Right Email Form */}
         <div className="w-full lg:w-auto z-10">
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md"
-          >
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
             <div className="relative w-full sm:w-80">
               <input
                 type="email"

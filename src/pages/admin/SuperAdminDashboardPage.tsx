@@ -1,55 +1,54 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ShieldAlert,
   ShieldCheck,
   Building2,
   Users,
   CalendarCheck,
-  CreditCard,
   Settings,
-  FileText,
   Search,
   CheckCircle2,
-  XCircle,
   Clock,
-  ExternalLink,
   Eye,
   LogOut,
-  AlertTriangle,
   Award,
-  Filter,
   ArrowRight,
   TrendingUp,
   MapPin,
-  BedDouble,
-  Sliders,
-  Sparkles,
   UserCheck,
   FileCheck,
-  Download,
-  Plus,
-  RefreshCw,
-  Bell,
-  Home
+  Home,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { AdminBillingPanel, AdminOpsPanel } from './AdminBillingOpsPanels';
+import { VERIFICATION_CHECKLIST, type VerificationCheckId } from '../../types/property';
+import { useFocusTrap } from '../../lib/useFocusTrap';
 import { usePropertyListing } from '../../context/PropertyListingContext';
 import { AdminRegistryPanels } from './AdminRegistryPanels';
-import { OwnerPropertyListing, PropertyListingStatus } from '../../types/property';
+import { OwnerPropertyListing } from '../../types/property';
 import { PropertyDetailsView } from '../../components/property-details/PropertyDetailsView';
 
 export const SuperAdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const {
-    properties,
-    adminApproveProperty,
-    adminRejectProperty,
-    calculateCompleteness,
-  } = usePropertyListing();
+  const { logout } = useAuth();
+  const { properties, adminApproveProperty, adminRejectProperty, adminRevokeVerification, calculateCompleteness } =
+    usePropertyListing();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'verification' | 'properties' | 'owners' | 'users' | 'bookings' | 'inbound' | 'support' | 'outbox' | 'settings' | 'audit'>('verification');
+  const [activeTab, setActiveTab] = useState<
+    | 'overview'
+    | 'verification'
+    | 'properties'
+    | 'owners'
+    | 'users'
+    | 'bookings'
+    | 'inbound'
+    | 'support'
+    | 'outbox'
+    | 'settings'
+    | 'audit'
+    | 'billing'
+    | 'ops'
+  >('verification');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCity, setFilterCity] = useState('all');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -62,8 +61,43 @@ export const SuperAdminDashboardPage: React.FC = () => {
   const [grantVerifiedBadge, setGrantVerifiedBadge] = useState(true);
   const [grantFeaturedBadge, setGrantFeaturedBadge] = useState(false);
   const [grantZeroBrokerage, setGrantZeroBrokerage] = useState(true);
-  const [rejectionReason, setRejectionReason] = useState('Please re-upload a higher resolution copy of the Trade License and update caretaker emergency contact.');
+  const [rejectionReason, setRejectionReason] = useState(
+    'Please re-upload a higher resolution copy of the Trade License and update caretaker emergency contact.'
+  );
   const [isRejectMode, setIsRejectMode] = useState(false);
+  // Verification evidence (required for the Verified badge)
+  const [checklist, setChecklist] = useState<Partial<Record<VerificationCheckId, boolean>>>({});
+  const [siteVisitDate, setSiteVisitDate] = useState('');
+  const [verificationNotes, setVerificationNotes] = useState('');
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
+  const auditDialogRef = useFocusTrap<HTMLDivElement>(!!selectedPropertyForAudit, () =>
+    setSelectedPropertyForAudit(null)
+  );
+
+  const openAudit = (prop: OwnerPropertyListing) => {
+    setSelectedPropertyForAudit(prop);
+    setGrantVerifiedBadge(true);
+    setGrantFeaturedBadge(prop.isFeatured);
+    setGrantZeroBrokerage(prop.isZeroBrokerage ?? true);
+    setChecklist(prop.verification?.checklist || {});
+    setSiteVisitDate(prop.verification?.siteVisitDate || '');
+    setVerificationNotes(prop.verification?.notes || '');
+    setIsRejectMode(false);
+    setApproveError(null);
+  };
+  const checklistComplete = VERIFICATION_CHECKLIST.every((item) => checklist[item.id]);
+
+  const handleRevokeVerification = async (prop: OwnerPropertyListing) => {
+    const reason = window.prompt(`Why is the Verified badge being removed from ${prop.name}?`, '');
+    if (!reason) return;
+    try {
+      await adminRevokeVerification(prop.id, reason);
+      showToast('Verified badge revoked; owner notified.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not revoke verification');
+    }
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -83,7 +117,10 @@ export const SuperAdminDashboardPage: React.FC = () => {
   const draftProperties = properties.filter((p) => p.status === 'draft');
 
   // Unique owners
-  const ownersMap = new Map<string, { email: string; name: string; propertiesCount: number; publishedCount: number; phone?: string }>();
+  const ownersMap = new Map<
+    string,
+    { email: string; name: string; propertiesCount: number; publishedCount: number; phone?: string }
+  >();
   properties.forEach((p) => {
     const email = p.ownerEmail || 'unknown@owner.io';
     if (!ownersMap.has(email)) {
@@ -102,15 +139,36 @@ export const SuperAdminDashboardPage: React.FC = () => {
   });
   const ownersList = Array.from(ownersMap.values());
 
-  const handleApproveProperty = (id: string) => {
-    adminApproveProperty(id, {
-      isNestinVerified: grantVerifiedBadge,
-      isFeatured: grantFeaturedBadge,
-      isZeroBrokerage: grantZeroBrokerage,
-    });
-    showToast(`Property listing approved and published live on Find PG!`);
-    setSelectedPropertyForAudit(null);
-    setIsRejectMode(false);
+  const handleApproveProperty = async (id: string) => {
+    if (grantVerifiedBadge && (!checklistComplete || !siteVisitDate)) {
+      setApproveError(
+        'Confirm every checklist item and record the site visit date, or publish without the Verified badge.'
+      );
+      return;
+    }
+    setApproving(true);
+    setApproveError(null);
+    try {
+      await adminApproveProperty(id, {
+        isNestinVerified: grantVerifiedBadge,
+        isFeatured: grantFeaturedBadge,
+        isZeroBrokerage: grantZeroBrokerage,
+        checklist,
+        siteVisitDate: siteVisitDate || undefined,
+        notes: verificationNotes || undefined,
+      });
+      showToast(
+        grantVerifiedBadge
+          ? 'Listing verified and published live on Find PG.'
+          : 'Listing published without the Verified badge.'
+      );
+      setSelectedPropertyForAudit(null);
+      setIsRejectMode(false);
+    } catch (err) {
+      setApproveError(err instanceof Error ? err.message : 'Approval failed');
+    } finally {
+      setApproving(false);
+    }
   };
 
   const handleRejectProperty = (id: string) => {
@@ -139,16 +197,12 @@ export const SuperAdminDashboardPage: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-heading font-black text-sm text-white">
-                  NestIn Admin Console
-                </span>
+                <span className="font-heading font-black text-sm text-white">NestIn Admin Console</span>
                 <span className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-400 text-[10px] font-mono font-bold uppercase tracking-wider">
                   ROOT PRIVILEGES
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-mono">
-                Isolated Infrastructure · Zero Owner/Tenant Access
-              </p>
+              <p className="text-[11px] text-slate-400 font-mono">Isolated Infrastructure · Zero Owner/Tenant Access</p>
             </div>
           </div>
 
@@ -185,7 +239,12 @@ export const SuperAdminDashboardPage: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto py-2 scrollbar-none">
           {[
             { id: 'overview', label: 'Platform Overview', icon: TrendingUp },
-            { id: 'verification', label: 'Verification Desk', icon: ShieldCheck, badge: pendingReviewProperties.length },
+            {
+              id: 'verification',
+              label: 'Verification Desk',
+              icon: ShieldCheck,
+              badge: pendingReviewProperties.length,
+            },
             { id: 'properties', label: 'All Properties', icon: Building2, count: totalProperties },
             { id: 'owners', label: 'Owners Registry', icon: Users, count: ownersList.length },
             { id: 'users', label: 'Accounts Registry', icon: UserCheck },
@@ -193,6 +252,8 @@ export const SuperAdminDashboardPage: React.FC = () => {
             { id: 'inbound', label: 'Inbox & Requests', icon: FileCheck },
             { id: 'support', label: 'Support Desk', icon: UserCheck },
             { id: 'outbox', label: 'Messaging', icon: FileCheck },
+            { id: 'billing', label: 'Billing', icon: TrendingUp },
+            { id: 'ops', label: 'Operations', icon: Settings },
             { id: 'settings', label: 'System Policies', icon: Settings },
             { id: 'audit', label: 'Security Logs', icon: FileCheck },
           ].map((tab) => {
@@ -213,9 +274,11 @@ export const SuperAdminDashboardPage: React.FC = () => {
                 <IconComp className="w-4 h-4" />
                 <span>{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${
-                    isActive ? 'bg-white text-rose-600' : 'bg-amber-500 text-slate-950 animate-pulse'
-                  }`}>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black ${
+                      isActive ? 'bg-white text-rose-600' : 'bg-amber-500 text-slate-950 animate-pulse'
+                    }`}
+                  >
                     {tab.badge}
                   </span>
                 )}
@@ -246,18 +309,23 @@ export const SuperAdminDashboardPage: React.FC = () => {
                   Property Verification & Trust Desk
                 </h2>
                 <p className="text-xs text-slate-400 max-w-2xl mt-1">
-                  Inspect submitted listings, review municipal licenses, fire NOCs, and caretaker KYC credentials. Assign verified badges and publish live.
+                  Inspect submitted listings, review municipal licenses, fire NOCs, and caretaker KYC credentials.
+                  Assign verified badges and publish live.
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="px-4 py-2 bg-slate-950 border border-slate-800 rounded-2xl text-center">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Average SLA</div>
-                  <div className="text-sm font-black text-[#a3e635]">1.8 Hours</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Published</div>
+                  <div className="text-sm font-black text-[#a3e635]">{publishedProperties.length}</div>
                 </div>
                 <div className="px-4 py-2 bg-slate-950 border border-slate-800 rounded-2xl text-center">
-                  <div className="text-[10px] text-slate-400 font-bold uppercase">Passing Rate</div>
-                  <div className="text-sm font-black text-white">92.4%</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase">Approval rate</div>
+                  <div className="text-sm font-black text-white">
+                    {publishedProperties.length + rejectedProperties.length
+                      ? `${Math.round((publishedProperties.length / (publishedProperties.length + rejectedProperties.length)) * 100)}%`
+                      : '—'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -268,11 +336,10 @@ export const SuperAdminDashboardPage: React.FC = () => {
                 <div className="w-14 h-14 rounded-2xl bg-slate-800 text-[#a3e635] mx-auto flex items-center justify-center">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h3 className="text-base font-black text-white font-heading">
-                  Verification Queue is Clear!
-                </h3>
+                <h3 className="text-base font-black text-white font-heading">Verification Queue is Clear!</h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  All submitted owner property listings have been reviewed and processed. New submissions will appear here instantly.
+                  All submitted owner property listings have been reviewed and processed. New submissions will appear
+                  here instantly.
                 </p>
               </div>
             ) : (
@@ -292,7 +359,11 @@ export const SuperAdminDashboardPage: React.FC = () => {
                       >
                         <div className="flex items-start gap-4">
                           <img
-                            src={prop.coverImage || prop.gallery[0]?.url || 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=400'}
+                            src={
+                              prop.coverImage ||
+                              prop.gallery[0]?.url ||
+                              'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=400'
+                            }
                             alt={prop.name}
                             referrerPolicy="no-referrer"
                             className="w-24 h-24 rounded-2xl object-cover bg-slate-950 shrink-0 border border-slate-800"
@@ -306,18 +377,20 @@ export const SuperAdminDashboardPage: React.FC = () => {
                                 Under Audit
                               </span>
                             </div>
-                            <h4 className="text-base font-black text-white font-heading">
-                              {prop.name}
-                            </h4>
+                            <h4 className="text-base font-black text-white font-heading">{prop.name}</h4>
                             <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
                               <span className="flex items-center gap-1">
                                 <MapPin className="w-3.5 h-3.5 text-slate-500" />
                                 {prop.location.area}, {prop.location.city}
                               </span>
                               <span>•</span>
-                              <span>Owner: <strong className="text-slate-200">{prop.ownerName}</strong> ({prop.ownerEmail})</span>
+                              <span>
+                                Owner: <strong className="text-slate-200">{prop.ownerName}</strong> ({prop.ownerEmail})
+                              </span>
                               <span>•</span>
-                              <span>Caretaker: <strong className="text-slate-200">{prop.caretaker.name}</strong></span>
+                              <span>
+                                Caretaker: <strong className="text-slate-200">{prop.caretaker.name}</strong>
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -325,9 +398,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
                         <div className="flex flex-wrap items-center gap-3 shrink-0">
                           <div className="text-right pr-3 hidden sm:block">
                             <div className="text-[10px] text-slate-400 uppercase font-bold">Completeness</div>
-                            <div className="text-sm font-black text-[#a3e635] font-mono">
-                              {completeness.score}%
-                            </div>
+                            <div className="text-sm font-black text-[#a3e635] font-mono">{completeness.score}%</div>
                           </div>
 
                           <button
@@ -341,13 +412,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
 
                           <button
                             type="button"
-                            onClick={() => {
-                              setSelectedPropertyForAudit(prop);
-                              setGrantVerifiedBadge(true);
-                              setGrantFeaturedBadge(false);
-                              setGrantZeroBrokerage(true);
-                              setIsRejectMode(false);
-                            }}
+                            onClick={() => openAudit(prop)}
                             className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center gap-1.5 cursor-pointer font-heading shadow-md shadow-rose-950"
                           >
                             <ShieldCheck className="w-4 h-4" />
@@ -373,7 +438,9 @@ export const SuperAdminDashboardPage: React.FC = () => {
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-1">
                 <div className="text-[10px] font-bold uppercase text-slate-400">Total Listings</div>
                 <div className="text-2xl sm:text-3xl font-black text-white font-heading">{totalProperties}</div>
-                <div className="text-[11px] text-[#a3e635]">{publishedProperties.length} published · {pendingReviewProperties.length} pending</div>
+                <div className="text-[11px] text-[#a3e635]">
+                  {publishedProperties.length} published · {pendingReviewProperties.length} pending
+                </div>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 space-y-1">
@@ -401,9 +468,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Status Breakdown Card */}
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
-                <h3 className="text-base font-black text-white font-heading">
-                  Listing Inventory Distribution
-                </h3>
+                <h3 className="text-base font-black text-white font-heading">Listing Inventory Distribution</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-slate-300">Live on Find PG</span>
@@ -444,17 +509,22 @@ export const SuperAdminDashboardPage: React.FC = () => {
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-[#a3e635]" />
-                  <h3 className="text-base font-black text-white font-heading">
-                    Security & RBAC Enforcement
-                  </h3>
+                  <h3 className="text-base font-black text-white font-heading">Security & RBAC Enforcement</h3>
                 </div>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  The NestIn platform architecture strictly prevents role cross-contamination. Super Admin functions, database audits, and verification tools are completely isolated behind root server-side validation.
+                  The NestIn platform architecture strictly prevents role cross-contamination. Super Admin functions,
+                  database audits, and verification tools are completely isolated behind root server-side validation.
                 </p>
                 <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs font-mono space-y-1">
-                  <div className="text-slate-400">ACTIVE ROLE: <span className="text-rose-400 font-bold">SUPER_ADMIN (Root)</span></div>
-                  <div className="text-slate-400">SESSION AUTH: <span className="text-[#a3e635] font-bold">Verified Encrypted Token</span></div>
-                  <div className="text-slate-400">ISOLATION CHECK: <span className="text-blue-400 font-bold">PASSED (Zero Owner Exposure)</span></div>
+                  <div className="text-slate-400">
+                    ACTIVE ROLE: <span className="text-rose-400 font-bold">SUPER_ADMIN (Root)</span>
+                  </div>
+                  <div className="text-slate-400">
+                    SESSION AUTH: <span className="text-[#a3e635] font-bold">Verified Encrypted Token</span>
+                  </div>
+                  <div className="text-slate-400">
+                    ISOLATION CHECK: <span className="text-blue-400 font-bold">PASSED (Zero Owner Exposure)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -523,14 +593,20 @@ export const SuperAdminDashboardPage: React.FC = () => {
                           <td className="py-3.5 px-5">
                             <div className="flex items-center gap-3">
                               <img
-                                src={prop.coverImage || prop.gallery[0]?.url || 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=200'}
+                                src={
+                                  prop.coverImage ||
+                                  prop.gallery[0]?.url ||
+                                  'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=200'
+                                }
                                 alt={prop.name}
                                 referrerPolicy="no-referrer"
                                 className="w-10 h-10 rounded-xl object-cover bg-slate-950"
                               />
                               <div>
                                 <div className="font-bold text-white font-heading">{prop.name}</div>
-                                <div className="text-[11px] text-slate-400">{prop.type} · {prop.category}</div>
+                                <div className="text-[11px] text-slate-400">
+                                  {prop.type} · {prop.category}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -547,10 +623,10 @@ export const SuperAdminDashboardPage: React.FC = () => {
                                 prop.status === 'published'
                                   ? 'bg-[#ecfccb] text-[#3f6212]'
                                   : prop.status === 'pending_approval'
-                                  ? 'bg-amber-500/20 text-amber-300'
-                                  : prop.status === 'rejected'
-                                  ? 'bg-rose-500/20 text-rose-300'
-                                  : 'bg-slate-800 text-slate-400'
+                                    ? 'bg-amber-500/20 text-amber-300'
+                                    : prop.status === 'rejected'
+                                      ? 'bg-rose-500/20 text-rose-300'
+                                      : 'bg-slate-800 text-slate-400'
                               }`}
                             >
                               {prop.status}
@@ -559,12 +635,18 @@ export const SuperAdminDashboardPage: React.FC = () => {
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-1">
                               {prop.isNestinVerified && (
-                                <span className="px-2 py-0.5 rounded-md bg-[#a3e635]/20 text-[#a3e635] text-[10px] font-bold" title="Verified Stay">
+                                <span
+                                  className="px-2 py-0.5 rounded-md bg-[#a3e635]/20 text-[#a3e635] text-[10px] font-bold"
+                                  title="Verified Stay"
+                                >
                                   ✓ Verified
                                 </span>
                               )}
                               {prop.isFeatured && (
-                                <span className="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 text-[10px] font-bold" title="Featured Property">
+                                <span
+                                  className="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 text-[10px] font-bold"
+                                  title="Featured Property"
+                                >
                                   ★ Featured
                                 </span>
                               )}
@@ -578,14 +660,23 @@ export const SuperAdminDashboardPage: React.FC = () => {
                             >
                               Preview
                             </button>
+                            {prop.isNestinVerified && (
+                              <button
+                                type="button"
+                                onClick={() => handleRevokeVerification(prop)}
+                                className="px-2.5 py-1 rounded-lg bg-amber-900/60 hover:bg-amber-800 text-amber-200 text-xs font-bold"
+                                title={
+                                  prop.verification?.expiresAt
+                                    ? `Verified until ${new Date(prop.verification.expiresAt).toLocaleDateString('en-IN')}`
+                                    : undefined
+                                }
+                              >
+                                Revoke
+                              </button>
+                            )}
                             <button
                               type="button"
-                              onClick={() => {
-                                setSelectedPropertyForAudit(prop);
-                                setGrantVerifiedBadge(prop.isNestinVerified);
-                                setGrantFeaturedBadge(prop.isFeatured);
-                                setGrantZeroBrokerage(prop.isZeroBrokerage);
-                              }}
+                              onClick={() => openAudit(prop)}
                               className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold font-heading"
                             >
                               Audit
@@ -608,7 +699,9 @@ export const SuperAdminDashboardPage: React.FC = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-black text-white font-heading">PG Property Owners Registry</h2>
-                <p className="text-xs text-slate-400 mt-1">Manage registered business partners, verified KYC credentials, and portfolio properties.</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Manage registered business partners, verified KYC credentials, and portfolio properties.
+                </p>
               </div>
               <div className="text-right">
                 <div className="text-[10px] text-slate-400 uppercase font-bold">Total Registered</div>
@@ -669,32 +762,46 @@ export const SuperAdminDashboardPage: React.FC = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-5">
               <div>
                 <h2 className="text-xl font-black text-white font-heading">Platform Policy Configuration</h2>
-                <p className="text-xs text-slate-400 mt-1">Super admin parameters governing verification requirements and badge rules.</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Super admin parameters governing verification requirements and badge rules.
+                </p>
               </div>
 
               <div className="space-y-4 pt-2">
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-white">Mandatory Fire Safety NOC</div>
-                    <div className="text-[11px] text-slate-400">Require Fire NOC certificate for all &gt;50 bed properties</div>
+                    <div className="text-[11px] text-slate-400">
+                      Require Fire NOC certificate for all &gt;50 bed properties
+                    </div>
                   </div>
-                  <span className="px-3 py-1 bg-[#a3e635]/20 text-[#a3e635] font-bold text-xs rounded-full">Enforced</span>
+                  <span className="px-3 py-1 bg-[#a3e635]/20 text-[#a3e635] font-bold text-xs rounded-full">
+                    Enforced
+                  </span>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-white">Zero Brokerage Guarantee</div>
-                    <div className="text-[11px] text-slate-400">Auto-flag owner direct listings with Zero Brokerage badge</div>
+                    <div className="text-[11px] text-slate-400">
+                      Auto-flag owner direct listings with Zero Brokerage badge
+                    </div>
                   </div>
-                  <span className="px-3 py-1 bg-[#a3e635]/20 text-[#a3e635] font-bold text-xs rounded-full">Active</span>
+                  <span className="px-3 py-1 bg-[#a3e635]/20 text-[#a3e635] font-bold text-xs rounded-full">
+                    Active
+                  </span>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="text-xs font-bold text-white">Caretaker Background Check Verification</div>
-                    <div className="text-[11px] text-slate-400">Verify government ID and phone OTP before publishing</div>
+                    <div className="text-[11px] text-slate-400">
+                      Verify government ID and phone OTP before publishing
+                    </div>
                   </div>
-                  <span className="px-3 py-1 bg-[#a3e635]/20 text-[#a3e635] font-bold text-xs rounded-full">Enforced</span>
+                  <span className="px-3 py-1 bg-[#a3e635]/20 text-[#a3e635] font-bold text-xs rounded-full">
+                    Enforced
+                  </span>
                 </div>
               </div>
             </div>
@@ -704,17 +811,32 @@ export const SuperAdminDashboardPage: React.FC = () => {
         {/* -------------------------------------------------------------
             TAB 6: REGISTRIES (ACCOUNTS, BOOKINGS, INBOX, AUDIT TRAIL) — live from the admin API
         ------------------------------------------------------------- */}
-        {(activeTab === 'audit' || activeTab === 'users' || activeTab === 'bookings' || activeTab === 'inbound' || activeTab === 'support' || activeTab === 'outbox') && (
-          <AdminRegistryPanels tab={activeTab} onNotice={showToast} />
-        )}
+        {activeTab === 'billing' && <AdminBillingPanel onNotice={showToast} />}
+        {activeTab === 'ops' && <AdminOpsPanel onNotice={showToast} />}
+        {(activeTab === 'audit' ||
+          activeTab === 'users' ||
+          activeTab === 'bookings' ||
+          activeTab === 'inbound' ||
+          activeTab === 'support' ||
+          activeTab === 'outbox') && <AdminRegistryPanels tab={activeTab} onNotice={showToast} />}
       </main>
 
       {/* -------------------------------------------------------------
           AUDIT & APPROVAL MODAL
       ------------------------------------------------------------- */}
       {selectedPropertyForAudit && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs font-sans" data-lenis-prevent="true">
-          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="audit-dialog-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs font-sans"
+          data-lenis-prevent="true"
+        >
+          <div
+            ref={auditDialogRef}
+            className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-2xl w-full p-6 sm:p-7 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto"
+            data-lenis-prevent="true"
+          >
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div className="flex items-center gap-3">
@@ -725,7 +847,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
                   <div className="text-[10px] font-black uppercase tracking-wider text-rose-400 font-heading">
                     SUPER ADMIN AUDIT DESK
                   </div>
-                  <h3 className="text-lg font-black text-white font-heading">
+                  <h3 id="audit-dialog-title" className="text-lg font-black text-white font-heading">
                     {selectedPropertyForAudit.name}
                   </h3>
                 </div>
@@ -743,7 +865,9 @@ export const SuperAdminDashboardPage: React.FC = () => {
             <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Owner:</span>
-                <span className="font-bold text-white">{selectedPropertyForAudit.ownerName} ({selectedPropertyForAudit.ownerEmail})</span>
+                <span className="font-bold text-white">
+                  {selectedPropertyForAudit.ownerName} ({selectedPropertyForAudit.ownerEmail})
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Address:</span>
@@ -751,17 +875,85 @@ export const SuperAdminDashboardPage: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Rooms & Capacity:</span>
-                <span className="font-bold text-white">{selectedPropertyForAudit.rooms.length} Room types · {selectedPropertyForAudit.details.totalBeds} Beds</span>
+                <span className="font-bold text-white">
+                  {selectedPropertyForAudit.rooms.length} Room types · {selectedPropertyForAudit.details.totalBeds} Beds
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Caretaker KYC:</span>
-                <span className="text-[#a3e635] font-bold">✓ {selectedPropertyForAudit.caretaker.name} ({selectedPropertyForAudit.caretaker.phone})</span>
+                <span className="text-[#a3e635] font-bold">
+                  ✓ {selectedPropertyForAudit.caretaker.name} ({selectedPropertyForAudit.caretaker.phone})
+                </span>
               </div>
             </div>
 
             {/* Badges Selection for Approval */}
             {!isRejectMode ? (
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase text-slate-300 tracking-wider font-heading">
+                      Verification checklist
+                    </h4>
+                    <span
+                      className={`text-[10px] font-bold ${checklistComplete ? 'text-[#a3e635]' : 'text-amber-300'}`}
+                    >
+                      {VERIFICATION_CHECKLIST.filter((i) => checklist[i.id]).length}/{VERIFICATION_CHECKLIST.length}{' '}
+                      confirmed
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {VERIFICATION_CHECKLIST.map((item) => (
+                      <label
+                        key={item.id}
+                        className="flex items-start gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 cursor-pointer text-[11px] text-slate-200"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!checklist[item.id]}
+                          onChange={(e) => setChecklist((c) => ({ ...c, [item.id]: e.target.checked }))}
+                          className="mt-0.5 w-3.5 h-3.5 accent-[#a3e635]"
+                        />
+                        <span>{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400">Site visit date</span>
+                      <input
+                        type="date"
+                        value={siteVisitDate}
+                        max={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => setSiteVisitDate(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-slate-600"
+                      />
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase text-slate-400">
+                        Visit notes / licence numbers
+                      </span>
+                      <input
+                        value={verificationNotes}
+                        onChange={(e) => setVerificationNotes(e.target.value)}
+                        placeholder="Met caretaker, PG licence L-1234 sighted…"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 outline-none focus:border-slate-600"
+                      />
+                    </label>
+                  </div>
+                  {selectedPropertyForAudit.verification?.verifiedAt && (
+                    <p className="text-[10px] text-slate-500">
+                      Previously verified{' '}
+                      {new Date(selectedPropertyForAudit.verification.verifiedAt).toLocaleDateString('en-IN')} by{' '}
+                      {selectedPropertyForAudit.verification.verifiedByName || 'NestIn'}
+                      {selectedPropertyForAudit.verification.expiresAt
+                        ? `, valid until ${new Date(selectedPropertyForAudit.verification.expiresAt).toLocaleDateString('en-IN')}`
+                        : ''}
+                      .
+                    </p>
+                  )}
+                </div>
+
                 <h4 className="text-xs font-black uppercase text-slate-300 tracking-wider font-heading">
                   Assign Platform Trust Badges
                 </h4>
@@ -772,7 +964,9 @@ export const SuperAdminDashboardPage: React.FC = () => {
                       <ShieldCheck className="w-4 h-4 text-[#a3e635]" />
                       <div>
                         <div className="text-xs font-bold text-white">NestIn Verified Stay</div>
-                        <div className="text-[11px] text-slate-400">Documents, license, and physical standards verified</div>
+                        <div className="text-[11px] text-slate-400">
+                          Documents, license, and physical standards verified
+                        </div>
                       </div>
                     </div>
                     <input
@@ -827,12 +1021,25 @@ export const SuperAdminDashboardPage: React.FC = () => {
 
                   <button
                     type="button"
+                    disabled={approving}
                     onClick={() => handleApproveProperty(selectedPropertyForAudit.id)}
-                    className="px-6 py-2.5 rounded-xl bg-[#a3e635] hover:bg-[#92d428] text-slate-950 text-xs font-black cursor-pointer font-heading shadow-lg"
+                    className="px-6 py-2.5 rounded-xl bg-[#a3e635] hover:bg-[#92d428] disabled:opacity-60 text-slate-950 text-xs font-black cursor-pointer font-heading shadow-lg"
                   >
-                    ✓ Approve & Publish Live
+                    {approving
+                      ? 'Publishing…'
+                      : grantVerifiedBadge
+                        ? '✓ Verify & Publish Live'
+                        : 'Publish without badge'}
                   </button>
                 </div>
+                {approveError && (
+                  <p
+                    role="alert"
+                    className="text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl px-3 py-2"
+                  >
+                    {approveError}
+                  </p>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -879,7 +1086,12 @@ export const SuperAdminDashboardPage: React.FC = () => {
           TENANT PREVIEW MODAL
       ------------------------------------------------------------- */}
       {previewProperty && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col overflow-hidden" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex flex-col overflow-hidden"
+          data-lenis-prevent="true"
+        >
           <div className="p-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 text-white text-xs">
             <div className="flex items-center gap-2">
               <span className="font-heading font-black text-rose-400">ADMIN PREVIEW MODE:</span>

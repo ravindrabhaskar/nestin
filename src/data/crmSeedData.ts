@@ -1,10 +1,9 @@
 import {
-  LeadItem,
-  BookingItem,
-  VisitorItem,
-  CustomerItem,
-  CRMActivityLog,
-  OwnerCRMNotification,
+LeadItem,
+BookingItem,
+VisitorItem,
+CustomerItem,
+CRMActivityLog
 } from '../types/crm';
 
 export const INITIAL_LEADS_SEED: LeadItem[] = [

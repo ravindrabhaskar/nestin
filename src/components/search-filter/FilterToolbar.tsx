@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { SlidersHorizontal, ChevronDown, X } from 'lucide-react';
+import { SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { FindPGFilterState } from '../../types';
 import { FilterDrawerModal } from './FilterDrawerModal';
 
@@ -20,11 +19,7 @@ const SORT_OPTIONS = [
   { value: 'rating-desc', label: 'Highest Rated' },
 ];
 
-export const FilterToolbar: React.FC<FilterToolbarProps> = ({
-  filters,
-  onFilterChange,
-  totalCount,
-}) => {
+export const FilterToolbar: React.FC<FilterToolbarProps> = ({ filters, onFilterChange, totalCount }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Compute active filters count for the drawer badge
@@ -156,9 +151,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
           {/* 4.5+ RATING */}
           <button
             type="button"
-            onClick={() =>
-              onFilterChange({ ...filters, minRating: filters.minRating === 4.5 ? 0 : 4.5 })
-            }
+            onClick={() => onFilterChange({ ...filters, minRating: filters.minRating === 4.5 ? 0 : 4.5 })}
             className={`px-4 py-2 rounded-full border text-xs font-bold transition-all cursor-pointer shrink-0 ${
               filters.minRating === 4.5
                 ? 'bg-[#a3e635] text-slate-950 border-[#88d900] shadow-2xs'
@@ -208,4 +201,3 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
     </>
   );
 };
-

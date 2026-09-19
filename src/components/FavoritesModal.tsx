@@ -1,6 +1,7 @@
+import { useFocusTrap } from '../lib/useFocusTrap';
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Heart, Trash2, ArrowRight, ShieldCheck, Star, MapPin, Sparkles } from 'lucide-react';
+import { X, Heart, Trash2, ArrowRight, ShieldCheck, Star, MapPin } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import { PropertyListing } from '../types';
 import { useScrollLock } from '../hooks/useScrollLock';
@@ -22,12 +23,19 @@ export const FavoritesModal: React.FC<FavoritesModalProps> = ({
 }) => {
   const { wishlist, removeFromWishlist, clearWishlist, wishlistCount } = useWishlist();
   useScrollLock(isOpen);
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen, onClose);
 
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      <div role="dialog" aria-modal="true" className="fixed inset-0 z-[90] flex items-center justify-end sm:p-4 overflow-hidden">
+      <div
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Saved properties"
+        className="fixed inset-0 z-[90] flex items-center justify-end sm:p-4 overflow-hidden"
+      >
         {/* BACKDROP */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -91,11 +99,10 @@ export const FavoritesModal: React.FC<FavoritesModalProps> = ({
                   <Heart className="w-10 h-10" />
                 </div>
                 <div className="space-y-2 max-w-sm">
-                  <h3 className="text-lg font-extrabold font-heading text-slate-900">
-                    Your wishlist is empty
-                  </h3>
+                  <h3 className="text-lg font-extrabold font-heading text-slate-900">Your wishlist is empty</h3>
                   <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
-                    Explore our verified student & working professional PGs. Click the heart icon on any stay to save it to your favorites.
+                    Explore our verified student & working professional PGs. Click the heart icon on any stay to save it
+                    to your favorites.
                   </p>
                 </div>
                 <button

@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Official WhatsApp Brand Logo from original WhatsApp assets
-export const WhatsAppLogoIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => {
+export const WhatsAppLogoIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => {
   const [imgError, setImgError] = React.useState(false);
   if (imgError) {
     return (
@@ -22,7 +22,7 @@ export const WhatsAppLogoIcon: React.FC<{ className?: string }> = ({ className =
 };
 
 // Official Telegram Brand Logo
-export const TelegramLogoIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => {
+export const TelegramLogoIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => {
   const [imgError, setImgError] = React.useState(false);
   if (imgError) {
     return (
@@ -43,7 +43,7 @@ export const TelegramLogoIcon: React.FC<{ className?: string }> = ({ className =
 };
 
 // Official Facebook Brand Logo
-export const FacebookLogoIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => {
+export const FacebookLogoIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => {
   const [imgError, setImgError] = React.useState(false);
   if (imgError) {
     return (
@@ -64,14 +64,17 @@ export const FacebookLogoIcon: React.FC<{ className?: string }> = ({ className =
 };
 
 // Official Google Gmail 4-Color Logo
-export const GmailLogoIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => {
+export const GmailLogoIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => {
   const [imgError, setImgError] = React.useState(false);
   if (imgError) {
     return (
       <svg className={className} viewBox="0 0 24 24">
         <path fill="#4285F4" d="M1.5 19.5v-13l9 6.75-9 6.25z" />
         <path fill="#34A853" d="M22.5 19.5v-13l-9 6.75 9 6.25z" />
-        <path fill="#EA4335" d="M22.5 6.5l-10.5 7.875L1.5 6.5V4.5C1.5 3.395 2.395 2.5 3.5 2.5h17c1.105 0 2 .895 2 2v2z" />
+        <path
+          fill="#EA4335"
+          d="M22.5 6.5l-10.5 7.875L1.5 6.5V4.5C1.5 3.395 2.395 2.5 3.5 2.5h17c1.105 0 2 .895 2 2v2z"
+        />
         <path fill="#FBBC04" d="M1.5 19.5h21v2c0 1.105-.895 2-2 2h-17c-1.105 0-2-.895-2-2v-2z" />
       </svg>
     );
@@ -88,7 +91,7 @@ export const GmailLogoIcon: React.FC<{ className?: string }> = ({ className = "w
 };
 
 // Official Google 4-Color Logo
-export const GoogleGLogoIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+export const GoogleGLogoIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
   <svg className={className} viewBox="0 0 24 24">
     <path
       fill="#4285F4"
@@ -110,7 +113,7 @@ export const GoogleGLogoIcon: React.FC<{ className?: string }> = ({ className = 
 );
 
 // Official Google Maps Pin Logo
-export const GoogleMapsPinIcon: React.FC<{ className?: string }> = ({ className = "w-5 h-5" }) => (
+export const GoogleMapsPinIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
   <svg className={className} viewBox="0 0 24 24">
     <path fill="#EA4335" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
     <circle fill="#FFFFFF" cx="12" cy="9" r="2.5" />

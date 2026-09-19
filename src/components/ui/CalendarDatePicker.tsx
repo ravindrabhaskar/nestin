@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, ChevronLeft, ChevronRight, Check, Sparkles, Clock, CalendarDays, X } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Sparkles, Clock, CalendarDays } from 'lucide-react';
 
 export interface CalendarDatePickerProps {
   id?: string;
@@ -33,8 +33,18 @@ function parseIso(isoStr: string): Date {
 }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -45,7 +55,6 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
   value,
   onChange,
   minDate,
-  maxDate,
   mode = 'popover',
   placeholder = 'Select preferred date',
   helperText,
@@ -68,9 +77,7 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
   const [viewYear, setViewYear] = useState<number>(
     selectedDateObj ? selectedDateObj.getFullYear() : today.getFullYear()
   );
-  const [viewMonth, setViewMonth] = useState<number>(
-    selectedDateObj ? selectedDateObj.getMonth() : today.getMonth()
-  );
+  const [viewMonth, setViewMonth] = useState<number>(selectedDateObj ? selectedDateObj.getMonth() : today.getMonth());
 
   const [isOpen, setIsOpen] = useState(mode === 'inline');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -130,7 +137,6 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
 
   // Check if prev month is fully before minDate
   const canGoPrev = (() => {
-    const firstOfCurrentView = new Date(viewYear, viewMonth, 1);
     const lastOfPrevView = new Date(viewYear, viewMonth, 0);
     return lastOfPrevView >= effectiveMinDate;
   })();
@@ -160,7 +166,7 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
 
     // Next Monday
     const nextMon = new Date(today);
-    const daysUntilMon = ((8 - dayOfWeek) % 7) || 7;
+    const daysUntilMon = (8 - dayOfWeek) % 7 || 7;
     nextMon.setDate(nextMon.getDate() + daysUntilMon);
     presets.push({ label: 'Next Monday', dateStr: formatIso(nextMon), hint: 'Week start' });
 
@@ -241,9 +247,7 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
           aria-haspopup="dialog"
           onClick={() => setIsOpen(!isOpen)}
           className={`w-full px-3.5 py-2.5 sm:py-3 bg-white hover:bg-slate-50 border rounded-2xl flex items-center justify-between transition-all cursor-pointer text-left shadow-2xs group ${
-            isOpen
-              ? 'border-slate-900 ring-2 ring-slate-900/10'
-              : 'border-slate-200 hover:border-slate-300'
+            isOpen ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200 hover:border-slate-300'
           }`}
         >
           <div className="flex items-center gap-2.5 min-w-0">
@@ -263,9 +267,7 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
                   )}
                 </div>
               ) : (
-                <span className="text-xs sm:text-sm font-medium text-slate-400">
-                  {placeholder}
-                </span>
+                <span className="text-xs sm:text-sm font-medium text-slate-400">{placeholder}</span>
               )}
             </div>
           </div>
@@ -413,24 +415,20 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
                       isPast
                         ? 'text-slate-300 opacity-40 cursor-not-allowed line-through'
                         : isSelected
-                        ? 'bg-slate-950 text-[#a3e635] font-black shadow-md scale-105 z-10 ring-2 ring-slate-900/20'
-                        : isCurrentToday
-                        ? 'border-2 border-[#a3e635] text-slate-900 bg-[#a3e635]/15 hover:bg-[#a3e635]/25'
-                        : isWeekend
-                        ? 'text-amber-900 hover:bg-slate-100 font-extrabold'
-                        : 'text-slate-700 hover:bg-slate-100'
+                          ? 'bg-slate-950 text-[#a3e635] font-black shadow-md scale-105 z-10 ring-2 ring-slate-900/20'
+                          : isCurrentToday
+                            ? 'border-2 border-[#a3e635] text-slate-900 bg-[#a3e635]/15 hover:bg-[#a3e635]/25'
+                            : isWeekend
+                              ? 'text-amber-900 hover:bg-slate-100 font-extrabold'
+                              : 'text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     <span>{dayNum}</span>
                     {/* Small dot badge for today or availability */}
-                    {isSelected && (
-                      <span className="w-1 h-1 rounded-full bg-[#a3e635] mt-0.5" />
-                    )}
+                    {isSelected && <span className="w-1 h-1 rounded-full bg-[#a3e635] mt-0.5" />}
                     {!isSelected && !isPast && (
                       <span
-                        className={`w-1 h-1 rounded-full mt-0.5 ${
-                          isWeekend ? 'bg-amber-400' : 'bg-emerald-400/80'
-                        }`}
+                        className={`w-1 h-1 rounded-full mt-0.5 ${isWeekend ? 'bg-amber-400' : 'bg-emerald-400/80'}`}
                         title={inquiryType === 'viewing' ? 'Walkthrough Slot Open' : 'Available'}
                       />
                     )}
@@ -446,9 +444,7 @@ export const CalendarDatePicker: React.FC<CalendarDatePickerProps> = ({
                 <span className="truncate">
                   {value ? (
                     <>
-                      <span className="font-extrabold text-slate-900">
-                        {formatHumanDisplay(value)}
-                      </span>{' '}
+                      <span className="font-extrabold text-slate-900">{formatHumanDisplay(value)}</span>{' '}
                       {inquiryType === 'viewing' ? '(Walkthrough)' : '(Move-in)'}
                     </>
                   ) : (

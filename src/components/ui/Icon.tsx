@@ -1,5 +1,99 @@
 import React from 'react';
-import { Icon as IconifyIcon } from '@iconify/react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ArrowUpDown,
+  BadgeCheck,
+  BarChart3,
+  Bath,
+  Bed,
+  BedDouble,
+  Bell,
+  Bookmark,
+  Briefcase,
+  Building2,
+  Calendar,
+  CalendarCheck,
+  Camera,
+  Car,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Coffee,
+  Compass,
+  Copy,
+  CreditCard,
+  DoorClosed,
+  DoorOpen,
+  Download,
+  Droplets,
+  Dumbbell,
+  Edit3,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  FileDown,
+  FileText,
+  Flame,
+  Gamepad2,
+  Heart,
+  HelpCircle,
+  Home,
+  Info,
+  KeyRound,
+  Laptop,
+  LayoutDashboard,
+  Lock,
+  LockOpen,
+  LogIn,
+  LogOut,
+  Mail,
+  Map,
+  MapPin,
+  Menu,
+  MessageCircle,
+  MessageSquare,
+  MoreHorizontal,
+  MoreVertical,
+  Navigation,
+  Orbit,
+  Phone,
+  Plus,
+  Printer,
+  RefreshCw,
+  Refrigerator,
+  Search,
+  Settings,
+  Share2,
+  ShieldCheck,
+  Shirt,
+  SlidersHorizontal,
+  Sparkles,
+  Star,
+  Trash2,
+  TrendingUp,
+  Tv,
+  UploadCloud,
+  User,
+  UserCheck,
+  UserPlus,
+  Users,
+  UtensilsCrossed,
+  Video,
+  Wifi,
+  Wind,
+  X,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 
 // Standardized Icon Sizes as per Nestin Design System
 export type IconSize = 'xs' | 'sm' | 'base' | 'md' | 'lg' | 'xl' | '2xl' | number;
@@ -19,144 +113,164 @@ export const ICON_SIZES: Record<string, number> = {
   hero: 32,
 };
 
-// Semantic Icon Registry mapping to standardized clean Lucide outline icons via Iconify
-export const ICON_REGISTRY: Record<string, string> = {
+/**
+ * Semantic icon registry backed by the bundled `lucide-react` components. Icons used to be
+ * resolved through Iconify at runtime, which fetched SVG data from api.iconify.design on every
+ * page load — a third-party dependency that broke offline/PWA use and violated the CSP. Every
+ * icon is now a static import, so adding one means adding it here (tree-shaking keeps the rest
+ * of Lucide out of the bundle).
+ */
+export const ICON_REGISTRY: Record<string, LucideIcon> = {
   // Navigation & Core
-  dashboard: 'lucide:layout-dashboard',
-  home: 'lucide:home',
-  properties: 'lucide:building-2',
-  property: 'lucide:building-2',
-  building: 'lucide:building-2',
-  vacancies: 'lucide:door-open',
-  leads: 'lucide:user-plus',
-  lead: 'lucide:user-plus',
-  bookings: 'lucide:calendar-check',
-  booking: 'lucide:calendar-check',
-  visitors: 'lucide:user-check',
-  visitor: 'lucide:user-check',
-  customers: 'lucide:users',
-  customer: 'lucide:users',
-  tenant: 'lucide:user',
-  tenants: 'lucide:users',
-  employees: 'lucide:briefcase',
-  payments: 'lucide:credit-card',
-  payment: 'lucide:credit-card',
-  documents: 'lucide:file-text',
-  document: 'lucide:file-text',
-  reports: 'lucide:bar-chart-3',
-  analytics: 'lucide:trending-up',
-  notifications: 'lucide:bell',
-  notification: 'lucide:bell',
-  support: 'lucide:help-circle',
-  help: 'lucide:help-circle',
-  settings: 'lucide:settings',
-  profile: 'lucide:user',
-  user: 'lucide:user',
-  logout: 'lucide:log-out',
-  login: 'lucide:log-in',
+  dashboard: LayoutDashboard,
+  home: Home,
+  properties: Building2,
+  property: Building2,
+  building: Building2,
+  vacancies: DoorOpen,
+  leads: UserPlus,
+  lead: UserPlus,
+  bookings: CalendarCheck,
+  booking: CalendarCheck,
+  visitors: UserCheck,
+  visitor: UserCheck,
+  customers: Users,
+  customer: Users,
+  tenant: User,
+  tenants: Users,
+  employees: Briefcase,
+  payments: CreditCard,
+  payment: CreditCard,
+  documents: FileText,
+  document: FileText,
+  reports: BarChart3,
+  analytics: TrendingUp,
+  notifications: Bell,
+  notification: Bell,
+  support: HelpCircle,
+  help: HelpCircle,
+  settings: Settings,
+  profile: User,
+  user: User,
+  logout: LogOut,
+  login: LogIn,
+  menu: Menu,
+  bookmark: Bookmark,
 
   // Actions & Operations
-  search: 'lucide:search',
-  filter: 'lucide:sliders-horizontal',
-  sort: 'lucide:arrow-up-down',
-  plus: 'lucide:plus',
-  add: 'lucide:plus',
-  edit: 'lucide:edit-3',
-  delete: 'lucide:trash-2',
-  trash: 'lucide:trash-2',
-  download: 'lucide:download',
-  export: 'lucide:file-down',
-  upload: 'lucide:upload-cloud',
-  refresh: 'lucide:refresh-cw',
-  close: 'lucide:x',
-  check: 'lucide:check',
-  checkCircle: 'lucide:check-circle-2',
-  copy: 'lucide:copy',
-  share: 'lucide:share-2',
-  printer: 'lucide:printer',
-  more: 'lucide:more-vertical',
-  moreHorizontal: 'lucide:more-horizontal',
-  view: 'lucide:eye',
-  eye: 'lucide:eye',
-  eyeOff: 'lucide:eye-off',
-  lock: 'lucide:lock',
-  unlock: 'lucide:lock-open',
+  search: Search,
+  filter: SlidersHorizontal,
+  sort: ArrowUpDown,
+  plus: Plus,
+  add: Plus,
+  edit: Edit3,
+  delete: Trash2,
+  trash: Trash2,
+  download: Download,
+  export: FileDown,
+  upload: UploadCloud,
+  refresh: RefreshCw,
+  close: X,
+  check: Check,
+  checkCircle: CheckCircle2,
+  copy: Copy,
+  share: Share2,
+  printer: Printer,
+  more: MoreVertical,
+  moreHorizontal: MoreHorizontal,
+  view: Eye,
+  eye: Eye,
+  eyeOff: EyeOff,
+  lock: Lock,
+  unlock: LockOpen,
 
   // Status & Feedback
-  success: 'lucide:check-circle-2',
-  warning: 'lucide:alert-triangle',
-  error: 'lucide:alert-circle',
-  info: 'lucide:info',
-  clock: 'lucide:clock',
-  pending: 'lucide:clock',
-  calendar: 'lucide:calendar',
-  star: 'lucide:star',
-  heart: 'lucide:heart',
-  verified: 'lucide:badge-check',
-  shield: 'lucide:shield-check',
-  shieldCheck: 'lucide:shield-check',
-  roles: 'lucide:shield-check',
-  zap: 'lucide:zap',
+  success: CheckCircle2,
+  warning: AlertTriangle,
+  error: AlertCircle,
+  info: Info,
+  clock: Clock,
+  pending: Clock,
+  calendar: Calendar,
+  star: Star,
+  heart: Heart,
+  verified: BadgeCheck,
+  shield: ShieldCheck,
+  shieldCheck: ShieldCheck,
+  roles: ShieldCheck,
+  zap: Zap,
+  sparkles: Sparkles,
 
   // Communication & Channels
-  phone: 'lucide:phone',
-  mail: 'lucide:mail',
-  email: 'lucide:mail',
-  whatsapp: 'lucide:message-circle',
-  chat: 'lucide:message-square',
-  externalLink: 'lucide:external-link',
-  navigation: 'lucide:navigation',
-  location: 'lucide:map-pin',
-  mapPin: 'lucide:map-pin',
-  map: 'lucide:map',
-  compass: 'lucide:compass',
+  phone: Phone,
+  mail: Mail,
+  email: Mail,
+  whatsapp: MessageCircle,
+  chat: MessageSquare,
+  externalLink: ExternalLink,
+  navigation: Navigation,
+  location: MapPin,
+  mapPin: MapPin,
+  map: Map,
+  compass: Compass,
 
   // Property & Living Features
-  bed: 'lucide:bed-double',
-  bedSingle: 'lucide:bed',
-  room: 'lucide:door-closed',
-  bath: 'lucide:bath',
-  wifi: 'lucide:wifi',
-  ac: 'lucide:wind',
-  housekeeping: 'lucide:sparkles',
-  laundry: 'lucide:shirt',
-  powerBackup: 'lucide:zap',
-  cctv: 'lucide:shield-check',
-  water: 'lucide:droplets',
-  study: 'lucide:laptop',
-  food: 'lucide:utensils-crossed',
-  gym: 'lucide:dumbbell',
-  parking: 'lucide:car',
-  tv: 'lucide:tv',
-  geyser: 'lucide:flame',
-  lift: 'lucide:arrow-up-down',
-  biometric: 'lucide:key-round',
-  fridge: 'lucide:refrigerator',
-  gaming: 'lucide:gamepad-2',
-  cafe: 'lucide:coffee',
-  camera: 'lucide:camera',
-  video: 'lucide:video',
-  tour360: 'lucide:orbit',
+  bed: BedDouble,
+  bedSingle: Bed,
+  room: DoorClosed,
+  bath: Bath,
+  wifi: Wifi,
+  ac: Wind,
+  housekeeping: Sparkles,
+  laundry: Shirt,
+  powerBackup: Zap,
+  cctv: ShieldCheck,
+  water: Droplets,
+  study: Laptop,
+  food: UtensilsCrossed,
+  gym: Dumbbell,
+  parking: Car,
+  tv: Tv,
+  geyser: Flame,
+  lift: ArrowUpDown,
+  biometric: KeyRound,
+  fridge: Refrigerator,
+  gaming: Gamepad2,
+  cafe: Coffee,
+  camera: Camera,
+  video: Video,
+  tour360: Orbit,
 
   // Directional & Controls
-  chevronRight: 'lucide:chevron-right',
-  chevronLeft: 'lucide:chevron-left',
-  chevronDown: 'lucide:chevron-down',
-  chevronUp: 'lucide:chevron-up',
-  arrowRight: 'lucide:arrow-right',
-  arrowLeft: 'lucide:arrow-left',
-  arrowUp: 'lucide:arrow-up',
-  arrowDown: 'lucide:arrow-down',
+  chevronRight: ChevronRight,
+  chevronLeft: ChevronLeft,
+  chevronDown: ChevronDown,
+  chevronUp: ChevronUp,
+  arrowRight: ArrowRight,
+  arrowLeft: ArrowLeft,
+  arrowUp: ArrowUp,
+  arrowDown: ArrowDown,
 };
 
 export interface IconProps extends React.HTMLAttributes<HTMLElement> {
   name?: string;
+  /** Legacy Iconify-style id (`lucide:map-pin`); only the part after the colon is looked up. */
   icon?: string;
   size?: IconSize;
   color?: string;
   strokeWidth?: number;
   className?: string;
   ariaLabel?: string;
+}
+
+function resolve(name?: string, icon?: string): LucideIcon {
+  const key = (name || icon || '').replace(/^lucide:/, '');
+  if (ICON_REGISTRY[key]) return ICON_REGISTRY[key];
+  // Accept kebab-case Lucide names for registry keys defined in camelCase (e.g. "shield-check").
+  const camel = key.replace(/-([a-z0-9])/g, (_, c: string) => c.toUpperCase());
+  if (ICON_REGISTRY[camel]) return ICON_REGISTRY[camel];
+  if (import.meta.env.DEV && key) console.warn(`[Icon] unknown icon "${key}" — add it to ICON_REGISTRY`);
+  return HelpCircle;
 }
 
 export const Icon: React.FC<IconProps> = ({
@@ -169,16 +283,7 @@ export const Icon: React.FC<IconProps> = ({
   ariaLabel,
   ...props
 }) => {
-  // Resolve icon string
-  let iconName = icon;
-  if (!iconName && name) {
-    iconName = ICON_REGISTRY[name] || (name.startsWith('lucide:') ? name : `lucide:${name}`);
-  }
-  if (!iconName) {
-    iconName = 'lucide:help-circle';
-  }
-
-  // Resolve pixel size
+  const glyph = resolve(name, icon);
   const pixelSize = typeof size === 'number' ? size : ICON_SIZES[size] || 16;
 
   return (
@@ -194,14 +299,7 @@ export const Icon: React.FC<IconProps> = ({
       role={ariaLabel ? 'img' : undefined}
       {...props}
     >
-      <IconifyIcon
-        icon={iconName}
-        width={pixelSize}
-        height={pixelSize}
-        style={{
-          strokeWidth,
-        }}
-      />
+      {React.createElement(glyph, { width: pixelSize, height: pixelSize, strokeWidth })}
     </span>
   );
 };

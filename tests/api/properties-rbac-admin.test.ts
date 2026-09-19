@@ -2,6 +2,17 @@ import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { startTestServer, client, login, adminLogin, DEMO } from './helpers.js';
 
+const FULL_CHECKLIST = {
+  ownershipDocuments: true,
+  licenses: true,
+  siteVisit: true,
+  photosMatch: true,
+  caretakerIdentity: true,
+  caretakerBackground: true,
+  safety: true,
+  pricingAccurate: true,
+};
+
 describe('property publishing workflow, RBAC and admin', () => {
   let close: () => Promise<void>;
   let api: ReturnType<typeof client>;
@@ -136,12 +147,26 @@ describe('property publishing workflow, RBAC and admin', () => {
     );
 
     assert.equal((await api.post(`/admin/properties/${id}/approve`, {}, owner)).status, 403, 'owners cannot approve');
-    const approved = await api.post(`/admin/properties/${id}/approve`, { isFeatured: true }, admin);
-    assert.equal(approved.status, 200);
+    const unverified = await api.post(`/admin/properties/${id}/approve`, { isFeatured: true }, admin);
+    assert.equal(unverified.status, 400, 'the Verified badge needs a completed checklist');
+    assert.ok(Array.isArray(unverified.error?.details && (unverified.error.details as any).missing));
+    const approved = await api.post(
+      `/admin/properties/${id}/approve`,
+      {
+        isFeatured: true,
+        checklist: FULL_CHECKLIST,
+        siteVisitDate: '2026-09-15',
+        notes: 'Visited; licence L-1234 sighted.',
+      },
+      admin
+    );
+    assert.equal(approved.status, 200, approved.error?.message);
     assert.equal(approved.data.status, 'published');
     assert.equal(approved.data.isNestinVerified, true);
     assert.equal(approved.data.isFeatured, true);
     assert.equal(approved.data.caretaker.isIdentityVerified, true);
+    assert.equal(approved.data.verification.status, 'verified');
+    assert.ok(approved.data.verification.expiresAt > approved.data.verification.verifiedAt);
 
     const publicView = await api.get(`/properties/public/${complete.data.slug}`);
     assert.equal(publicView.status, 200);
@@ -283,7 +308,7 @@ describe('property publishing workflow, RBAC and admin', () => {
       message: 'Hello, I have a question.',
     });
     assert.equal(contact.status, 201);
-    assert.match(contact.data.ticketNumber, /^NST-\d{6}$/);
+    assert.match(contact.data.ticketNumber, /^TKT-\d{6}$/);
     const demo = await api.post('/public/owner-demo', {
       name: 'PG Owner',
       phone: '+91 90000 11111',

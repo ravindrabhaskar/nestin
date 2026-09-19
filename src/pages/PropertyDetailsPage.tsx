@@ -63,24 +63,16 @@ export const PropertyDetailsPage: React.FC = () => {
       <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 px-4 sm:px-8 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-            <Link
-              to="/"
-              className="flex items-center gap-1 hover:text-slate-900 transition-colors"
-            >
+            <Link to="/" className="flex items-center gap-1 hover:text-slate-900 transition-colors">
               <Home className="w-3.5 h-3.5" />
               <span>Home</span>
             </Link>
             <span>/</span>
-            <Link
-              to="/find-pg"
-              className="hover:text-slate-900 transition-colors"
-            >
+            <Link to="/find-pg" className="hover:text-slate-900 transition-colors">
               Find PG
             </Link>
             <span>/</span>
-            <span className="text-slate-900 font-extrabold truncate max-w-[200px] sm:max-w-xs">
-              {property.name}
-            </span>
+            <span className="text-slate-900 font-extrabold truncate max-w-[200px] sm:max-w-xs">{property.name}</span>
           </div>
 
           <button
@@ -99,12 +91,11 @@ export const PropertyDetailsPage: React.FC = () => {
         <PropertyDetailsView
           property={property}
           initialOpenBooking={initialOpenBooking}
-          onBookSuccess={(bookingNumber) => {
-            // Success handler
+          onBookSuccess={() => {
+            // The success toast is shown by PropertyDetailsView itself.
           }}
         />
       </main>
     </div>
   );
 };
-

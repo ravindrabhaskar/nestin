@@ -121,12 +121,8 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ isLoad
                       exit={{ opacity: 0, width: 0 }}
                       className="text-left whitespace-nowrap overflow-hidden"
                     >
-                      <span className="block text-xs font-bold font-heading text-white leading-tight">
-                        {item.name}
-                      </span>
-                      <span className="block text-[10px] text-[#a3e635] font-sans">
-                        {item.role}
-                      </span>
+                      <span className="block text-xs font-bold font-heading text-white leading-tight">{item.name}</span>
+                      <span className="block text-[10px] text-[#a3e635] font-sans">{item.role}</span>
                     </motion.div>
                   )}
                 </motion.button>

@@ -89,13 +89,11 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   return (
     <div ref={imgRef} className={`relative overflow-hidden ${className}`}>
       {/* Skeleton placeholder while image is loading or waiting for intersection */}
-      {!isLoaded && (
-        <div className={`absolute inset-0 animate-pulse ${placeholderColor} z-0`} />
-      )}
+      {!isLoaded && <div className={`absolute inset-0 animate-pulse ${placeholderColor} z-0`} />}
 
       {/* Render image when observed in viewport */}
-      {isInView && (
-        useMotion ? (
+      {isInView &&
+        (useMotion ? (
           <motion.img
             src={imgSrc}
             alt={alt}
@@ -120,8 +118,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
               isLoaded ? 'opacity-100' : 'opacity-0'
             } ${imgClassName}`}
           />
-        )
-      )}
+        ))}
     </div>
   );
 };

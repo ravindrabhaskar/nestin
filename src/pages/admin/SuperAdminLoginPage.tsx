@@ -1,19 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ShieldAlert,
-  Lock,
-  Mail,
-  KeyRound,
-  ArrowRight,
-  ShieldCheck,
-  Building2,
-  Home,
-  CheckCircle2,
-  AlertCircle,
-  Eye,
-  EyeOff
-} from 'lucide-react';
+import { ShieldAlert, Lock, Mail, KeyRound, ShieldCheck, Home, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const SuperAdminLoginPage: React.FC = () => {
@@ -70,9 +57,7 @@ export const SuperAdminLoginPage: React.FC = () => {
             SA
           </div>
           <div>
-            <div className="font-heading font-black text-sm text-white tracking-wide">
-              NestIn Platform
-            </div>
+            <div className="font-heading font-black text-sm text-white tracking-wide">NestIn Platform</div>
             <div className="text-[10px] text-rose-400 font-mono font-bold tracking-widest uppercase">
               Super Admin Console
             </div>
@@ -98,9 +83,7 @@ export const SuperAdminLoginPage: React.FC = () => {
               <ShieldAlert className="w-3.5 h-3.5" />
               <span>Restricted Staff Access</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white font-heading">
-              Root Administration
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-black text-white font-heading">Root Administration</h1>
             <p className="text-xs text-slate-400">
               Enter authorized root credentials to manage property audits, owner accounts, and platform compliance.
             </p>
@@ -194,7 +177,8 @@ export const SuperAdminLoginPage: React.FC = () => {
           {/* Quick Staff Credential Fill */}
           <div className="pt-4 border-t border-slate-800/80 text-center">
             <div className="text-[11px] text-slate-500">
-              Credentials are provisioned by the platform operator (SUPER_ADMIN_* environment variables). All attempts are logged.
+              Credentials are provisioned by the platform operator (SUPER_ADMIN_* environment variables). All attempts
+              are logged.
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { nextSequence } from '../db/database.js';
 
 /** Short, URL-safe, collision-resistant identifier with a readable prefix, e.g. `lead-k3f9x2ab7c`. */
 export function newId(prefix: string): string {
@@ -20,11 +21,23 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
+/** Human-facing booking reference: sequential, so two bookings can never share a number. */
 export function bookingNumber(): string {
-  return `NST-${100000 + crypto.randomInt(900000)}`;
+  return `NST-${String(100000 + nextSequence('booking')).padStart(6, '0')}`;
 }
 
-export function invoiceNumber(prefix = 'INV'): string {
-  const year = new Date().getFullYear();
-  return `${prefix}-${year}-${1000 + crypto.randomInt(9000)}`;
+/** Support ticket reference (own series so tickets and bookings never collide). */
+export function ticketNumber(): string {
+  return `TKT-${String(100000 + nextSequence('ticket')).padStart(6, '0')}`;
+}
+
+/**
+ * Invoice serial: unique and consecutive within a prefix + financial year, as GST rules require
+ * (e.g. `INV-2026-27-000042`). The Indian financial year runs April-March.
+ */
+export function invoiceNumber(prefix = 'INV', now = new Date()): string {
+  const startYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const fy = `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
+  const n = nextSequence(`invoice:${prefix}:${fy}`);
+  return `${prefix}-${fy}-${String(n).padStart(6, '0')}`;
 }

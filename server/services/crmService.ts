@@ -25,14 +25,14 @@ import {
   type PaymentRecord,
 } from '../db/repositories.js';
 import { Collection } from '../db/database.js';
-import { badRequest, conflict, notFound } from '../lib/errors.js';
+import { conflict, notFound } from '../lib/errors.js';
 import { isSafeId, newId, bookingNumber as makeBookingNumber, invoiceNumber } from '../lib/ids.js';
 import * as v from '../lib/validate.js';
 import { events, type EventContext } from '../lib/events.js';
 import type { AuthUser } from '../middleware/auth.js';
 import { setBedStatus } from './propertyService.js';
 import { dispatchNotification } from '../lib/messaging.js';
-import { razorpayEnabled } from '../lib/razorpay.js';
+import { razorpayEnabled, simulatedPaymentsAllowed } from '../lib/razorpay.js';
 
 export const LEAD_STAGES: LeadStage[] = [
   'New',
@@ -358,12 +358,12 @@ export function createBooking(
     maintenanceCharges,
     totalAmount,
     paidAmount: options.tenantInitiated
-      ? razorpayEnabled()
-        ? 0
-        : bookingFee
+      ? simulatedPaymentsAllowed()
+        ? bookingFee
+        : 0
       : v.num(body.paidAmount ?? 0, 'Paid amount', { min: 0, max: 10_000_000, required: false }),
     paymentStatus: options.tenantInitiated
-      ? bookingFee > 0 && !razorpayEnabled()
+      ? bookingFee > 0 && simulatedPaymentsAllowed()
         ? 'Partial'
         : 'Pending'
       : v.oneOf(
@@ -410,8 +410,8 @@ export function createBooking(
         tenantName,
         amount: bookingFee,
         type: 'Token Booking',
-        method: razorpayEnabled() ? 'Razorpay' : 'UPI / GPay',
-        status: razorpayEnabled() ? 'Pending' : 'Paid',
+        method: simulatedPaymentsAllowed() ? 'UPI / GPay' : 'Razorpay',
+        status: simulatedPaymentsAllowed() ? 'Paid' : 'Pending',
         gateway: razorpayEnabled() ? 'razorpay' : 'simulated',
         description: `Token booking fee for ${prop.name} (${room!.name})`,
       });
@@ -824,7 +824,7 @@ export function completeMoveIn(
     ...booking.timeline,
   ];
   bookings.replace(booking);
-  let customer: StoredCustomer | null = booking.customerId ? customers.get(booking.customerId) : null;
+  const customer: StoredCustomer | null = booking.customerId ? customers.get(booking.customerId) : null;
   if (customer) {
     customer.tenantStatus = 'Active';
     customers.replace(customer);

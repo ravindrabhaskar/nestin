@@ -22,6 +22,8 @@ export interface StoredObject {
 
 export interface StorageDriver {
   put(key: string, body: Buffer, contentType: string, isPublic: boolean): Promise<StoredObject>;
+  /** Streams a file from disk (used for database backups, which must not be buffered in memory). */
+  putFile(key: string, filePath: string, contentType: string): Promise<StoredObject>;
   get(key: string): Promise<{ body: Buffer; contentType: string } | null>;
   remove(key: string): Promise<void>;
   /** URL a browser can use right now (public URL or a short-lived signed one). */
@@ -59,6 +61,15 @@ class LocalDriver implements StorageDriver {
     await fs.promises.writeFile(full, body);
     await fs.promises.writeFile(`${full}.meta.json`, JSON.stringify({ contentType }));
     return { key, url: await this.urlFor(key, isPublic), size: body.length, contentType, isPublic };
+  }
+
+  async putFile(key: string, filePath: string, contentType: string): Promise<StoredObject> {
+    const full = this.resolve(key);
+    await fs.promises.mkdir(path.dirname(full), { recursive: true });
+    await fs.promises.copyFile(filePath, full);
+    await fs.promises.writeFile(`${full}.meta.json`, JSON.stringify({ contentType }));
+    const { size } = await fs.promises.stat(full);
+    return { key, url: await this.urlFor(key, false), size, contentType, isPublic: false };
   }
 
   async get(key: string) {
@@ -117,6 +128,21 @@ class S3Driver implements StorageDriver {
       })
     );
     return { key, url: await this.urlFor(key, isPublic), size: body.length, contentType, isPublic };
+  }
+
+  async putFile(key: string, filePath: string, contentType: string): Promise<StoredObject> {
+    const { m, client } = await this.client();
+    const { size } = await fs.promises.stat(filePath);
+    await client.send(
+      new m.PutObjectCommand({
+        Bucket: config.storage.s3.bucket,
+        Key: key,
+        Body: fs.createReadStream(filePath),
+        ContentLength: size,
+        ContentType: contentType,
+      })
+    );
+    return { key, url: await this.urlFor(key, false), size, contentType, isPublic: false };
   }
 
   async get(key: string) {

@@ -1,3 +1,4 @@
+import { platformFeeFor, handleWebhookOrder as handleSubscriptionWebhookOrder } from './billingService.js';
 import type { TenantBookingItem, TenantPaymentItem, TenantSupportTicket, TenantDocument } from '../../src/types';
 import {
   bookings,
@@ -15,8 +16,8 @@ import {
 } from '../db/repositories.js';
 import { badRequest, notFound, HttpError } from '../lib/errors.js';
 import { config } from '../config.js';
-import { razorpayEnabled, createOrder, verifyPaymentSignature } from '../lib/razorpay.js';
-import { newId } from '../lib/ids.js';
+import { createOrder, razorpayEnabled, verifyPaymentSignature, assertPaymentsAvailable } from '../lib/razorpay.js';
+import { newId, invoiceNumber, ticketNumber } from '../lib/ids.js';
 import * as v from '../lib/validate.js';
 import { events, type EventContext } from '../lib/events.js';
 import type { AuthUser } from '../middleware/auth.js';
@@ -135,7 +136,7 @@ export function payOnline(actor: AuthUser, body: Record<string, unknown>, ctx: E
   const idempotencyKey = v.optionalStr(body.idempotencyKey, 'Idempotency key', 120);
   const bookingId = v.optionalStr(body.bookingId, 'Booking', 80);
 
-  let booking: StoredBooking | null = null;
+  let booking: StoredBooking | null;
   if (bookingId) {
     booking = bookings.get(bookingId);
     if (!booking || booking.tenantId !== actor.id) throw notFound('Booking');
@@ -166,7 +167,7 @@ export function payOnline(actor: AuthUser, body: Record<string, unknown>, ctx: E
     method,
     status: 'Paid',
     gateway: 'simulated',
-    invoiceNumber: `INV-${now.getFullYear()}-${1000 + Math.floor(Math.random() * 9000)}`,
+    invoiceNumber: invoiceNumber('INV', now),
     transactionId: `TXN-${now.getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
     idempotencyKey,
     month: now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
@@ -264,7 +265,7 @@ export function createTicket(actor: AuthUser, body: Record<string, unknown>, ctx
     ownerId: responsible.ownerId,
     tenantName: actor.fullName,
     tenantEmail: actor.email,
-    ticketNumber: `NST-${100000 + Math.floor(Math.random() * 900000)}`,
+    ticketNumber: ticketNumber(),
     subject,
     category,
     description,
@@ -381,6 +382,7 @@ export async function createCheckoutOrder(
   body: Record<string, unknown>,
   ctx: EventContext
 ): Promise<CheckoutOrder> {
+  assertPaymentsAvailable();
   const existingId = v.optionalStr(body.paymentId, 'Payment', 80);
   let pending: PaymentRecord | null = existingId ? payments.get(existingId) : null;
   if (pending && (pending.tenantId !== actor.id || pending.status !== 'Pending'))
@@ -419,7 +421,7 @@ export async function createCheckoutOrder(
       method: 'Razorpay',
       status: 'Pending',
       gateway: razorpayEnabled() ? 'razorpay' : 'simulated',
-      invoiceNumber: `INV-${now.getFullYear()}-${1000 + Math.floor(Math.random() * 9000)}`,
+      invoiceNumber: invoiceNumber('INV', now),
       transactionId: `TXN-${now.getFullYear()}-${Date.now().toString(36).toUpperCase()}`,
       month: now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
       description: `${type} for ${booking.propertyName}`,
@@ -482,6 +484,7 @@ function markPaid(
   record.method = method;
   record.gatewayPaymentId = gatewayPaymentId;
   record.date = new Date().toISOString();
+  Object.assign(record, platformFeeFor(record.amount));
   payments.replace(record);
   if (record.bookingId) {
     const booking = bookings.get(record.bookingId);
@@ -541,6 +544,7 @@ export function completeCheckout(actor: AuthUser, body: Record<string, unknown>,
     }
     return toTenantPayment(markPaid(record, gwPaymentId, 'Razorpay', ctx));
   }
+  assertPaymentsAvailable();
   const method = v.oneOf(
     body.paymentMethod,
     ['UPI / GPay', 'Credit Card', 'Debit Card', 'Net Banking'] as const,
@@ -550,14 +554,36 @@ export function completeCheckout(actor: AuthUser, body: Record<string, unknown>,
   return toTenantPayment(markPaid(record, `sim_${Date.now().toString(36)}`, method, ctx));
 }
 
+/** Razorpay reports amounts in paise; the record stores rupees. */
+export function webhookAmountMatches(
+  entity: { amount?: unknown; currency?: unknown } | undefined,
+  amountInr: number
+): boolean {
+  const paise = Number(entity?.amount);
+  if (!Number.isFinite(paise)) return false;
+  if (entity?.currency && entity.currency !== 'INR') return false;
+  return paise === Math.round(amountInr * 100);
+}
+
 /** Razorpay webhook (`payment.captured` / `payment.failed`). Idempotent; signature verified by the route. */
 export function handleRazorpayWebhook(event: { event?: string; payload?: any }): { handled: boolean } {
   const entity = event.payload?.payment?.entity;
   const orderId: string | undefined = entity?.order_id;
   if (!orderId) return { handled: false };
-  const record = payments.list().find((p) => p.gatewayOrderId === orderId);
-  if (!record) return { handled: false };
+  const record = payments.findOne({ gateway_order_id: orderId });
+  if (!record) return { handled: handleSubscriptionWebhookOrder(orderId, event.event, entity) };
   if (event.event === 'payment.captured') {
+    // The captured amount (paise) must match what we asked for; a partial capture never marks the record paid.
+    if (!webhookAmountMatches(entity, record.amount)) {
+      events.publish(
+        'WebhookAmountMismatch',
+        'Payment',
+        record.id,
+        { expected: record.amount, received: entity?.amount, currency: entity?.currency },
+        { ownerId: record.ownerId }
+      );
+      return { handled: false };
+    }
     markPaid(record, entity.id, 'Razorpay', { correlationId: `webhook-${entity.id}` });
     return { handled: true };
   }

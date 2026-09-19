@@ -17,7 +17,8 @@ export const PropertyBadges: React.FC<PropertyBadgesProps> = ({
   availability,
 }) => {
   const sharingText = Array.isArray(sharing) ? sharing.slice(0, 2).join(' · ') : sharing;
-  const isAvailableNow = availability && (availability.toLowerCase().includes('now') || availability.toLowerCase().includes('available'));
+  const isAvailableNow =
+    availability && (availability.toLowerCase().includes('now') || availability.toLowerCase().includes('available'));
 
   return (
     <div className="h-6 sm:h-6.5 flex items-center gap-1.5 overflow-hidden text-nowrap text-[10.5px] sm:text-[11px] font-medium text-slate-700 select-none">
@@ -55,4 +56,3 @@ export const PropertyBadges: React.FC<PropertyBadgesProps> = ({
     </div>
   );
 };
-

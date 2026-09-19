@@ -1,4 +1,6 @@
 // NestIn API client — the single place the frontend talks to the backend.
+import type { PlanDefinition, PlanId } from './domain/plans';
+
 const API_BASE = '/api/v1';
 const TOKEN_KEY = 'nestin_auth_token';
 
@@ -51,7 +53,29 @@ function correlationId(): string {
   return `fe-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-async function request<T>(method: string, path: string, body?: unknown, opts: { auth?: boolean } = {}): Promise<T> {
+export interface ApiEnvelope<T> {
+  data: T;
+  metadata: Record<string, unknown> & { total?: number; page?: number; pageSize?: number; totalPages?: number };
+}
+
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  opts?: { auth?: boolean; envelope?: false }
+): Promise<T>;
+async function request<T>(
+  method: string,
+  path: string,
+  body: unknown,
+  opts: { auth?: boolean; envelope: true }
+): Promise<ApiEnvelope<T>>;
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  opts: { auth?: boolean; envelope?: boolean } = {}
+): Promise<T | ApiEnvelope<T>> {
   const headers: Record<string, string> = { 'X-Correlation-Id': correlationId() };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   const token = opts.auth === false ? null : tokenStore.get();
@@ -82,11 +106,15 @@ async function request<T>(method: string, path: string, body?: unknown, opts: { 
     }
     throw new ApiError(res.status, code, message, payload.error?.details);
   }
-  return (payload.data !== undefined ? payload.data : payload) as T;
+  const data = (payload.data !== undefined ? payload.data : payload) as T;
+  if (opts.envelope) return { data, metadata: payload.metadata || {} };
+  return data;
 }
 
 export const http = {
   get: <T>(path: string, opts?: { auth?: boolean }) => request<T>('GET', path, undefined, opts),
+  getWithMeta: <T>(path: string, opts?: { auth?: boolean }) =>
+    request<T>('GET', path, undefined, { ...opts, envelope: true }),
   post: <T>(path: string, body?: unknown, opts?: { auth?: boolean }) => request<T>('POST', path, body ?? {}, opts),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body ?? {}),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body ?? {}),
@@ -145,6 +173,16 @@ export const ApiClient = {
       if (params?.maxRent) qs.set('maxRent', String(params.maxRent));
       const query = qs.toString();
       return http.get<any[]>(`/properties/public${query ? `?${query}` : ''}`, { auth: false });
+    },
+    /** Server-side paginated catalogue search (SQL); returns items plus total/page metadata. */
+    search: (params: CatalogueSearchParams) => {
+      const qs = new URLSearchParams();
+      for (const [k, val] of Object.entries(params)) {
+        if (val === undefined || val === null || val === '' || val === false) continue;
+        qs.set(k, String(val));
+      }
+      if (!qs.has('page')) qs.set('page', '1');
+      return http.getWithMeta<any[]>(`/properties/public?${qs.toString()}`, { auth: false });
     },
     cities: () => http.get<any[]>('/properties/public/cities', { auth: false }),
     getPublic: (slugOrId: string) => http.get<any>(`/properties/public/${encodeURIComponent(slugOrId)}`),
@@ -253,11 +291,18 @@ export const ApiClient = {
     setUserStatus: (id: string, status: 'active' | 'suspended') =>
       http.put<any>(`/admin/users/${id}/status`, { status }),
     properties: () => http.get<any[]>('/admin/properties'),
-    approveProperty: (
-      id: string,
-      options?: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }
-    ) => http.post<any>(`/admin/properties/${id}/approve`, options || {}),
+    approveProperty: (id: string, options?: ApproveOptions) =>
+      http.post<any>(`/admin/properties/${id}/approve`, options || {}),
     rejectProperty: (id: string, reason: string) => http.post<any>(`/admin/properties/${id}/reject`, { reason }),
+    revokeVerification: (id: string, reason: string) =>
+      http.post<any>(`/admin/properties/${id}/revoke-verification`, { reason }),
+    verificationSweep: () => http.post<{ expired: number; dueSoon: number }>('/admin/properties/verification-sweep'),
+    billing: () => http.get<{ stats: BillingStats; subscriptions: AdminSubscriptionRow[] }>('/admin/billing'),
+    setPlan: (ownerId: string, plan: string, months?: number) =>
+      http.put<AdminSubscriptionRow>(`/admin/billing/${ownerId}`, { plan, months }),
+    backups: () => http.get<BackupStatus>('/admin/ops/backups'),
+    runBackup: () => http.post<BackupInfo>('/admin/ops/backups'),
+    metrics: () => http.get<OpsMetrics>('/admin/ops/metrics'),
     setBadges: (id: string, badges: { isNestinVerified?: boolean; isFeatured?: boolean; isZeroBrokerage?: boolean }) =>
       http.patch<any>(`/admin/properties/${id}/badges`, badges),
     bookings: () => http.get<any[]>('/admin/bookings'),
@@ -273,7 +318,28 @@ export const ApiClient = {
     },
   },
 
+  billing: {
+    view: () => http.get<SubscriptionView>('/billing'),
+    checkout: (data: { plan: string; interval: 'monthly' | 'yearly' }) =>
+      http.post<SubscriptionCheckout>('/billing/checkout', data),
+    completeCheckout: (data: {
+      invoiceId: string;
+      razorpay_order_id?: string;
+      razorpay_payment_id?: string;
+      razorpay_signature?: string;
+    }) => http.post<SubscriptionView>('/billing/checkout/complete', data),
+    cancel: (cancel: boolean) => http.post<SubscriptionView>('/billing/cancel', { cancel }),
+  },
+
+  push: {
+    config: () => http.get<{ enabled: boolean; publicKey: string | null }>('/push/config', { auth: false }),
+    subscribe: (subscription: unknown) =>
+      http.post<{ subscribed: boolean; id: string }>('/push/subscribe', subscription),
+    unsubscribe: (endpoint: string) => http.post<{ unsubscribed: boolean }>('/push/unsubscribe', { endpoint }),
+  },
+
   public: {
+    stats: () => http.get<PublicStats>('/public/stats', { auth: false }),
     contact: (data: Record<string, unknown>) =>
       http.post<{ ticketNumber: string; id: string }>('/public/contact', data, { auth: false }),
     ownerDemo: (data: Record<string, unknown>) =>
@@ -286,6 +352,142 @@ export const ApiClient = {
       http.get<any[]>(`/audit/logs?limit=${limit}${eventType ? `&eventType=${encodeURIComponent(eventType)}` : ''}`),
   },
 };
+
+export interface CatalogueSearchParams {
+  city?: string;
+  area?: string;
+  q?: string;
+  category?: string;
+  type?: string;
+  minRent?: number;
+  maxRent?: number;
+  verified?: boolean;
+  available?: boolean;
+  sort?: 'relevance' | 'rent_asc' | 'rent_desc' | 'rating' | 'newest';
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ApproveOptions {
+  isNestinVerified?: boolean;
+  isFeatured?: boolean;
+  isZeroBrokerage?: boolean;
+  checklist?: Record<string, boolean>;
+  notes?: string;
+  siteVisitDate?: string;
+  evidenceUrls?: string[];
+}
+
+export interface PublicStats {
+  publishedListings: number;
+  verifiedListings: number;
+  cities: number;
+  bedsListed: number;
+  residentsHoused: number;
+  ownersOnboarded: number;
+  citiesBreakdown: Array<{ city: string; listings: number; minRent: number | null }>;
+  generatedAt: string;
+}
+
+export interface SubscriptionRecord {
+  id: string;
+  ownerId: string;
+  plan: PlanId;
+  interval: 'monthly' | 'yearly';
+  status: 'active' | 'trialing' | 'past_due' | 'cancelled';
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  trialEndsAt?: string;
+  cancelAtPeriodEnd: boolean;
+  grantedBy?: string;
+}
+
+export interface SubscriptionInvoice {
+  id: string;
+  plan: PlanId;
+  interval: string;
+  invoiceNumber: string;
+  subtotal: number;
+  gstPercent: number;
+  gst: number;
+  amount: number;
+  status: 'Pending' | 'Paid' | 'Failed';
+  gateway: string;
+  periodStart: string;
+  periodEnd: string;
+  paidAt?: string;
+  createdAt: string;
+}
+
+export interface PlanUsage {
+  properties: { used: number; limit: number | null };
+  staff: { used: number; limit: number | null };
+}
+
+export interface SubscriptionView {
+  subscription: SubscriptionRecord;
+  plan: PlanDefinition;
+  usage: PlanUsage;
+  invoices: SubscriptionInvoice[];
+  plans: PlanDefinition[];
+  gstPercent: number;
+  platformFeePercent: number;
+  payments: 'razorpay' | 'simulated';
+}
+
+export interface SubscriptionCheckout {
+  simulated: boolean;
+  invoiceId: string;
+  orderId?: string;
+  keyId?: string;
+  amount: number;
+  currency: 'INR';
+  description: string;
+  prefill: { name: string; email: string; contact?: string };
+}
+
+export interface AdminSubscriptionRow extends SubscriptionRecord {
+  ownerName: string;
+  ownerEmail: string;
+  usage: PlanUsage;
+  lifetimeValue: number;
+}
+
+export interface BillingStats {
+  mrr: number;
+  activePaid: number;
+  trialing: number;
+  pastDue: number;
+  byPlan: Record<PlanId, number>;
+  subscriptionRevenue: { total: number; last30Days: number };
+  platformFees: { total: number; last30Days: number };
+}
+
+export interface BackupInfo {
+  fileName: string;
+  sizeBytes: number;
+  createdAt: string;
+  location: 'local' | 's3';
+}
+
+export interface BackupStatus {
+  enabled: boolean;
+  directory: string;
+  keep: number;
+  mirroredToS3: boolean;
+  lastBackupAt: string | null;
+  databaseSizeBytes: number;
+  backups: BackupInfo[];
+}
+
+export interface OpsMetrics {
+  requestsTotal: number;
+  errorsTotal: number;
+  inFlight: number;
+  databaseSizeBytes: number;
+  lastBackupAt: string | null;
+  routes: Array<{ route: string; count: number; avgMs: number; p95Ms: number; statuses: Record<string, number> }>;
+}
 
 export interface CheckoutOrder {
   simulated: boolean;

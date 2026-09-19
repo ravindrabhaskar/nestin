@@ -1,21 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import {
-  Search,
-  LocateFixed,
-  MapPin,
-  LayoutGrid,
-  List,
-  Map as MapIcon,
-  X,
-  Sparkles,
-  ShieldCheck,
-  Star,
-  User,
-  Users,
-  Building2
-} from 'lucide-react';
+import { motion } from 'motion/react';
+import { MapPin, Map as MapIcon, ShieldCheck, Star } from 'lucide-react';
 import { PropertyListing, ViewMode, FindPGFilterState } from '../types';
 import { usePropertyListing } from '../context/PropertyListingContext';
 import { useAuth } from '../context/AuthContext';
@@ -27,12 +13,7 @@ import { InteractiveMap } from './InteractiveMap';
 import { EmptyState } from './ui/EmptyState';
 import { RecentlyViewed, addPropertyToRecentlyViewed } from './RecentlyViewed';
 import { MarketplaceSearchHeader } from './search-filter/MarketplaceSearchHeader';
-import { CategoryChips } from './search-filter/CategoryChips';
-import {
-  PropertyGridSkeleton,
-  PropertyListSkeleton,
-  PropertyMapSidebarSkeleton,
-} from './ui/LoadingSkeleton';
+import { PropertyGridSkeleton, PropertyListSkeleton, PropertyMapSidebarSkeleton } from './ui/LoadingSkeleton';
 
 interface FindPGPageProps {
   onSelectProperty: (property: PropertyListing) => void;
@@ -42,11 +23,7 @@ interface FindPGPageProps {
 
 const ITEMS_PER_PAGE = 20;
 
-export const FindPGPage: React.FC<FindPGPageProps> = ({
-  onSelectProperty,
-  onOpenAuth,
-  initialSearchQuery = 'Hyderabad',
-}) => {
+export const FindPGPage: React.FC<FindPGPageProps> = ({ onOpenAuth, initialSearchQuery = 'Hyderabad' }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const cityParam = searchParams.get('city') || searchParams.get('location');
   const viewParam = searchParams.get('view') as ViewMode | null;
@@ -60,6 +37,11 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMapProperty, setSelectedMapProperty] = useState<PropertyListing | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Filter state (declared before the effects that reset it on URL changes)
+  const [filters, setFilters] = useState<FindPGFilterState>({
+    ...DEFAULT_FILTERS,
+    searchQuery: effectiveInitialSearch,
+  });
 
   // Helper to sync URL search params without page reload
   const updateUrlParams = (city: string, view?: ViewMode) => {
@@ -87,7 +69,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
       setViewMode(viewParam);
     }
   }, [cityParam, viewParam]);
-  
+
   const navigate = useNavigate();
   const { requireAuth } = useAuth();
 
@@ -116,12 +98,6 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
       navigate(`/property/${targetSlug}?action=book`);
     }, 'Please sign in with Google to reserve your room and complete your booking.');
   };
-
-  // Filter state
-  const [filters, setFilters] = useState<FindPGFilterState>({
-    ...DEFAULT_FILTERS,
-    searchQuery: effectiveInitialSearch,
-  });
 
   // Brief smooth loading transition whenever search query, filters, or page index change
   useEffect(() => {
@@ -234,7 +210,11 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
           if (rt === 'Double sharing') return pSharing.some((s) => s.toLowerCase().includes('double'));
           if (rt === 'Triple sharing') return pSharing.some((s) => s.toLowerCase().includes('triple'));
           if (rt === 'Four sharing') return pSharing.some((s) => s.toLowerCase().includes('four'));
-          if (rt === 'Private room') return pType === 'Private Room' || pSharing.some((s) => s.toLowerCase().includes('private') || s.toLowerCase().includes('single'));
+          if (rt === 'Private room')
+            return (
+              pType === 'Private Room' ||
+              pSharing.some((s) => s.toLowerCase().includes('private') || s.toLowerCase().includes('single'))
+            );
           return true;
         });
       });
@@ -295,52 +275,6 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
     setCurrentPage(1);
   };
 
-  // Properties matching search query/location without gender filter applied
-  const basePropertiesWithoutGender = useMemo(() => {
-    let result = publishedProperties.map(toFindPGListing);
-
-    if (filters.searchQuery.trim()) {
-      const q = filters.searchQuery.toLowerCase().trim();
-      result = result.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.city.toLowerCase().includes(q) ||
-          (p.area && p.area.toLowerCase().includes(q)) ||
-          (p.address && p.address.toLowerCase().includes(q))
-      );
-    }
-
-    if (filters.maxRent < 35000) {
-      result = result.filter((p) => (p.rent || p.price) <= filters.maxRent);
-    }
-
-    if (filters.verifiedOnly) {
-      result = result.filter((p) => p.verified);
-    }
-
-    return result;
-  }, [filters.searchQuery, filters.maxRent, filters.verifiedOnly, publishedProperties, toFindPGListing]);
-
-  // Calculate category counts for quick gender filters
-  const genderCategoryCounts = useMemo(() => {
-    let boys = 0;
-    let girls = 0;
-    let coliving = 0;
-    basePropertiesWithoutGender.forEach((p) => {
-      if (!p.gender) return;
-      const g = p.gender.toLowerCase();
-      if (g.includes('boy') || g.includes('men')) boys++;
-      else if (g.includes('girl') || g.includes('women')) girls++;
-      else if (g.includes('co-living') || g.includes('coliving')) coliving++;
-    });
-    return {
-      all: basePropertiesWithoutGender.length,
-      boys,
-      girls,
-      coliving,
-    };
-  }, [basePropertiesWithoutGender]);
-
   const locationDisplayTitle = filters.searchQuery || 'Kukatpally, Hyderabad';
 
   return (
@@ -365,11 +299,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
         />
 
         {/* FILTER CHIPS TOOLBAR */}
-        <FilterBar
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          totalCount={totalItems}
-        />
+        <FilterBar filters={filters} onFilterChange={handleFilterChange} totalCount={totalItems} />
 
         {/* GUEST BANNER */}
         <GuestBanner onCreateAccount={onOpenAuth} />
@@ -377,7 +307,8 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
         {/* RESULTS HEADER TITLE */}
         <div className="space-y-1 pt-2 min-w-0">
           <div className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200/80 text-[11px] font-semibold text-slate-600 mb-2 max-w-full truncate">
-            Showing 1–{Math.min(paginatedProperties.length, ITEMS_PER_PAGE)} of {totalItems} verified PGs • page {currentPage} of {totalPages}
+            Showing 1–{Math.min(paginatedProperties.length, ITEMS_PER_PAGE)} of {totalItems} verified PGs • page{' '}
+            {currentPage} of {totalPages}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
             {totalItems} verified stays near {locationDisplayTitle}
@@ -422,12 +353,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-2 items-stretch auto-rows-fr w-full min-w-0"
           >
             {paginatedProperties.map((prop) => (
-              <PropertyCard
-                key={prop.id}
-                property={prop}
-                onViewDetails={handleViewDetails}
-                onBookNow={handleBookNow}
-              />
+              <PropertyCard key={prop.id} property={prop} onViewDetails={handleViewDetails} onBookNow={handleBookNow} />
             ))}
           </motion.div>
         ) : viewMode === 'list' ? (
@@ -480,7 +406,10 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
 
                     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs">
                       {prop.sharing.map((s, idx) => (
-                        <span key={idx} className="bg-slate-100 text-slate-700 px-2 sm:px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-medium">
+                        <span
+                          key={idx}
+                          className="bg-slate-100 text-slate-700 px-2 sm:px-2.5 py-0.5 rounded-lg text-[10px] sm:text-xs font-medium"
+                        >
                           {s}
                         </span>
                       ))}
@@ -494,9 +423,7 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-600 line-clamp-2 pt-0.5">
-                      {prop.description}
-                    </p>
+                    <p className="text-xs text-slate-600 line-clamp-2 pt-0.5">{prop.description}</p>
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
@@ -566,13 +493,9 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
                       <h4 className="font-bold text-slate-900 text-xs sm:text-sm font-heading truncate">
                         {prop.title}
                       </h4>
-                      <span className="text-[11px] sm:text-xs font-bold text-amber-600 shrink-0">
-                        ★ {prop.rating}
-                      </span>
+                      <span className="text-[11px] sm:text-xs font-bold text-amber-600 shrink-0">★ {prop.rating}</span>
                     </div>
-                    <p className="text-[10.5px] sm:text-[11px] text-slate-500 truncate">
-                      {prop.address || prop.city}
-                    </p>
+                    <p className="text-[10.5px] sm:text-[11px] text-slate-500 truncate">{prop.address || prop.city}</p>
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-xs sm:text-sm font-extrabold font-heading text-slate-900">
                         ₹{(prop.rent || prop.price).toLocaleString('en-IN')}/mo
@@ -598,7 +521,9 @@ export const FindPGPage: React.FC<FindPGPageProps> = ({
               {/* MAP HEADER BADGE */}
               <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200/80 shadow-md flex items-center gap-2 text-xs font-bold text-slate-800">
                 <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Map View — {locationDisplayTitle} ({filteredProperties.length} Stays)</span>
+                <span>
+                  Map View — {locationDisplayTitle} ({filteredProperties.length} Stays)
+                </span>
               </div>
 
               <InteractiveMap

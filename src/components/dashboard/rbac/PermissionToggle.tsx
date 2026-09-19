@@ -40,9 +40,17 @@ export const PermissionToggle: React.FC<PermissionToggleProps> = ({
         aria-label={ariaLabel || (checked ? 'Access Granted' : 'Access Denied')}
         disabled={disabled}
         onClick={handleClick}
-        title={disabled ? disabledTooltip || 'Permission locked' : checked ? 'Access Granted (Click to revoke)' : 'Access Denied (Click to grant)'}
+        title={
+          disabled
+            ? disabledTooltip || 'Permission locked'
+            : checked
+              ? 'Access Granted (Click to revoke)'
+              : 'Access Denied (Click to grant)'
+        }
         className={`group relative inline-flex items-center justify-center transition-all duration-200 outline-none select-none rounded-full ${
-          disabled ? 'cursor-not-allowed opacity-75' : 'cursor-pointer focus-visible:ring-2 focus-visible:ring-[#062817] focus-visible:ring-offset-2'
+          disabled
+            ? 'cursor-not-allowed opacity-75'
+            : 'cursor-pointer focus-visible:ring-2 focus-visible:ring-[#062817] focus-visible:ring-offset-2'
         }`}
       >
         {/* Toggle Track */}
@@ -61,11 +69,7 @@ export const PermissionToggle: React.FC<PermissionToggleProps> = ({
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
             className={`rounded-full flex items-center justify-center shadow-xs transition-colors ${
               isSmall ? 'w-4 h-4' : 'w-4 h-4'
-            } ${
-              checked
-                ? 'bg-emerald-600 text-white ml-auto'
-                : 'bg-rose-500 text-white mr-auto'
-            }`}
+            } ${checked ? 'bg-emerald-600 text-white ml-auto' : 'bg-rose-500 text-white mr-auto'}`}
           >
             {checked ? (
               <span className="w-1.5 h-1.5 rounded-full bg-white block" />

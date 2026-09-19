@@ -17,7 +17,7 @@ export const NestInLogo: React.FC<NestInLogoProps> = ({
   customSrc,
 }) => {
   const isDarkBg = variant === 'dark';
-  const logoSrc = customSrc || (isDarkBg ? '/nestin_logo_dark.png' : (nestinLogo || '/nestin_logo.png'));
+  const logoSrc = customSrc || (isDarkBg ? '/nestin_logo_dark.png' : nestinLogo || '/nestin_logo.png');
 
   const heightClasses = {
     sm: showTagline ? 'h-9 sm:h-10' : 'h-7 sm:h-8',
@@ -36,5 +36,3 @@ export const NestInLogo: React.FC<NestInLogoProps> = ({
     </div>
   );
 };
-
-

@@ -25,18 +25,12 @@ export const Button: React.FC<ButtonProps> = ({
     'inline-flex items-center justify-center font-bold rounded-xl transition-colors duration-150 select-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a3e635] focus-visible:ring-offset-2';
 
   const variantClasses = {
-    primary:
-      'bg-[#a3e635] text-slate-950 hover:bg-[#92d428] font-black font-heading border border-[#8ec725]',
-    secondary:
-      'bg-slate-900 text-white hover:bg-slate-800 font-heading border border-slate-800',
-    outline:
-      'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs',
-    ghost:
-      'bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900',
-    danger:
-      'bg-rose-600 text-white hover:bg-rose-700 font-semibold border border-rose-700',
-    success:
-      'bg-emerald-600 text-white hover:bg-emerald-700 font-semibold border border-emerald-700',
+    primary: 'bg-[#a3e635] text-slate-950 hover:bg-[#92d428] font-black font-heading border border-[#8ec725]',
+    secondary: 'bg-slate-900 text-white hover:bg-slate-800 font-heading border border-slate-800',
+    outline: 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-2xs',
+    ghost: 'bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900',
+    danger: 'bg-rose-600 text-white hover:bg-rose-700 font-semibold border border-rose-700',
+    success: 'bg-emerald-600 text-white hover:bg-emerald-700 font-semibold border border-emerald-700',
   }[variant];
 
   const sizeClasses = {
@@ -52,11 +46,7 @@ export const Button: React.FC<ButtonProps> = ({
       className={`${baseClasses} ${variantClasses} ${sizeClasses} ${className}`}
       {...props}
     >
-      {isLoading ? (
-        <Icon name="refresh" size={16} className="animate-spin text-current shrink-0" />
-      ) : (
-        leftIcon
-      )}
+      {isLoading ? <Icon name="refresh" size={16} className="animate-spin text-current shrink-0" /> : leftIcon}
       {children && <span>{children}</span>}
       {!isLoading && rightIcon}
     </button>

@@ -101,9 +101,7 @@ export const PermissionMatrixView: React.FC<PermissionMatrixViewProps> = ({
 
       {/* Mobile Role Switcher (Visible on small screens) */}
       <div className="lg:hidden bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs space-y-2">
-        <label className="text-[11px] font-black uppercase text-slate-500 font-heading">
-          Select Role to Configure
-        </label>
+        <label className="text-[11px] font-black uppercase text-slate-500 font-heading">Select Role to Configure</label>
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
           {roles.map((r) => (
             <button
@@ -162,10 +160,7 @@ export const PermissionMatrixView: React.FC<PermissionMatrixViewProps> = ({
 
             {/* Table Body by Group */}
             <tbody className="divide-y divide-slate-100">
-              {GROUPS.filter(
-                (grp) =>
-                  selectedGroupFilter === 'all' || selectedGroupFilter === grp
-              ).map((grp) => {
+              {GROUPS.filter((grp) => selectedGroupFilter === 'all' || selectedGroupFilter === grp).map((grp) => {
                 const groupPerms = filteredCatalog.filter((p) => p.group === grp);
                 if (groupPerms.length === 0) return null;
 
@@ -178,10 +173,7 @@ export const PermissionMatrixView: React.FC<PermissionMatrixViewProps> = ({
                       onClick={() => toggleGroupCollapse(grp)}
                       className="bg-slate-100/75 hover:bg-slate-100 cursor-pointer transition-colors border-y border-slate-200/90 select-none"
                     >
-                      <td
-                        colSpan={roles.length + 1}
-                        className="py-2.5 px-6 sticky left-0 z-10"
-                      >
+                      <td colSpan={roles.length + 1} className="py-2.5 px-6 sticky left-0 z-10">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Icon
@@ -206,10 +198,7 @@ export const PermissionMatrixView: React.FC<PermissionMatrixViewProps> = ({
                     {/* Permissions rows inside category */}
                     {!isCollapsed &&
                       groupPerms.map((perm) => (
-                        <tr
-                          key={perm.id}
-                          className="hover:bg-slate-50/60 transition-colors group"
-                        >
+                        <tr key={perm.id} className="hover:bg-slate-50/60 transition-colors group">
                           {/* Sticky Permission Name & Description */}
                           <td className="py-3 px-6 sticky left-0 bg-white group-hover:bg-slate-50/60 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
                             <div className="flex items-center gap-2">
@@ -224,9 +213,7 @@ export const PermissionMatrixView: React.FC<PermissionMatrixViewProps> = ({
                                   High-Risk
                                 </span>
                               )}
-                              <span className="text-[10px] font-mono uppercase text-slate-400">
-                                {perm.actionType}
-                              </span>
+                              <span className="text-[10px] font-mono uppercase text-slate-400">{perm.actionType}</span>
                             </div>
                             <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5 leading-snug">
                               {perm.description}
@@ -235,15 +222,10 @@ export const PermissionMatrixView: React.FC<PermissionMatrixViewProps> = ({
 
                           {/* Role Toggle Switch Columns */}
                           {roles.map((role) => {
-                            const isChecked = role.isOwnerRole
-                              ? true
-                              : !!role.permissions[perm.id];
+                            const isChecked = role.isOwnerRole ? true : !!role.permissions[perm.id];
 
                             return (
-                              <td
-                                key={`${role.id}-${perm.id}`}
-                                className="py-3 px-4 text-center align-middle"
-                              >
+                              <td key={`${role.id}-${perm.id}`} className="py-3 px-4 text-center align-middle">
                                 <PermissionToggle
                                   checked={isChecked}
                                   disabled={role.isOwnerRole}
@@ -274,12 +256,8 @@ export const PermissionMatrixView: React.FC<PermissionMatrixViewProps> = ({
             <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4 shadow-2xs">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
-                  <h3 className="text-base font-black font-heading text-slate-900">
-                    {currentRole.name} Permissions
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    {currentRole.description}
-                  </p>
+                  <h3 className="text-base font-black font-heading text-slate-900">{currentRole.name} Permissions</h3>
+                  <p className="text-xs text-slate-500 font-medium">{currentRole.description}</p>
                 </div>
                 {currentRole.isOwnerRole && (
                   <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-heading">
@@ -289,52 +267,33 @@ export const PermissionMatrixView: React.FC<PermissionMatrixViewProps> = ({
               </div>
 
               <div className="space-y-4">
-                {GROUPS.filter(
-                  (grp) =>
-                    selectedGroupFilter === 'all' || selectedGroupFilter === grp
-                ).map((grp) => {
+                {GROUPS.filter((grp) => selectedGroupFilter === 'all' || selectedGroupFilter === grp).map((grp) => {
                   const groupPerms = filteredCatalog.filter((p) => p.group === grp);
                   if (groupPerms.length === 0) return null;
 
                   return (
-                    <div
-                      key={grp}
-                      className="rounded-xl border border-slate-200/80 overflow-hidden"
-                    >
+                    <div key={grp} className="rounded-xl border border-slate-200/80 overflow-hidden">
                       <div className="bg-slate-50 px-3.5 py-2 border-b border-slate-200/80 flex items-center justify-between">
-                        <span className="text-xs font-black uppercase text-slate-800 font-heading">
-                          {grp}
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-500">
-                          {groupPerms.length} items
-                        </span>
+                        <span className="text-xs font-black uppercase text-slate-800 font-heading">{grp}</span>
+                        <span className="text-[10px] font-bold text-slate-500">{groupPerms.length} items</span>
                       </div>
 
                       <div className="divide-y divide-slate-100">
                         {groupPerms.map((perm) => {
-                          const isChecked = currentRole.isOwnerRole
-                            ? true
-                            : !!currentRole.permissions[perm.id];
+                          const isChecked = currentRole.isOwnerRole ? true : !!currentRole.permissions[perm.id];
 
                           return (
-                            <div
-                              key={perm.id}
-                              className="p-3 flex items-center justify-between gap-3"
-                            >
+                            <div key={perm.id} className="p-3 flex items-center justify-between gap-3">
                               <div className="flex-1 pr-2">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs font-bold text-slate-900">
-                                    {perm.label}
-                                  </span>
+                                  <span className="text-xs font-bold text-slate-900">{perm.label}</span>
                                   {perm.isHighRisk && (
                                     <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-heading">
                                       High-Risk
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
-                                  {perm.description}
-                                </p>
+                                <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{perm.description}</p>
                               </div>
 
                               <div className="shrink-0 flex items-center gap-2">

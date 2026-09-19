@@ -1,9 +1,10 @@
+import crypto from 'node:crypto';
 import express, { Router, type Express } from 'express';
 import compression from 'compression';
-import { config } from './config.js';
+import { config, assertProductionConfig } from './config.js';
 import { getDb } from './db/database.js';
 import { seedDatabase } from './db/seed.js';
-import { sessions } from './db/repositories.js';
+import { sessions, backfillCatalogueColumns } from './db/repositories.js';
 import {
   correlation,
   cors,
@@ -26,20 +27,31 @@ import { razorpayWebhookRouter } from './routes/webhooks.js';
 import { startJobs } from './jobs/index.js';
 import { storageDriverName } from './lib/storage.js';
 import { messagingStatus } from './lib/messaging.js';
+import { billingRouter } from './routes/billing.js';
+import { pushRouter } from './routes/push.js';
+import { requestLogger, metricsText, log } from './lib/logger.js';
+import { databaseSizeBytes } from './db/database.js';
+import { pushEnabled } from './lib/push.js';
 import './services/notificationService.js';
 
 const startedAt = Date.now();
 
-export const API_VERSION = '3.0.0';
+function timingSafeEqualString(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
+
+export const API_VERSION = '3.1.0';
 
 /** Builds the versioned API router. Mounted at /api/v1 (and /api for convenience). */
 export function createApiRouter(): Router {
   const api = Router();
 
   api.use(cors);
-  api.use(securityHeaders);
   api.use(correlation);
   api.use(responseTime);
+  api.use(requestLogger);
   api.use(rateLimit({ name: 'api', windowMs: config.rateLimit.apiWindowMs, max: config.rateLimit.apiMaxRequests }));
 
   api.get(['/health', '/status'], (_req, res) => {
@@ -53,6 +65,7 @@ export function createApiRouter(): Router {
       payments: config.razorpay.enabled ? 'razorpay' : 'simulated',
       storage: storageDriverName,
       messaging: messagingStatus(),
+      push: pushEnabled(),
       demoData: config.seedDemoData,
       timestamp: new Date().toISOString(),
     });
@@ -67,6 +80,8 @@ export function createApiRouter(): Router {
   api.use('/public', publicRouter);
   api.use('/audit', auditRouter);
   api.use('/files', filesRouter);
+  api.use('/billing', billingRouter);
+  api.use('/push', pushRouter);
 
   api.use(notFoundHandler);
   api.use(errorHandler);
@@ -79,12 +94,16 @@ export interface AppOptions {
 }
 
 export async function createApp(options: AppOptions = {}): Promise<Express> {
+  assertProductionConfig();
   getDb();
   seedDatabase();
+  backfillCatalogueColumns();
   sessions.purgeExpired();
 
   const app = express();
   app.disable('x-powered-by');
+  // Security headers go on every response, including the SPA document and static files.
+  app.use(securityHeaders);
   app.use(compression({ threshold: 1024 }));
   if (process.env.TRUST_PROXY) app.set('trust proxy', process.env.TRUST_PROXY === 'true' ? 1 : process.env.TRUST_PROXY);
 
@@ -99,6 +118,20 @@ export async function createApp(options: AppOptions = {}): Promise<Express> {
   app.use('/api/v1', api);
   app.use('/api', api);
 
+  // Prometheus scrape endpoint. Protected by METRICS_TOKEN when set (always required in production).
+  app.get('/metrics', (req, res) => {
+    const token = process.env.METRICS_TOKEN;
+    if (token || config.isProduction) {
+      const presented = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+      if (!token || !timingSafeEqualString(presented, token)) {
+        res.status(404).end();
+        return;
+      }
+    }
+    res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+    res.send(metricsText({ database_size_bytes: databaseSizeBytes() }));
+  });
+
   // Public uploads (listing photos, avatars) from local storage.
   if (storageDriverName === 'local') {
     const path = await import('node:path');
@@ -109,11 +142,18 @@ export async function createApp(options: AppOptions = {}): Promise<Express> {
         immutable: true,
         index: false,
         dotfiles: 'deny',
+        // A missing photo must be a 404, never the SPA's index.html (which the service worker would cache as an image).
+        fallthrough: false,
       })
     );
   }
 
   if (config.jobs.enabled) startJobs();
+  log.info('nestin api ready', {
+    env: config.env,
+    version: API_VERSION,
+    payments: config.razorpay.enabled ? 'razorpay' : 'simulated',
+  });
 
   if (options.serveFrontend) {
     if (config.isProduction) {
@@ -124,11 +164,19 @@ export async function createApp(options: AppOptions = {}): Promise<Express> {
           maxAge: '1y',
           index: false,
           setHeaders: (res, filePath) => {
-            if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+            // Un-hashed entry points must always be revalidated: the document, the service worker
+            // (otherwise updates lag by the browser's 24h cap), the manifest and the offline page.
+            const base = path.basename(filePath);
+            if (base.endsWith('.html') || base === 'sw.js' || base === 'manifest.webmanifest') {
+              res.setHeader('Cache-Control', 'no-cache');
+            }
+            if (filePath.endsWith('sw.js')) res.setHeader('Service-Worker-Allowed', '/');
           },
         })
       );
-      app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')));
+      app.get('*', (_req, res) =>
+        res.sendFile(path.join(distPath, 'index.html'), { headers: { 'Cache-Control': 'no-cache' } })
+      );
     } else {
       const { createServer: createViteServer } = await import('vite');
       const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });

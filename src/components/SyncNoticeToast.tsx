@@ -22,12 +22,37 @@ export const SyncNoticeToast: React.FC = () => {
         <div
           key={n.id}
           className={`flex items-start gap-3 px-4 py-3 rounded-2xl shadow-xl border text-xs font-semibold backdrop-blur ${
-            n.kind === 'error' ? 'bg-rose-50/95 border-rose-200 text-rose-800' : n.kind === 'success' ? 'bg-emerald-50/95 border-emerald-200 text-emerald-900' : 'bg-white/95 border-slate-200 text-slate-800'
+            n.kind === 'error'
+              ? 'bg-rose-50/95 border-rose-200 text-rose-800'
+              : n.kind === 'success'
+                ? 'bg-emerald-50/95 border-emerald-200 text-emerald-900'
+                : 'bg-white/95 border-slate-200 text-slate-800'
           }`}
         >
-          {n.kind === 'error' ? <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" /> : n.kind === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> : <Info className="w-4 h-4 shrink-0 mt-0.5" />}
-          <span className="leading-relaxed break-words">{n.message}</span>
-          <button type="button" aria-label="Dismiss" onClick={() => setNotices((prev) => prev.filter((x) => x.id !== n.id))} className="ml-auto text-current/60 hover:text-current cursor-pointer">
+          {n.kind === 'error' ? (
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          ) : n.kind === 'success' ? (
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+          ) : (
+            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+          )}
+          <span className="leading-relaxed break-words">
+            {n.message}
+            {n.action && (
+              <>
+                {' '}
+                <a href={n.action.href} className="underline font-black hover:opacity-80">
+                  {n.action.label} →
+                </a>
+              </>
+            )}
+          </span>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => setNotices((prev) => prev.filter((x) => x.id !== n.id))}
+            className="ml-auto text-current/60 hover:text-current cursor-pointer"
+          >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>

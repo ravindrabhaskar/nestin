@@ -96,24 +96,15 @@ export const RoleCard: React.FC<RoleCardProps> = ({
       {/* Role Title & Description */}
       <div className="my-2.5">
         <div className="flex items-center gap-2">
-          <div
-            className="w-2.5 h-2.5 rounded-full shrink-0"
-            style={{ backgroundColor: role.color || '#062817' }}
-          />
-          <h3 className="text-base font-extrabold font-heading text-slate-900 tracking-tight truncate">
-            {role.name}
-          </h3>
+          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: role.color || '#062817' }} />
+          <h3 className="text-base font-extrabold font-heading text-slate-900 tracking-tight truncate">{role.name}</h3>
         </div>
-        <p className="text-xs text-slate-500 line-clamp-2 mt-1 font-medium leading-snug">
-          {role.description}
-        </p>
+        <p className="text-xs text-slate-500 line-clamp-2 mt-1 font-medium leading-snug">{role.description}</p>
       </div>
 
       {/* Bottom Authority Level & Meter */}
       <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between">
-        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-heading">
-          AUTHORITY
-        </div>
+        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-heading">AUTHORITY</div>
         <AuthorityMeter level={role.authorityLevel} showLabel={true} size="sm" />
       </div>
     </div>

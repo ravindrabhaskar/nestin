@@ -121,9 +121,7 @@ export const QuickLoginToast: React.FC = () => {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#a3e635] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#a3e635]"></span>
                 </span>
-                <span className="text-[11px] font-black uppercase tracking-wider text-[#a3e635]">
-                  Quick Login
-                </span>
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#a3e635]">Quick Login</span>
                 <span className="text-slate-500 text-xs">•</span>
                 <span className="text-slate-300 text-xs font-semibold flex items-center gap-1">
                   <Heart className="w-3 h-3 text-red-400 fill-red-400 inline" />

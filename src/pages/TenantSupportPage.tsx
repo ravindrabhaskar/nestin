@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Search,
-  MessageSquare,
-  Phone,
-  Mail,
-  ChevronDown,
-  Plus,
-  CheckCircle2,
-  Send,
-  X,
-} from 'lucide-react';
+import { Search, MessageSquare, Phone, Mail, ChevronDown, Plus, CheckCircle2, Send, X } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
 import { TenantSupportTicket } from '../types';
 import { ApiClient } from '../lib/apiClient';
@@ -25,11 +15,15 @@ export const TenantSupportPage: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const { data: tickets, setData: setTickets } = useApiResource<TenantSupportTicket[]>(() => ApiClient.tenant.tickets(), [], {
-    enabled: !!user,
-    key: user?.id,
-    label: 'Could not load your support tickets',
-  });
+  const { data: tickets, setData: setTickets } = useApiResource<TenantSupportTicket[]>(
+    () => ApiClient.tenant.tickets(),
+    [],
+    {
+      enabled: !!user,
+      key: user?.id,
+      label: 'Could not load your support tickets',
+    }
+  );
 
   const [ticketSubject, setTicketSubject] = useState('');
   const [ticketCategory, setTicketCategory] = useState('Rent & Deposit');
@@ -56,8 +50,7 @@ export const TenantSupportPage: React.FC = () => {
 
   const filteredFaqs = faqs.filter(
     (f) =>
-      f.q.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.a.toLowerCase().includes(searchQuery.toLowerCase())
+      f.q.toLowerCase().includes(searchQuery.toLowerCase()) || f.a.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const showToast = (msg: string) => {
@@ -69,7 +62,12 @@ export const TenantSupportPage: React.FC = () => {
     e.preventDefault();
     if (!ticketSubject.trim() || !ticketMessage.trim()) return;
     try {
-      const created = await ApiClient.tenant.createTicket({ subject: ticketSubject, category: ticketCategory, description: ticketMessage, priority: 'Medium' });
+      const created = await ApiClient.tenant.createTicket({
+        subject: ticketSubject,
+        category: ticketCategory,
+        description: ticketMessage,
+        priority: 'Medium',
+      });
       setTickets((prev) => [created, ...prev]);
       setTicketSubject('');
       setTicketMessage('');
@@ -120,7 +118,6 @@ export const TenantSupportPage: React.FC = () => {
       )}
 
       <div className="space-y-6">
-
         {/* SEARCH HELP BAR */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs">
           <div className="relative">
@@ -138,9 +135,7 @@ export const TenantSupportPage: React.FC = () => {
         {/* FREQUENTLY ASKED QUESTIONS */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-4">
           <div>
-            <h3 className="text-base font-bold font-heading text-slate-900">
-              Frequently Asked Questions
-            </h3>
+            <h3 className="text-base font-bold font-heading text-slate-900">Frequently Asked Questions</h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Quick answers to common questions about bookings, deposits, and stays.
             </p>
@@ -166,9 +161,7 @@ export const TenantSupportPage: React.FC = () => {
                     />
                   </button>
                   {isExpanded && (
-                    <div className="mt-2 text-xs text-slate-600 leading-relaxed font-sans pr-6">
-                      {faq.a}
-                    </div>
+                    <div className="mt-2 text-xs text-slate-600 leading-relaxed font-sans pr-6">{faq.a}</div>
                   )}
                 </div>
               );
@@ -179,12 +172,8 @@ export const TenantSupportPage: React.FC = () => {
         {/* CONTACT SUPPORT */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-4">
           <div>
-            <h3 className="text-base font-bold font-heading text-slate-900">
-              Contact Support
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Our resident support team is available 24/7 to assist you.
-            </p>
+            <h3 className="text-base font-bold font-heading text-slate-900">Contact Support</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Our resident support team is available 24/7 to assist you.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -194,7 +183,10 @@ export const TenantSupportPage: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-bold font-heading text-slate-900">Email Support</div>
-                <a href="mailto:support@nestin.app" className="text-xs text-slate-500 hover:text-slate-900 truncate block">
+                <a
+                  href="mailto:support@nestin.app"
+                  className="text-xs text-slate-500 hover:text-slate-900 truncate block"
+                >
                   support@nestin.app
                 </a>
               </div>
@@ -228,12 +220,8 @@ export const TenantSupportPage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold font-heading text-slate-900">
-                My Support Requests
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Track status and replies for your raised inquiries.
-              </p>
+              <h3 className="text-base font-bold font-heading text-slate-900">My Support Requests</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Track status and replies for your raised inquiries.</p>
             </div>
 
             <button
@@ -248,15 +236,10 @@ export const TenantSupportPage: React.FC = () => {
           <div className="divide-y divide-slate-100">
             {tickets.length > 0 ? (
               tickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
+                <div key={ticket.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold font-heading text-slate-900 truncate">
-                        {ticket.subject}
-                      </span>
+                      <span className="text-xs font-bold font-heading text-slate-900 truncate">{ticket.subject}</span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-heading ${
                           (ticket.status || '').toLowerCase().includes('open')
@@ -286,23 +269,22 @@ export const TenantSupportPage: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="py-6 text-center text-slate-400 text-xs">
-                No support tickets raised yet.
-              </div>
+              <div className="py-6 text-center text-slate-400 text-xs">No support tickets raised yet.</div>
             )}
           </div>
         </div>
-
       </div>
 
       {/* CREATE TICKET MODAL */}
       {newTicketModalOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 font-sans">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-base font-bold font-heading text-slate-900">
-                Create Support Request
-              </h3>
+              <h3 className="text-base font-bold font-heading text-slate-900">Create Support Request</h3>
               <button
                 type="button"
                 onClick={() => setNewTicketModalOpen(false)}
@@ -314,9 +296,7 @@ export const TenantSupportPage: React.FC = () => {
 
             <form onSubmit={handleCreateTicket} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1">
-                  Category
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1">Category</label>
                 <select
                   value={ticketCategory}
                   onChange={(e) => setTicketCategory(e.target.value)}
@@ -331,9 +311,7 @@ export const TenantSupportPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1">
-                  Subject
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1">Subject</label>
                 <input
                   type="text"
                   required
@@ -345,9 +323,7 @@ export const TenantSupportPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1">
-                  Description
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1">Description</label>
                 <textarea
                   required
                   rows={4}
@@ -380,14 +356,18 @@ export const TenantSupportPage: React.FC = () => {
 
       {/* VIEW TICKET THREAD MODAL */}
       {selectedTicket && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150 font-sans max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-sm font-bold font-heading text-slate-900 truncate">
-                  {selectedTicket.subject}
-                </h3>
-                <p className="text-xs text-slate-500">ID: {selectedTicket.id} • {selectedTicket.category}</p>
+                <h3 className="text-sm font-bold font-heading text-slate-900 truncate">{selectedTicket.subject}</h3>
+                <p className="text-xs text-slate-500">
+                  ID: {selectedTicket.id} • {selectedTicket.category}
+                </p>
               </div>
               <button
                 type="button"

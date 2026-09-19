@@ -1,8 +1,12 @@
 import { config } from '../config.js';
-import { customers, payments, sessions } from '../db/repositories.js';
+import { customers, payments, sessions, users } from '../db/repositories.js';
 import { getMeta, setMeta } from '../db/database.js';
 import { notifyUser } from '../services/crmService.js';
 import { events } from '../lib/events.js';
+import { runVerificationExpiry } from '../services/propertyService.js';
+import { getSubscription, hasFeature } from '../services/billingService.js';
+import { runScheduledBackup } from '../lib/backup.js';
+import { log } from '../lib/logger.js';
 
 /**
  * Lightweight in-process scheduler. Jobs are idempotent per period (tracked in the `meta` table) so
@@ -19,9 +23,14 @@ export function runRentReminders(now = new Date()): { reminded: number } {
   let reminded = 0;
   const byOwner = new Map<string, string[]>();
 
+  const reminderEligible = new Map<string, boolean>();
   for (const customer of customers.list({ status: 'Active' })) {
     const key = `rent-reminder:${customer.id}:${period}`;
     if (getMeta(key)) continue;
+    // Automated reminders are a paid-plan feature; Starter owners see dues on the dashboard instead.
+    if (!reminderEligible.has(customer.ownerId))
+      reminderEligible.set(customer.ownerId, hasFeature(customer.ownerId, 'rentReminders'));
+    if (!reminderEligible.get(customer.ownerId)) continue;
     const paidThisMonth = payments
       .list({ customer_id: customer.id, status: 'Paid' })
       .some((p) => p.type === 'Rent' && p.createdAt >= monthStart);
@@ -55,15 +64,29 @@ export function runRentReminders(now = new Date()): { reminded: number } {
   return { reminded };
 }
 
+/** Touches every owner subscription so lapsed trials/periods downgrade even when the owner is inactive. */
+export function reconcileSubscriptions(): number {
+  let touched = 0;
+  for (const owner of users.list({ role: 'owner' }, 10000)) {
+    getSubscription(owner.id);
+    touched += 1;
+  }
+  return touched;
+}
+
 export function startJobs(): void {
-  const tick = () => {
+  const tick = async () => {
     try {
       runRentReminders();
       sessions.purgeExpired();
+      reconcileSubscriptions();
+      const ver = runVerificationExpiry();
+      if (ver.expired || ver.dueSoon) log.info('verification sweep', ver);
+      await runScheduledBackup();
     } catch (err) {
-      console.error('[jobs] tick failed:', err);
+      log.error('jobs tick failed', { error: String(err) });
     }
   };
   setTimeout(tick, 30_000).unref();
-  setInterval(tick, DAY_MS / 4).unref(); // four times a day; idempotent per month
+  setInterval(tick, DAY_MS / 4).unref(); // four times a day; every job is idempotent per period
 }

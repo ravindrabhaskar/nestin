@@ -7,17 +7,6 @@ interface TenantAuthModalProps {
   initialTab?: 'login' | 'signup';
 }
 
-export const TenantAuthModal: React.FC<TenantAuthModalProps> = ({
-  isOpen,
-  onClose,
-  initialTab = 'login',
-}) => {
-  return (
-    <NestInAuthModal
-      isOpen={isOpen}
-      onClose={onClose}
-      initialRole="tenant"
-      initialTab={initialTab}
-    />
-  );
+export const TenantAuthModal: React.FC<TenantAuthModalProps> = ({ isOpen, onClose, initialTab = 'login' }) => {
+  return <NestInAuthModal isOpen={isOpen} onClose={onClose} initialRole="tenant" initialTab={initialTab} />;
 };

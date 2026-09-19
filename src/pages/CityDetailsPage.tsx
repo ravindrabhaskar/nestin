@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
 import {
   ArrowLeft,
   MapPin,
@@ -19,14 +18,13 @@ import {
   Plane,
   Bus,
   CloudSun,
-  Star,
   Users,
   Compass,
   ArrowRight,
   ChevronRight,
   Info,
 } from 'lucide-react';
-import { INDIAN_CITIES_DATA } from '../data/citiesData';
+import { useCities, cityStaysLabel } from '../lib/usePlatformData';
 import { LazyImage } from '../components/LazyImage';
 import { InteractiveMap } from '../components/InteractiveMap';
 import { usePropertyListing } from '../context/PropertyListingContext';
@@ -34,28 +32,29 @@ import { usePropertyListing } from '../context/PropertyListingContext';
 export const CityDetailsPage: React.FC = () => {
   const { citySlug } = useParams<{ citySlug: string }>();
   const navigate = useNavigate();
+  const { value: allCities } = useCities();
 
   // Find matching city by id or name slug
   const city = useMemo(() => {
-    if (!citySlug) return INDIAN_CITIES_DATA[0];
+    if (!citySlug) return allCities[0];
     const cleanSlug = citySlug.toLowerCase().trim();
     return (
-      INDIAN_CITIES_DATA.find(
+      allCities.find(
         (c) =>
           c.id.toLowerCase() === cleanSlug ||
           c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === cleanSlug ||
           c.name.toLowerCase() === cleanSlug
-      ) || INDIAN_CITIES_DATA[0]
+      ) || allCities[0]
     );
-  }, [citySlug]);
+  }, [citySlug, allCities]);
 
   // Filter properties in this city
   const { publishedProperties, toFindPGListing } = usePropertyListing();
   const allListings = useMemo(() => publishedProperties.map(toFindPGListing), [publishedProperties, toFindPGListing]);
   const cityProperties = useMemo(() => {
-    return allListings.filter((p) =>
-      p.city.toLowerCase().includes(city.name.toLowerCase()) ||
-      city.name.toLowerCase().includes(p.city.toLowerCase())
+    return allListings.filter(
+      (p) =>
+        p.city.toLowerCase().includes(city.name.toLowerCase()) || city.name.toLowerCase().includes(p.city.toLowerCase())
     );
   }, [city, allListings]);
 
@@ -65,14 +64,15 @@ export const CityDetailsPage: React.FC = () => {
   };
 
   const staysCount = city.verifiedCount
-    ? `${city.verifiedCount.toLocaleString()} Verified Stays`
-    : city.stays || '2,500+ Verified Stays';
+    ? `${city.verifiedCount.toLocaleString('en-IN')} Verified ${city.verifiedCount === 1 ? 'Stay' : 'Stays'}`
+    : cityStaysLabel(city);
 
-  const startingPrice = city.startingRent
-    ? `₹${city.startingRent.toLocaleString('en-IN')}`
-    : '₹5,500';
+  const startingPrice = city.startingRent ? `₹${city.startingRent.toLocaleString('en-IN')}` : '—';
 
-  const avgPrice = city.avgPrice || '₹7,500/mo';
+  const avgPrice =
+    city.availableBeds !== undefined && city.availableBeds > 0
+      ? `${city.availableBeds.toLocaleString('en-IN')} free`
+      : 'No listings yet';
 
   return (
     <div className="min-h-screen bg-[#053222] text-white selection:bg-[#a3e635] selection:text-black pb-24">
@@ -89,9 +89,13 @@ export const CityDetailsPage: React.FC = () => {
           </button>
 
           <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 font-medium">
-            <span className="cursor-pointer hover:text-white" onClick={() => navigate('/')}>Home</span>
+            <span className="cursor-pointer hover:text-white" onClick={() => navigate('/')}>
+              Home
+            </span>
             <ChevronRight className="w-3.5 h-3.5" />
-            <span className="cursor-pointer hover:text-white" onClick={() => navigate('/cities')}>Cities</span>
+            <span className="cursor-pointer hover:text-white" onClick={() => navigate('/cities')}>
+              Cities
+            </span>
             <ChevronRight className="w-3.5 h-3.5" />
             <span className="text-[#a3e635] font-bold">{city.name}</span>
           </div>
@@ -156,7 +160,7 @@ export const CityDetailsPage: React.FC = () => {
               </div>
 
               <div className="bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-white/15">
-                <span className="text-xs text-slate-400 block">Average Rent</span>
+                <span className="text-xs text-slate-400 block">Beds available</span>
                 <span className="text-base font-black text-white font-heading">{avgPrice}</span>
               </div>
 
@@ -194,7 +198,9 @@ export const CityDetailsPage: React.FC = () => {
                 <span>Student Hub Score</span>
               </div>
               <p className="text-2xl font-black text-white font-heading">{city.studentScore || 9.5} / 10</p>
-              <p className="text-xs text-slate-300">Top destination for engineering, medical, and management students across India.</p>
+              <p className="text-xs text-slate-300">
+                Top destination for engineering, medical, and management students across India.
+              </p>
             </div>
 
             <div className="bg-slate-950/60 rounded-2xl p-5 border border-white/10 space-y-2">
@@ -203,7 +209,9 @@ export const CityDetailsPage: React.FC = () => {
                 <span>Working Professional Score</span>
               </div>
               <p className="text-2xl font-black text-white font-heading">{city.proScore || 9.6} / 10</p>
-              <p className="text-xs text-slate-300">High density of IT parks, MNC headquarters, and startup incubators.</p>
+              <p className="text-xs text-slate-300">
+                High density of IT parks, MNC headquarters, and startup incubators.
+              </p>
             </div>
 
             <div className="bg-slate-950/60 rounded-2xl p-5 border border-white/10 space-y-2">
@@ -212,7 +220,9 @@ export const CityDetailsPage: React.FC = () => {
                 <span>Safety & Women Index</span>
               </div>
               <p className="text-2xl font-black text-white font-heading">{city.safetyScore || 9.7} / 10</p>
-              <p className="text-xs text-slate-300">Verified safe neighborhoods with 24/7 CCTV surveillance and security staff.</p>
+              <p className="text-xs text-slate-300">
+                Verified safe neighborhoods with 24/7 CCTV surveillance and security staff.
+              </p>
             </div>
           </div>
         </section>
@@ -318,7 +328,9 @@ export const CityDetailsPage: React.FC = () => {
         <section className="bg-slate-900/80 rounded-3xl p-6 sm:p-8 border border-white/10 backdrop-blur-md space-y-6 shadow-2xl">
           <div className="flex items-center gap-3 border-b border-white/10 pb-4">
             <MapPin className="w-6 h-6 text-[#a3e635]" />
-            <h2 className="text-2xl font-black font-heading tracking-tight text-white">Popular Residential Localities</h2>
+            <h2 className="text-2xl font-black font-heading tracking-tight text-white">
+              Popular Residential Localities
+            </h2>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -419,7 +431,9 @@ export const CityDetailsPage: React.FC = () => {
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center gap-3">
               <MapPin className="w-6 h-6 text-[#a3e635]" />
-              <h2 className="text-2xl font-black font-heading tracking-tight text-white">{city.name} Map & Stay Clusters</h2>
+              <h2 className="text-2xl font-black font-heading tracking-tight text-white">
+                {city.name} Map & Stay Clusters
+              </h2>
             </div>
             <button
               type="button"
@@ -450,7 +464,9 @@ export const CityDetailsPage: React.FC = () => {
           </h2>
 
           <p className="text-base sm:text-lg text-slate-300 max-w-xl mx-auto font-medium">
-            Explore verified PGs, Hostels, and Co-Living rooms starting from {startingPrice}/month with zero brokerage.
+            {city.startingRent
+              ? `Explore verified PGs, Hostels, and Co-Living rooms starting from ${startingPrice}/month with zero brokerage.`
+              : `We are onboarding verified PGs, Hostels and Co-Living spaces in ${city.name}. Own a property here? List it free.`}
           </p>
 
           <button

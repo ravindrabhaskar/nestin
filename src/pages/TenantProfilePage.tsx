@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Check, X } from 'lucide-react';
+import { Camera, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
 import { uploadFile } from '../lib/apiClient';
@@ -99,7 +99,6 @@ export const TenantProfilePage: React.FC = () => {
       )}
 
       <div className="space-y-6">
-        
         {/* PROFILE HEADER CARD */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -158,13 +157,7 @@ export const TenantProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoUpload}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
 
             {!isEditing && (
               <div>
@@ -183,22 +176,15 @@ export const TenantProfilePage: React.FC = () => {
         {/* PERSONAL INFORMATION FORM */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs">
           <div className="mb-6">
-            <h3 className="text-base font-bold font-heading text-slate-900">
-              Personal information
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Update your personal details.
-            </p>
+            <h3 className="text-base font-bold font-heading text-slate-900">Personal information</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Update your personal details.</p>
           </div>
 
           <form onSubmit={handleSave} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              
               {/* FIRST NAME */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  First Name
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">First Name</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -217,9 +203,7 @@ export const TenantProfilePage: React.FC = () => {
 
               {/* LAST NAME */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  Last Name
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Last Name</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -237,9 +221,7 @@ export const TenantProfilePage: React.FC = () => {
 
               {/* EMAIL ADDRESS (READ-ONLY) */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  Email Address
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Email Address</label>
                 <div className="h-10 px-3.5 rounded-xl bg-slate-100/70 border border-slate-200/80 flex items-center justify-between text-xs text-slate-600 font-sans">
                   <span className="truncate">{user?.email || 'priya@gmail.com'}</span>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-heading">
@@ -251,9 +233,7 @@ export const TenantProfilePage: React.FC = () => {
 
               {/* PHONE NUMBER */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  Phone Number
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Phone Number</label>
                 {isEditing ? (
                   <input
                     type="tel"
@@ -271,9 +251,7 @@ export const TenantProfilePage: React.FC = () => {
 
               {/* CITY */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">
-                  City
-                </label>
+                <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">City</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -288,7 +266,6 @@ export const TenantProfilePage: React.FC = () => {
                   </div>
                 )}
               </div>
-
             </div>
 
             {/* FORM ACTION BUTTONS */}
@@ -311,7 +288,6 @@ export const TenantProfilePage: React.FC = () => {
             )}
           </form>
         </div>
-
       </div>
     </TenantAccountLayout>
   );

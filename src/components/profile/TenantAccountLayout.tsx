@@ -31,7 +31,7 @@ export const TenantAccountLayout: React.FC<TenantAccountLayoutProps> = ({
       return activeNav === path;
     }
     if (tab) {
-      return (currentPath === path && currentTab === tab) || (currentPath === `${path}/${tab}`);
+      return (currentPath === path && currentTab === tab) || currentPath === `${path}/${tab}`;
     }
     if (path.startsWith('/settings/')) {
       return currentPath === path || (currentPath === '/settings' && currentTab === path.replace('/settings/', ''));
@@ -68,9 +68,7 @@ export const TenantAccountLayout: React.FC<TenantAccountLayoutProps> = ({
     },
     {
       group: 'SUPPORT',
-      links: [
-        { label: 'Help & Support', path: '/support', iconName: 'support' },
-      ],
+      links: [{ label: 'Help & Support', path: '/support', iconName: 'support' }],
     },
   ];
 
@@ -89,12 +87,8 @@ export const TenantAccountLayout: React.FC<TenantAccountLayoutProps> = ({
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 mb-8 border-b border-slate-200/80">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-tight text-slate-900">
-              {title}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-              {subtitle}
-            </p>
+            <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-tight text-slate-900">{title}</h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">{subtitle}</p>
           </div>
           {headerAction && <div className="shrink-0">{headerAction}</div>}
         </div>
@@ -130,12 +124,14 @@ export const TenantAccountLayout: React.FC<TenantAccountLayoutProps> = ({
                           type="button"
                           onClick={() => handleNavClick(link.path, link.tab)}
                           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors text-left ${
-                            active
-                              ? 'bg-slate-900 text-[#a3e635]'
-                              : 'text-slate-700 hover:bg-slate-50'
+                            active ? 'bg-slate-900 text-[#a3e635]' : 'text-slate-700 hover:bg-slate-50'
                           }`}
                         >
-                          <Icon name={link.iconName} size={16} className={active ? 'text-[#a3e635]' : 'text-slate-400'} />
+                          <Icon
+                            name={link.iconName}
+                            size={16}
+                            className={active ? 'text-[#a3e635]' : 'text-slate-400'}
+                          />
                           <span>{link.label}</span>
                         </button>
                       );
@@ -170,11 +166,7 @@ export const TenantAccountLayout: React.FC<TenantAccountLayoutProps> = ({
                             : 'text-slate-700 hover:bg-slate-50 hover:text-slate-950'
                         }`}
                       >
-                        <Icon
-                          name={link.iconName}
-                          size={16}
-                          className={active ? 'text-[#a3e635]' : 'text-slate-400'}
-                        />
+                        <Icon name={link.iconName} size={16} className={active ? 'text-[#a3e635]' : 'text-slate-400'} />
                         <span>{link.label}</span>
                       </button>
                     );

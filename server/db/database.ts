@@ -200,6 +200,23 @@ CREATE TABLE IF NOT EXISTS outbox (
 );
 CREATE INDEX IF NOT EXISTS idx_outbox_created ON outbox(created_at);
 
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL UNIQUE, plan TEXT NOT NULL, status TEXT NOT NULL,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS subscription_invoices (
+  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, status TEXT NOT NULL, amount REAL NOT NULL, gateway_order_id TEXT,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sub_invoices_owner ON subscription_invoices(owner_id, created_at);
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, endpoint TEXT NOT NULL UNIQUE,
+  data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id);
+
 CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY, value TEXT NOT NULL
 );
@@ -213,6 +230,54 @@ function migrate(database: DatabaseSync): void {
   );
   if (!ticketCols.includes('owner_id')) database.exec('ALTER TABLE support_tickets ADD COLUMN owner_id TEXT');
   database.exec('CREATE INDEX IF NOT EXISTS idx_tickets_owner ON support_tickets(owner_id)');
+  // Catalogue query columns (server-side search/sort) for databases created before v3.1.
+  const propCols = (database.prepare('PRAGMA table_info(properties)').all() as Array<{ name: string }>).map(
+    (c) => c.name
+  );
+  for (const [col, ddl] of [
+    ['category', 'TEXT'],
+    ['type', 'TEXT'],
+    ['area', 'TEXT'],
+    ['min_rent', 'REAL'],
+    ['rating', 'REAL'],
+    ['is_verified', 'INTEGER'],
+    ['is_featured', 'INTEGER'],
+    ['available_beds', 'INTEGER'],
+    ['search_text', 'TEXT'],
+  ] as const) {
+    if (!propCols.includes(col)) database.exec(`ALTER TABLE properties ADD COLUMN ${col} ${ddl}`);
+  }
+  database.exec('CREATE INDEX IF NOT EXISTS idx_properties_city_status ON properties(status, city)');
+  database.exec('CREATE INDEX IF NOT EXISTS idx_properties_rent ON properties(status, min_rent)');
+  const paymentCols = (database.prepare('PRAGMA table_info(payments)').all() as Array<{ name: string }>).map(
+    (c) => c.name
+  );
+  if (!paymentCols.includes('platform_fee'))
+    database.exec('ALTER TABLE payments ADD COLUMN platform_fee REAL NOT NULL DEFAULT 0');
+  if (!paymentCols.includes('gateway_order_id')) database.exec('ALTER TABLE payments ADD COLUMN gateway_order_id TEXT');
+  database.exec('CREATE INDEX IF NOT EXISTS idx_payments_gateway_order ON payments(gateway_order_id)');
+  database.exec('CREATE INDEX IF NOT EXISTS idx_sub_invoices_gateway_order ON subscription_invoices(gateway_order_id)');
+}
+
+/** Size of the database file on disk (0 for in-memory). */
+export function databaseSizeBytes(): number {
+  if (config.databasePath === ':memory:') return 0;
+  try {
+    return fs.statSync(config.databasePath).size;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Consistent online backup using SQLite's `VACUUM INTO` (safe under WAL while readers/writers continue).
+ * Returns the written file path.
+ */
+export function backupDatabaseTo(filePath: string): string {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  getDb().exec(`VACUUM INTO '${filePath.replace(/'/g, "''")}'`);
+  return filePath;
 }
 
 export const nowIso = () => new Date().toISOString();
@@ -318,6 +383,28 @@ export class Collection<T extends { id: string }> {
     return rows.map((r) => this.parse(r) as T);
   }
 
+  /**
+   * Paginated query with raw SQL predicates over the indexed columns (used by the public catalogue).
+   * `where` entries are ANDed; `params` are bound positionally.
+   */
+  search(opts: { where?: string[]; params?: Scalar[]; orderBy?: string; limit?: number; offset?: number }): {
+    items: T[];
+    total: number;
+  } {
+    const clause = opts.where && opts.where.length ? `WHERE ${opts.where.join(' AND ')}` : '';
+    const params = opts.params || [];
+    const total = Number(
+      (this.prepare(`SELECT COUNT(*) AS n FROM ${this.spec.table} ${clause}`).get(...params) as { n: number }).n
+    );
+    const order = opts.orderBy || 'created_at DESC';
+    const limit = Math.max(1, Math.floor(opts.limit || 50));
+    const offset = Math.max(0, Math.floor(opts.offset || 0));
+    const rows = this.prepare(
+      `SELECT data FROM ${this.spec.table} ${clause} ORDER BY ${order} LIMIT ${limit} OFFSET ${offset}`
+    ).all(...params);
+    return { items: rows.map((r) => this.parse(r) as T), total };
+  }
+
   findOne(where: Record<string, Scalar | undefined>): T | null {
     return this.list(where, { limit: 1 })[0] || null;
   }
@@ -349,6 +436,21 @@ export class Collection<T extends { id: string }> {
 export function getMeta(key: string): string | null {
   const row = getDb().prepare('SELECT value FROM meta WHERE key = ?').get(key) as { value: string } | undefined;
   return row?.value ?? null;
+}
+
+/**
+ * Atomically increments and returns a named counter (stored in `meta`). Used for document serials
+ * that must be unique and gap-free per series, e.g. GST invoice numbers.
+ */
+export function nextSequence(name: string): number {
+  const row = getDb()
+    .prepare(
+      `INSERT INTO meta (key, value) VALUES (?, '1')
+       ON CONFLICT(key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)
+       RETURNING CAST(value AS INTEGER) AS n`
+    )
+    .get(`seq:${name}`) as { n: number };
+  return row.n;
 }
 
 export function setMeta(key: string, value: string): void {

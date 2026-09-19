@@ -11,15 +11,14 @@ interface FooterProps {
   onNavigate?: (page: 'home' | 'about' | 'contact', sectionId?: string) => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({
-  onSelectCity,
-  onOpenFAQ,
-  onNavigate,
-}) => {
+export const Footer: React.FC<FooterProps> = ({ onSelectCity, onOpenFAQ, onNavigate }) => {
   const navigate = useNavigate();
 
   return (
-    <footer id="footer-section" className="w-full bg-[#0F5132] text-white py-12 sm:py-16 lg:py-20 relative overflow-hidden mt-12">
+    <footer
+      id="footer-section"
+      className="w-full bg-[#0F5132] text-white py-12 sm:py-16 lg:py-20 relative overflow-hidden mt-12"
+    >
       {/* Subtle Ambient Light Effect */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-[#a3e635]/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -64,9 +63,7 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Col 3: FIND A PG */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-[#a3e635] tracking-widest uppercase font-heading">
-              FIND A PG
-            </h4>
+            <h4 className="text-xs font-bold text-[#a3e635] tracking-widest uppercase font-heading">FIND A PG</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-slate-300 font-sans">
               {['Bengaluru', 'Hyderabad', 'Pune', 'Delhi NCR', 'Chennai'].map((city) => (
                 <li key={city}>
@@ -84,24 +81,22 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Col 4: PLATFORM & TRUST */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-[#a3e635] tracking-widest uppercase font-heading">
-              PLATFORM TRUST
-            </h4>
+            <h4 className="text-xs font-bold text-[#a3e635] tracking-widest uppercase font-heading">PLATFORM TRUST</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-slate-300 font-sans">
-              {['100% Physical Audits', 'Verified Hostels', 'Zero Brokerage Guarantee', '24/7 Security Hotline'].map((item) => (
-                <li key={item} className="text-slate-300 py-0.5 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#a3e635] shrink-0" />
-                  <span>{item}</span>
-                </li>
-              ))}
+              {['100% Physical Audits', 'Verified Hostels', 'Zero Brokerage Guarantee', '24/7 Security Hotline'].map(
+                (item) => (
+                  <li key={item} className="text-slate-300 py-0.5 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#a3e635] shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                )
+              )}
             </ul>
           </div>
 
           {/* Col 5: COMPANY */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-[#a3e635] tracking-widest uppercase font-heading">
-              COMPANY
-            </h4>
+            <h4 className="text-xs font-bold text-[#a3e635] tracking-widest uppercase font-heading">COMPANY</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-slate-300 font-sans">
               <li>
                 <button
@@ -146,9 +141,7 @@ export const Footer: React.FC<FooterProps> = ({
 
           {/* Col 6: RESOURCES */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-[#a3e635] tracking-widest uppercase font-heading">
-              RESOURCES
-            </h4>
+            <h4 className="text-xs font-bold text-[#a3e635] tracking-widest uppercase font-heading">RESOURCES</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-slate-300 font-sans">
               <li>
                 <button
@@ -192,23 +185,30 @@ export const Footer: React.FC<FooterProps> = ({
           <p>© 2026 NestIn Platform. All rights reserved.</p>
           <div className="flex items-center gap-4 text-slate-400">
             <button
-              onClick={onOpenFAQ}
+              type="button"
+              onClick={() => navigate('/privacy')}
               className="hover:text-[#a3e635] transition-colors cursor-pointer"
             >
               Privacy Policy
             </button>
             <span className="text-emerald-800">•</span>
             <button
-              onClick={onOpenFAQ}
+              type="button"
+              onClick={() => navigate('/terms')}
               className="hover:text-[#a3e635] transition-colors cursor-pointer"
             >
               Terms of Service
             </button>
             <span className="text-emerald-800">•</span>
             <button
-              onClick={onOpenFAQ}
+              type="button"
+              onClick={() => navigate('/refund-policy')}
               className="hover:text-[#a3e635] transition-colors cursor-pointer"
             >
+              Refund & Cancellation
+            </button>
+            <span className="text-emerald-800">•</span>
+            <button type="button" onClick={onOpenFAQ} className="hover:text-[#a3e635] transition-colors cursor-pointer">
               Resident Code of Conduct
             </button>
           </div>

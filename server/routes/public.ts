@@ -9,6 +9,12 @@ export const publicRouter = Router();
 
 const formLimiter = rateLimit({ name: 'forms', windowMs: 60 * 60 * 1000, max: 30 });
 
+/** Live platform numbers for the landing page (no fabricated marketing figures). */
+publicRouter.get('/stats', (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  sendOk(res, admin.publicStats());
+});
+
 publicRouter.post(
   '/contact',
   formLimiter,

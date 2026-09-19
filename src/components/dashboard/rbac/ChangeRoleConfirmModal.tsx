@@ -21,7 +21,11 @@ export const ChangeRoleConfirmModal: React.FC<ChangeRoleConfirmModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+    >
       <div
         className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95"
         role="dialog"
@@ -37,7 +41,8 @@ export const ChangeRoleConfirmModal: React.FC<ChangeRoleConfirmModalProps> = ({
               Change employee role?
             </h3>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              Changing the role for <strong className="text-slate-900 font-bold">{employeeName}</strong> will immediately update this employee&apos;s permissions across all modules and properties.
+              Changing the role for <strong className="text-slate-900 font-bold">{employeeName}</strong> will
+              immediately update this employee&apos;s permissions across all modules and properties.
             </p>
           </div>
         </div>

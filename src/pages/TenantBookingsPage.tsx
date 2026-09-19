@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  MapPin,
-  Calendar,
-  Bed,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  X,
-  Phone,
-} from 'lucide-react';
+import { MapPin, Calendar, Bed, CheckCircle2, Clock, XCircle, X, Phone } from 'lucide-react';
 import { TenantAccountLayout } from '../components/profile/TenantAccountLayout';
 import { TenantBookingItem } from '../types';
 import { ApiClient } from '../lib/apiClient';
@@ -19,7 +10,11 @@ import { useAuth } from '../context/AuthContext';
 export const TenantBookingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: bookings, setData: setBookings, isLoading } = useApiResource<TenantBookingItem[]>(() => ApiClient.tenant.bookings(), [], {
+  const {
+    data: bookings,
+    setData: setBookings,
+    isLoading,
+  } = useApiResource<TenantBookingItem[]>(() => ApiClient.tenant.bookings(), [], {
     enabled: !!user,
     key: user?.id,
     label: 'Could not load your bookings',
@@ -89,13 +84,8 @@ export const TenantBookingsPage: React.FC = () => {
   };
 
   return (
-    <TenantAccountLayout
-      title="My Bookings"
-      subtitle="View and manage your PG bookings."
-      activeNav="/my-bookings"
-    >
+    <TenantAccountLayout title="My Bookings" subtitle="View and manage your PG bookings." activeNav="/my-bookings">
       <div className="space-y-6">
-        
         {/* TAB FILTER BUTTONS */}
         <div className="bg-white rounded-xl border border-slate-200/80 p-1 flex flex-wrap gap-1 shadow-2xs">
           {(['Upcoming', 'Active', 'Completed', 'Cancelled'] as const).map((tab) => {
@@ -165,13 +155,17 @@ export const TenantBookingsPage: React.FC = () => {
 
                     <div className="flex items-center gap-1 text-xs text-slate-500">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{booking.location}, {booking.city}</span>
+                      <span className="truncate">
+                        {booking.location}, {booking.city}
+                      </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 pt-0.5">
                       <div className="flex items-center gap-1 font-medium">
                         <Bed className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{booking.roomNumber || 'Room 304'} • {booking.bedNumber || 'Bed A'}</span>
+                        <span>
+                          {booking.roomNumber || 'Room 304'} • {booking.bedNumber || 'Bed A'}
+                        </span>
                       </div>
                       <span className="text-slate-300">•</span>
                       <div className="flex items-center gap-1 font-medium">
@@ -205,9 +199,7 @@ export const TenantBookingsPage: React.FC = () => {
         ) : (
           /* EMPTY STATE */
           <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-2xs space-y-3">
-            <h3 className="text-sm font-bold font-heading text-slate-900">
-              No {activeTab.toLowerCase()} bookings
-            </h3>
+            <h3 className="text-sm font-bold font-heading text-slate-900">No {activeTab.toLowerCase()} bookings</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               You do not have any {activeTab.toLowerCase()} PG bookings at the moment.
             </p>
@@ -222,18 +214,19 @@ export const TenantBookingsPage: React.FC = () => {
             </div>
           </div>
         )}
-
       </div>
 
       {/* VIEW BOOKING DETAILS MODAL */}
       {selectedBooking && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150 font-sans max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-bold font-heading text-slate-900">
-                  Booking Details
-                </h3>
+                <h3 className="text-base font-bold font-heading text-slate-900">Booking Details</h3>
                 <p className="text-xs text-slate-500">Ref: {selectedBooking.bookingNumber || selectedBooking.id}</p>
               </div>
               <button
@@ -252,10 +245,10 @@ export const TenantBookingsPage: React.FC = () => {
                 className="w-14 h-14 rounded-lg object-cover"
               />
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold font-heading text-slate-900 truncate">
-                  {selectedBooking.pgName}
+                <div className="text-xs font-bold font-heading text-slate-900 truncate">{selectedBooking.pgName}</div>
+                <div className="text-xs text-slate-500 truncate">
+                  {selectedBooking.location}, {selectedBooking.city}
                 </div>
-                <div className="text-xs text-slate-500 truncate">{selectedBooking.location}, {selectedBooking.city}</div>
                 <div className="mt-1">{getStatusBadge(selectedBooking.status)}</div>
               </div>
             </div>
@@ -277,9 +270,7 @@ export const TenantBookingsPage: React.FC = () => {
 
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="text-slate-400 font-medium">Check-in Date</div>
-                <div className="font-bold text-slate-900 font-heading mt-0.5">
-                  {selectedBooking.checkInDate}
-                </div>
+                <div className="font-bold text-slate-900 font-heading mt-0.5">{selectedBooking.checkInDate}</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -306,7 +297,9 @@ export const TenantBookingsPage: React.FC = () => {
             )}
 
             {cancelError && (
-              <div className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{cancelError}</div>
+              <div className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+                {cancelError}
+              </div>
             )}
 
             <div className="pt-2 flex items-center justify-end gap-3">

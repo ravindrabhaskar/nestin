@@ -11,7 +11,7 @@ export const ScrollToTopButton: React.FC = () => {
     const handleScroll = () => {
       const scrollY = window.scrollY || window.pageYOffset;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      
+
       // Calculate scroll progress percentage (0 to 100)
       if (docHeight > 0) {
         const progress = Math.min(100, Math.max(0, (scrollY / docHeight) * 100));
@@ -63,19 +63,9 @@ export const ScrollToTopButton: React.FC = () => {
             className="relative group w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-slate-900/95 hover:bg-slate-950 text-white flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-md border border-slate-700/60 cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#a3e635]"
           >
             {/* Circular Progress Ring SVG */}
-            <svg
-              className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-0.5"
-              viewBox="0 0 48 48"
-            >
+            <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-0.5" viewBox="0 0 48 48">
               {/* Background ring */}
-              <circle
-                cx="24"
-                cy="24"
-                r={radius}
-                className="stroke-slate-700/40"
-                strokeWidth="2.5"
-                fill="none"
-              />
+              <circle cx="24" cy="24" r={radius} className="stroke-slate-700/40" strokeWidth="2.5" fill="none" />
               {/* Active progress ring */}
               <circle
                 cx="24"

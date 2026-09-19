@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Printer, Download, CheckCircle2, Building2, User, Calendar, IndianRupee } from 'lucide-react';
+import { X, Printer, CheckCircle2 } from 'lucide-react';
 import { CustomerItem, CustomerPaymentRecord } from '../../../types/crm';
 
 interface CustomerReceiptModalProps {
@@ -8,17 +8,17 @@ interface CustomerReceiptModalProps {
   onClose: () => void;
 }
 
-export const CustomerReceiptModal: React.FC<CustomerReceiptModalProps> = ({
-  customer,
-  payment,
-  onClose,
-}) => {
+export const CustomerReceiptModal: React.FC<CustomerReceiptModalProps> = ({ customer, payment, onClose }) => {
   const handlePrint = () => {
     window.print();
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+    >
       <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Top Bar */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -68,7 +68,9 @@ export const CustomerReceiptModal: React.FC<CustomerReceiptModalProps> = ({
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-bold text-slate-900">{customer.fullName}</p>
-                <p className="text-xs text-slate-500">{customer.phone} · {customer.email}</p>
+                <p className="text-xs text-slate-500">
+                  {customer.phone} · {customer.email}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-xs font-bold text-slate-800">{customer.roomName}</p>
@@ -84,7 +86,9 @@ export const CustomerReceiptModal: React.FC<CustomerReceiptModalProps> = ({
             </div>
             <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
               <div className="flex justify-between items-center p-3 bg-white text-xs">
-                <span className="text-slate-600 font-medium">{payment.description || 'Monthly PG Accommodation Rent'}</span>
+                <span className="text-slate-600 font-medium">
+                  {payment.description || 'Monthly PG Accommodation Rent'}
+                </span>
                 <span className="font-bold text-slate-900">₹{payment.rentAmount.toLocaleString('en-IN')}</span>
               </div>
               {payment.additionalCharges > 0 && (
@@ -95,7 +99,9 @@ export const CustomerReceiptModal: React.FC<CustomerReceiptModalProps> = ({
               )}
               <div className="flex justify-between items-center p-3.5 bg-slate-900 text-white font-bold text-sm">
                 <span>Total Amount Paid</span>
-                <span className="text-[#a3e635] text-base font-black">₹{payment.totalAmount.toLocaleString('en-IN')}</span>
+                <span className="text-[#a3e635] text-base font-black">
+                  ₹{payment.totalAmount.toLocaleString('en-IN')}
+                </span>
               </div>
             </div>
           </div>

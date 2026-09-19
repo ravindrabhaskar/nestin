@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Building2, User, Phone, Mail, IndianRupee, Calendar, Layers, ShieldCheck, Bed } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, CheckCircle, User, Phone, Mail, ShieldCheck } from 'lucide-react';
 import { usePropertyListing } from '../../../context/PropertyListingContext';
 import { useCRM } from '../../../context/CRMContext';
 import { LeadItem } from '../../../types/crm';
@@ -10,11 +10,7 @@ interface CreateBookingModalProps {
   onSuccess?: (bookingId: string) => void;
 }
 
-export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
-  initialLead,
-  onClose,
-  onSuccess,
-}) => {
+export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({ initialLead, onClose, onSuccess }) => {
   const { ownerProperties } = usePropertyListing();
   const { createBooking, approveBooking } = useCRM();
 
@@ -24,7 +20,9 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
   const [propertyId, setPropertyId] = useState(initialLead?.propertyId || ownerProperties[0]?.id || '');
   const [roomId, setRoomId] = useState('');
   const [bedId, setBedId] = useState('');
-  const [moveInDate, setMoveInDate] = useState(initialLead?.preferredMoveInDate || new Date().toISOString().split('T')[0]);
+  const [moveInDate, setMoveInDate] = useState(
+    initialLead?.preferredMoveInDate || new Date().toISOString().split('T')[0]
+  );
   const [durationMonths, setDurationMonths] = useState(11);
   const [monthlyRent, setMonthlyRent] = useState(12500);
   const [securityDeposit, setSecurityDeposit] = useState(25000);
@@ -40,31 +38,32 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
   const availableBeds = selectedRoom?.beds || [];
   const selectedBed = availableBeds.find((b) => b.id === bedId) || availableBeds[0];
 
-  // Sync rooms and rent when property changes
+  // Selecting a room (directly or via a property change) pre-fills rent, deposit and a free bed.
+  // These are change handlers rather than effects so the user's later edits are never overwritten.
+  const applyRoomDefaults = (room: (typeof availableRooms)[number] | undefined) => {
+    if (!room) return;
+    setRoomId(room.id);
+    setMonthlyRent(room.monthlyRent || 12000);
+    setSecurityDeposit(room.securityDeposit || (room.monthlyRent || 12000) * 2);
+    const freeBed = room.beds.find((b) => !b.isOccupied) || room.beds[0];
+    if (freeBed) setBedId(freeBed.id);
+  };
+  const handlePropertyChange = (nextPropertyId: string) => {
+    setPropertyId(nextPropertyId);
+    const property = ownerProperties.find((p) => p.id === nextPropertyId);
+    applyRoomDefaults(property?.rooms[0]);
+  };
+  const handleRoomChange = (nextRoomId: string) => {
+    applyRoomDefaults(availableRooms.find((r) => r.id === nextRoomId));
+  };
+  // Initial mount: the first property's first room.
+  const initialisedRef = useRef(false);
   useEffect(() => {
-    if (selectedProperty && selectedProperty.rooms.length > 0) {
-      const firstRoom = selectedProperty.rooms[0];
-      setRoomId(firstRoom.id);
-      setMonthlyRent(firstRoom.monthlyRent || 12000);
-      setSecurityDeposit(firstRoom.securityDeposit || (firstRoom.monthlyRent || 12000) * 2);
-      if (firstRoom.beds.length > 0) {
-        const freeBed = firstRoom.beds.find((b) => !b.isOccupied) || firstRoom.beds[0];
-        setBedId(freeBed.id);
-      }
-    }
-  }, [propertyId]);
-
-  // Sync bed and rent when room changes
-  useEffect(() => {
-    if (selectedRoom) {
-      setMonthlyRent(selectedRoom.monthlyRent || 12000);
-      setSecurityDeposit(selectedRoom.securityDeposit || (selectedRoom.monthlyRent || 12000) * 2);
-      const freeBed = selectedRoom.beds.find((b) => !b.isOccupied) || selectedRoom.beds[0];
-      if (freeBed) {
-        setBedId(freeBed.id);
-      }
-    }
-  }, [roomId]);
+    if (initialisedRef.current) return;
+    initialisedRef.current = true;
+    if (selectedProperty?.rooms.length) applyRoomDefaults(selectedProperty.rooms[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount by design
+  }, []);
 
   const totalAmount = monthlyRent + securityDeposit + bookingFee + maintenanceCharges;
 
@@ -129,7 +128,11 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+    >
       <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
         {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -139,7 +142,9 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-black font-heading text-white">Create Booking Allotment</h3>
-              <p className="text-[11px] text-slate-400">Allot room & bed with automatic tenant record & inventory sync</p>
+              <p className="text-[11px] text-slate-400">
+                Allot room & bed with automatic tenant record & inventory sync
+              </p>
             </div>
           </div>
           <button
@@ -196,9 +201,7 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Email Address
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Email Address</label>
               <div className="relative">
                 <Mail className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                 <input
@@ -220,7 +223,7 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
               </label>
               <select
                 value={propertyId}
-                onChange={(e) => setPropertyId(e.target.value)}
+                onChange={(e) => handlePropertyChange(e.target.value)}
                 className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-[#a3e635]"
               >
                 {ownerProperties.map((p) => (
@@ -237,7 +240,7 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
               </label>
               <select
                 value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
+                onChange={(e) => handleRoomChange(e.target.value)}
                 className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:outline-hidden focus:ring-2 focus:ring-[#a3e635]"
               >
                 {availableRooms.map((r) => (
@@ -282,9 +285,7 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Lease Tenure (Months)
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Lease Tenure (Months)</label>
               <select
                 value={durationMonths}
                 onChange={(e) => setDurationMonths(Number(e.target.value))}
@@ -375,9 +376,7 @@ export const CreateBookingModal: React.FC<CreateBookingModalProps> = ({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-              Internal Booking Notes
-            </label>
+            <label className="block text-xs font-black text-slate-700 font-heading mb-1">Internal Booking Notes</label>
             <textarea
               rows={2}
               placeholder="e.g. Deposit collected via GooglePay transaction #..."

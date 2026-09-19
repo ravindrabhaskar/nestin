@@ -40,4 +40,3 @@ export const PropertyAmenities: React.FC<PropertyAmenitiesProps> = ({
     </div>
   );
 };
-

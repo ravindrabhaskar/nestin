@@ -1,35 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Calendar,
   CheckCircle2,
-  Clock,
   Download,
   Eye,
   FileText,
-  Filter,
-  IndianRupee,
-  Mail,
-  MessageCircle,
-  MoreVertical,
-  Phone,
   Plus,
-  Printer,
   Receipt,
   Search,
-  ShieldAlert,
-  ShieldCheck,
   Trash2,
   Upload,
-  User,
-  Users,
   X,
-  XCircle,
-  Building2,
-  Bed,
-  FileCheck,
-  AlertTriangle,
   CreditCard,
-  History,
 } from 'lucide-react';
 import { useCRM } from '../../../context/CRMContext';
 import { usePropertyListing } from '../../../context/PropertyListingContext';
@@ -37,12 +18,13 @@ import { CustomerItem, CustomerTenantStatus, PaymentStatus } from '../../../type
 import { exportToCSV } from '../../../utils/csvExport';
 import { CustomerReceiptModal } from './CustomerReceiptModal';
 
-const TENANT_STATUS_BADGES: Record<CustomerTenantStatus, { label: string; color: string; bg: string; border: string }> = {
-  Active: { label: 'Active Tenant', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  Upcoming: { label: 'Upcoming Move-in', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' },
-  Vacating: { label: 'Vacating Soon', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
-  Inactive: { label: 'Past Resident', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-300' },
-};
+const TENANT_STATUS_BADGES: Record<CustomerTenantStatus, { label: string; color: string; bg: string; border: string }> =
+  {
+    Active: { label: 'Active Tenant', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+    Upcoming: { label: 'Upcoming Move-in', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' },
+    Vacating: { label: 'Vacating Soon', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+    Inactive: { label: 'Past Resident', color: 'text-slate-600', bg: 'bg-slate-100', border: 'border-slate-300' },
+  };
 
 const PAYMENT_BADGES: Record<PaymentStatus, { label: string; color: string; bg: string }> = {
   Paid: { label: 'Paid Up-to-date', color: 'text-emerald-700', bg: 'bg-emerald-50' },
@@ -52,12 +34,9 @@ const PAYMENT_BADGES: Record<PaymentStatus, { label: string; color: string; bg: 
   Refunded: { label: 'Refunded', color: 'text-slate-600', bg: 'bg-slate-100' },
 };
 
-export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
-  initialCustomerId,
-}) => {
+export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({ initialCustomerId }) => {
   const {
     customers,
-    updateCustomer,
     addCustomerDocument,
     verifyCustomerDocument,
     addCustomerPayment,
@@ -85,12 +64,16 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
   // Sub modals inside profile
   const [showLogPaymentModal, setShowLogPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Bank Transfer' | 'Credit Card' | 'Cash' | 'Auto-Debit'>('UPI');
+  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'Bank Transfer' | 'Credit Card' | 'Cash' | 'Auto-Debit'>(
+    'UPI'
+  );
   const [paymentDesc, setPaymentDesc] = useState('Monthly PG Accommodation Rent');
 
   const [showAddDocModal, setShowAddDocModal] = useState(false);
   const [docName, setDocName] = useState('');
-  const [docType, setDocType] = useState<'govt_id' | 'address_proof' | 'employment_proof' | 'agreement' | 'other'>('govt_id');
+  const [docType, setDocType] = useState<'govt_id' | 'address_proof' | 'employment_proof' | 'agreement' | 'other'>(
+    'govt_id'
+  );
   const [docNumber, setDocNumber] = useState('');
 
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
@@ -236,11 +219,15 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
           <p className="text-lg font-black text-amber-700 font-heading mt-0.5">{metrics.vacating}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 font-heading">Past / Inactive</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 font-heading">
+            Past / Inactive
+          </span>
           <p className="text-lg font-black text-slate-700 font-heading mt-0.5">{metrics.past}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 font-heading">Dues Pending</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 font-heading">
+            Dues Pending
+          </span>
           <p className="text-lg font-black text-rose-700 font-heading mt-0.5">{metrics.outstanding}</p>
         </div>
       </div>
@@ -360,9 +347,7 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
                           </div>
                           <div>
                             <p className="font-bold text-slate-900">{customer.fullName}</p>
-                            <p className="text-[10px] text-slate-400 truncate max-w-[140px]">
-                              {customer.email}
-                            </p>
+                            <p className="text-[10px] text-slate-400 truncate max-w-[140px]">{customer.email}</p>
                           </div>
                         </div>
                       </td>
@@ -385,7 +370,9 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
                       </td>
 
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${payConfig.bg} ${payConfig.color}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${payConfig.bg} ${payConfig.color}`}
+                        >
                           {customer.paymentStatus}
                         </span>
                       </td>
@@ -446,7 +433,11 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
 
       {/* 5. CUSTOMER PROFILE DRAWER / MODAL */}
       {activeCustomer && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
             {/* Top Bar */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -563,11 +554,15 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
                     </div>
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                       <span className="text-[10px] text-slate-400 uppercase font-black">Monthly Rent</span>
-                      <p className="font-bold text-slate-900 mt-0.5">₹{activeCustomer.monthlyRent.toLocaleString('en-IN')}</p>
+                      <p className="font-bold text-slate-900 mt-0.5">
+                        ₹{activeCustomer.monthlyRent.toLocaleString('en-IN')}
+                      </p>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                       <span className="text-[10px] text-slate-400 uppercase font-black">Security Deposit</span>
-                      <p className="font-bold text-slate-900 mt-0.5">₹{activeCustomer.securityDeposit.toLocaleString('en-IN')}</p>
+                      <p className="font-bold text-slate-900 mt-0.5">
+                        ₹{activeCustomer.securityDeposit.toLocaleString('en-IN')}
+                      </p>
                     </div>
                   </div>
 
@@ -710,7 +705,8 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
                               </span>
                             </div>
                             <p className="text-[10px] text-slate-500 mt-0.5">
-                              {pay.date} · Method: <span className="font-bold">{pay.paymentMethod}</span> · ID: {pay.paymentId}
+                              {pay.date} · Method: <span className="font-bold">{pay.paymentMethod}</span> · ID:{' '}
+                              {pay.paymentId}
                             </p>
                           </div>
 
@@ -745,12 +741,17 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
                   </div>
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                     {activeCustomer.timeline.map((act) => (
-                      <div key={act.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5">
+                      <div
+                        key={act.id}
+                        className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5"
+                      >
                         <div className="w-2 h-2 rounded-full bg-[#a3e635] mt-1.5 shrink-0" />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-slate-800">{act.action}</span>
-                            <span className="text-[10px] text-slate-400">{act.date} · {act.time}</span>
+                            <span className="text-[10px] text-slate-400">
+                              {act.date} · {act.time}
+                            </span>
                           </div>
                           <p className="text-[11px] text-slate-500 mt-0.5">{act.description}</p>
                         </div>
@@ -788,7 +789,11 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
 
       {/* Log Payment Modal */}
       {showLogPaymentModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-sm font-black font-heading text-slate-900">Record Rent / Deposit Payment</h3>
             <form onSubmit={handleLogPaymentSubmit} className="space-y-3">
@@ -851,7 +856,11 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
 
       {/* Upload Document Modal */}
       {showAddDocModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-sm font-black font-heading text-slate-900">Upload Resident Document</h3>
             <form onSubmit={handleAddDocSubmit} className="space-y-3">
@@ -915,11 +924,16 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
 
       {/* Move out modal */}
       {showMoveOutModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-sm font-black font-heading text-slate-900">Record Tenant Move-out</h3>
             <p className="text-xs text-slate-500">
-              This will update tenant status to Inactive and mark bed {activeCustomer?.bedNumber} as available for new bookings.
+              This will update tenant status to Inactive and mark bed {activeCustomer?.bedNumber} as available for new
+              bookings.
             </p>
             <div className="space-y-3 text-xs">
               <div>

@@ -93,7 +93,7 @@ const replaceById = <T extends { id: string }>(list: T[], item: T): T[] =>
   list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [item, ...list];
 
 export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user, isOwner, isEmployee, isSuperAdmin, isLoading: authLoading } = useAuth();
+  const { user, isOwner, isEmployee, isLoading: authLoading } = useAuth();
   const { refresh: refreshProperties } = usePropertyListing();
 
   const [leads, setLeads] = useState<LeadItem[]>([]);
@@ -115,7 +115,8 @@ export const CRMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   customersRef.current = customers;
 
   const actorName = user?.name || 'Owner Portal';
-  const canUseCrm = isOwner || isEmployee || isSuperAdmin;
+  // Owner-scoped snapshot: super admins have no workspace of their own (the API answers 403 for them).
+  const canUseCrm = isOwner || isEmployee;
 
   const refresh = useCallback(async () => {
     if (!canUseCrm) {

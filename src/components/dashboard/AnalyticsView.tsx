@@ -1,23 +1,6 @@
-import React, { useState } from 'react';
-import {
-  TrendingUp,
-  FileDown,
-  BedDouble,
-  Users,
-  Building2,
-  Calendar,
-  Sparkles,
-  ArrowUpRight,
-  IndianRupee,
-  CheckCircle2,
-  PieChart as PieIcon,
-  BarChart3
-} from 'lucide-react';
-import {
-  exportMonthlyReportPDF,
-  SAMPLE_PROPERTIES_FINANCIAL,
-  formatCurrency,
-} from '../../utils/pdfExport';
+import React from 'react';
+import { TrendingUp, FileDown, Calendar } from 'lucide-react';
+import { exportMonthlyReportPDF, SAMPLE_PROPERTIES_FINANCIAL } from '../../utils/pdfExport';
 
 interface AnalyticsViewProps {
   ownerName: string;
@@ -32,8 +15,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onOpenExportModal,
   showToast,
 }) => {
-  const [selectedRange, setSelectedRange] = useState<'6m' | '1y' | 'all'>('6m');
-
   const totalBeds = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.totalBeds, 0);
   const occupiedBeds = SAMPLE_PROPERTIES_FINANCIAL.reduce((acc, p) => acc + p.occupiedBeds, 0);
   const vacantBeds = totalBeds - occupiedBeds;
@@ -111,9 +92,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
             <div className="text-[10px] font-bold text-slate-500 uppercase">Portfolio Occupancy</div>
-            <div className="text-2xl font-black text-slate-900 font-heading mt-0.5">
-              {overallOccupancy}%
-            </div>
+            <div className="text-2xl font-black text-slate-900 font-heading mt-0.5">{overallOccupancy}%</div>
             <div className="text-[10px] text-emerald-600 font-bold mt-0.5 flex items-center gap-1">
               <TrendingUp className="w-3 h-3" />
               <span>+7.4% vs March 2026</span>
@@ -125,29 +104,19 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             <div className="text-2xl font-black text-slate-900 font-heading mt-0.5">
               {occupiedBeds} / {totalBeds}
             </div>
-            <div className="text-[10px] text-slate-500 font-medium mt-0.5">
-              {vacantBeds} Vacant Beds Available
-            </div>
+            <div className="text-[10px] text-slate-500 font-medium mt-0.5">{vacantBeds} Vacant Beds Available</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
             <div className="text-[10px] font-bold text-slate-500 uppercase">Avg Yield Per Bed</div>
-            <div className="text-2xl font-black text-slate-900 font-heading mt-0.5">
-              ₹10,820
-            </div>
-            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
-              +₹450 YoY Growth
-            </div>
+            <div className="text-2xl font-black text-slate-900 font-heading mt-0.5">₹10,820</div>
+            <div className="text-[10px] text-emerald-600 font-bold mt-0.5">+₹450 YoY Growth</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
             <div className="text-[10px] font-bold text-slate-500 uppercase">Lead-to-Move-In</div>
-            <div className="text-2xl font-black text-slate-900 font-heading mt-0.5">
-              44.4%
-            </div>
-            <div className="text-[10px] text-slate-500 font-medium mt-0.5">
-              Avg 3.2 Days Decision Cycle
-            </div>
+            <div className="text-2xl font-black text-slate-900 font-heading mt-0.5">44.4%</div>
+            <div className="text-[10px] text-slate-500 font-medium mt-0.5">Avg 3.2 Days Decision Cycle</div>
           </div>
         </div>
       </div>
@@ -161,9 +130,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <h3 className="text-base font-black text-slate-900 font-heading">
                 Monthly Revenue Growth Trend (FY 26-27)
               </h3>
-              <p className="text-xs text-slate-500">
-                Gross rent billed and realized revenue across all 3 properties
-              </p>
+              <p className="text-xs text-slate-500">Gross rent billed and realized revenue across all 3 properties</p>
             </div>
             <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
               +14.6% 6-Mo Growth
@@ -216,12 +183,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         {/* Occupancy Utilization Breakdown */}
         <div className="lg:col-span-4 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-2xs space-y-4 flex flex-col justify-between">
           <div>
-            <h3 className="text-base font-black text-slate-900 font-heading">
-              Bed Occupancy Matrix
-            </h3>
-            <p className="text-xs text-slate-500">
-              Live capacity breakdown across sharing types
-            </p>
+            <h3 className="text-base font-black text-slate-900 font-heading">Bed Occupancy Matrix</h3>
+            <p className="text-xs text-slate-500">Live capacity breakdown across sharing types</p>
           </div>
 
           <div className="space-y-3">
@@ -233,13 +196,12 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <div key={idx} className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1.5">
                 <div className="flex justify-between text-xs">
                   <span className="font-bold text-slate-800">{room.type}</span>
-                  <span className="font-extrabold text-slate-900">{room.occupied}/{room.total} Beds</span>
+                  <span className="font-extrabold text-slate-900">
+                    {room.occupied}/{room.total} Beds
+                  </span>
                 </div>
                 <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    style={{ width: `${room.pct}%` }}
-                    className={`h-full rounded-full ${room.color}`}
-                  />
+                  <div style={{ width: `${room.pct}%` }} className={`h-full rounded-full ${room.color}`} />
                 </div>
                 <div className="flex justify-between text-[10px] text-slate-500">
                   <span>Utilization: {room.pct.toFixed(1)}%</span>

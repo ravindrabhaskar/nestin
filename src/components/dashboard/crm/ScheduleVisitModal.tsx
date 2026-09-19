@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, Phone, Mail, Building2, Users, FileText, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Calendar, User, Phone } from 'lucide-react';
 import { usePropertyListing } from '../../../context/PropertyListingContext';
 import { useCRM } from '../../../context/CRMContext';
 import { useRBAC } from '../../../context/RBACContext';
@@ -13,11 +13,7 @@ interface ScheduleVisitModalProps {
   onSuccess?: (visitorId: string) => void;
 }
 
-export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
-  initialLead,
-  onClose,
-  onSuccess,
-}) => {
+export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({ initialLead, onClose, onSuccess }) => {
   const { ownerProperties } = usePropertyListing();
   const { leads, scheduleVisit } = useCRM();
   const { employees } = useRBAC();
@@ -33,7 +29,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
   const [email, setEmail] = useState(initialLead?.email || '');
   const [propertyId, setPropertyId] = useState(initialLead?.propertyId || ownerProperties[0]?.id || '');
   const [preferredRoom, setPreferredRoom] = useState(initialLead?.roomType || 'Double Sharing AC');
-  
+
   // Default tomorrow at 04:00 PM
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -107,7 +103,11 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+    >
       <div className="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
         {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -213,9 +213,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Target Room Type
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Target Room Type</label>
               <input
                 type="text"
                 placeholder="e.g. Single Private AC Room"
@@ -242,9 +240,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Time Slot
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Time Slot</label>
               <select
                 value={visitTime}
                 onChange={(e) => setVisitTime(e.target.value)}
@@ -260,9 +256,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Group Size
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Group Size</label>
               <input
                 type="number"
                 min={1}
@@ -294,9 +288,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-black text-slate-700 font-heading mb-1">
-                Visit Purpose
-              </label>
+              <label className="block text-xs font-black text-slate-700 font-heading mb-1">Visit Purpose</label>
               <input
                 type="text"
                 placeholder="Walkthrough, Food Tasting, Guardian Visit"

@@ -9,10 +9,7 @@ interface DualCardsSectionProps {
   onListPG?: () => void;
 }
 
-export const DualCardsSection: React.FC<DualCardsSectionProps> = ({
-  onFindPG,
-  onListPG,
-}) => {
+export const DualCardsSection: React.FC<DualCardsSectionProps> = ({ onFindPG, onListPG }) => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
 
@@ -64,8 +61,10 @@ export const DualCardsSection: React.FC<DualCardsSectionProps> = ({
 
             {/* HEADLINE */}
             <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-black tracking-tight font-heading leading-[1.12] text-white">
-              Find. Compare.<br />
-              Book. All in one<br />
+              Find. Compare.
+              <br />
+              Book. All in one
+              <br />
               place.
             </h2>
 
@@ -81,9 +80,7 @@ export const DualCardsSection: React.FC<DualCardsSectionProps> = ({
                   <span className="shrink-0 flex items-center justify-center">
                     <Check className="w-4 h-4 text-[#a3e635] stroke-[2.8]" />
                   </span>
-                  <span className="text-xs sm:text-sm text-emerald-100 font-normal leading-snug">
-                    {benefit}
-                  </span>
+                  <span className="text-xs sm:text-sm text-emerald-100 font-normal leading-snug">{benefit}</span>
                 </li>
               ))}
             </ul>
@@ -149,9 +146,7 @@ export const DualCardsSection: React.FC<DualCardsSectionProps> = ({
                     <span className="shrink-0 flex items-center justify-center">
                       <Check className="w-4 h-4 text-[#84cc16] stroke-[2.8]" />
                     </span>
-                    <span className="text-xs sm:text-sm text-slate-600 font-normal leading-snug">
-                      {benefit}
-                    </span>
+                    <span className="text-xs sm:text-sm text-slate-600 font-normal leading-snug">{benefit}</span>
                   </li>
                 ))}
               </ul>

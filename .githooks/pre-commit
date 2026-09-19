@@ -1,0 +1,6 @@
+#!/bin/sh
+# Blocks commits that would reintroduce type errors, lint problems or unformatted files.
+# Bypass only for emergencies with `git commit --no-verify`.
+set -e
+echo "[pre-commit] typecheck + lint + format:check"
+npm run --silent check

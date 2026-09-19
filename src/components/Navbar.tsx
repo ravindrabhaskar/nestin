@@ -34,13 +34,7 @@ const LOGGED_IN_NAV_LINKS = [
   { label: 'Wishlist', href: 'wishlist', page: 'wishlist' as const, path: '/my-wishlist', iconName: 'bookmark' },
 ];
 
-export const Navbar: React.FC<NavbarProps> = ({
-  onOpenAuth,
-  onSelectSection,
-  onOpenFavorites,
-  currentPage = 'home',
-  onNavigate,
-}) => {
+export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onOpenFavorites }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { wishlistCount } = useWishlist();
@@ -78,7 +72,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       setActiveLink('Wishlist');
     } else if (location.pathname.startsWith('/favorites')) {
       setActiveLink('Favorites');
-    } else if (!isAuthenticated && (location.pathname.startsWith('/for-owners') || location.pathname.startsWith('/owner/dashboard'))) {
+    } else if (
+      !isAuthenticated &&
+      (location.pathname.startsWith('/for-owners') || location.pathname.startsWith('/owner/dashboard'))
+    ) {
       setActiveLink('For Owners');
     } else if (!isAuthenticated && location.pathname.startsWith('/about')) {
       setActiveLink('About');
@@ -335,7 +332,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                     aria-label="User profile menu"
                   >
                     {user?.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-6 h-6 rounded-full object-cover border border-[#a3e635]" />
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="w-6 h-6 rounded-full object-cover border border-[#a3e635]"
+                      />
                     ) : (
                       <div className="w-6 h-6 rounded-full bg-[#a3e635] text-[#0F5132] flex items-center justify-center text-[10px] font-black font-heading">
                         {user?.name?.[0] || 'U'}
@@ -350,10 +351,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
 
                   {/* PROFILE DROPDOWN MENU */}
-                  <ProfileDropdown
-                    isOpen={profileDropdownOpen}
-                    onClose={() => setProfileDropdownOpen(false)}
-                  />
+                  <ProfileDropdown isOpen={profileDropdownOpen} onClose={() => setProfileDropdownOpen(false)} />
                 </div>
               ) : (
                 <motion.button
@@ -363,7 +361,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="relative overflow-hidden group bg-[#a3e635] text-[#0F5132] font-extrabold text-xs sm:text-sm px-5 sm:px-6 py-2.5 rounded-full shadow-[0_4px_16px_rgba(163,230,53,0.4)] hover:shadow-[0_6px_24px_rgba(163,230,53,0.6)] transition-all duration-300 flex items-center gap-1.5 cursor-pointer"
                 >
                   <span>Log in</span>
-                  <Icon name="arrowRight" size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                  <Icon
+                    name="arrowRight"
+                    size={14}
+                    className="transition-transform duration-300 group-hover:translate-x-0.5"
+                  />
                 </motion.button>
               )}
             </div>
@@ -402,7 +404,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    navigate(user?.role === 'owner' ? '/owner/dashboard' : user?.role === 'admin' ? '/admin' : '/my-profile');
+                    navigate(
+                      user?.role === 'owner' ? '/owner/dashboard' : user?.role === 'admin' ? '/admin' : '/my-profile'
+                    );
                     setMobileMenuOpen(false);
                   }}
                   className="w-7 h-7 rounded-full bg-[#0F5132] text-white flex items-center justify-center text-xs font-bold ring-2 ring-[#a3e635] overflow-hidden"
@@ -419,9 +423,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className={`p-2 rounded-full cursor-pointer transition-colors flex items-center justify-center ${
-                  mobileMenuOpen
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-800 hover:text-black bg-slate-100'
+                  mobileMenuOpen ? 'bg-slate-900 text-white' : 'text-slate-800 hover:text-black bg-slate-100'
                 }`}
                 aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
                 aria-expanded={mobileMenuOpen}
@@ -457,7 +459,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`p-1.5 rounded-xl ${isActive ? 'bg-slate-800 text-[#a3e635]' : 'bg-slate-100 text-slate-500'}`}>
+                          <div
+                            className={`p-1.5 rounded-xl ${isActive ? 'bg-slate-800 text-[#a3e635]' : 'bg-slate-100 text-slate-500'}`}
+                          >
                             <Icon name={link.iconName} size={16} />
                           </div>
                           <span>{link.label}</span>
@@ -504,14 +508,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
                         <div className="flex items-center gap-2.5">
                           {user?.avatar ? (
-                            <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full object-cover border border-[#a3e635]" />
+                            <img
+                              src={user.avatar}
+                              alt={user.name}
+                              className="w-9 h-9 rounded-full object-cover border border-[#a3e635]"
+                            />
                           ) : (
                             <div className="w-9 h-9 rounded-full bg-[#a3e635] text-[#0F5132] font-black flex items-center justify-center text-xs font-heading">
                               {user?.name?.[0] || 'U'}
                             </div>
                           )}
                           <div>
-                            <div className="text-xs font-extrabold text-slate-900 truncate max-w-[150px] font-heading">{user?.name}</div>
+                            <div className="text-xs font-extrabold text-slate-900 truncate max-w-[150px] font-heading">
+                              {user?.name}
+                            </div>
                             <div className="text-[10px] text-slate-500 truncate max-w-[150px]">{user?.email}</div>
                           </div>
                         </div>

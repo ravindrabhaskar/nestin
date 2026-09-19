@@ -96,7 +96,8 @@ export const RBACProvider: React.FC<{ children: React.ReactNode }> = ({ children
   employeesRef.current = employees;
 
   const currentActor = useMemo(() => ({ id: user?.id || 'anonymous', name: user?.name || 'Owner' }), [user]);
-  const canUseRbac = isOwner || isEmployee || isSuperAdmin;
+  // Owner-scoped snapshot: super admins have no workspace of their own (the API answers 403 for them).
+  const canUseRbac = isOwner || isEmployee;
 
   const refresh = useCallback(async () => {
     if (!canUseRbac) {

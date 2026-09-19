@@ -1,3 +1,4 @@
+import { useFocusTrap } from '../lib/useFocusTrap';
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ArrowRight } from 'lucide-react';
@@ -45,19 +46,23 @@ export const Modals: React.FC<ModalsProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [searchFilter, selectedCity, onCloseSearch, onCloseCity]);
 
+  const cityTrapRef = useFocusTrap<HTMLDivElement>(!!selectedCity, onCloseCity);
+
   return (
     <>
       {/* AUTH MODAL */}
-      <TenantAuthModal
-        isOpen={authOpen}
-        onClose={onCloseAuth}
-        initialTab="login"
-      />
+      <TenantAuthModal isOpen={authOpen} onClose={onCloseAuth} initialTab="login" />
 
       {/* SELECTED CITY PREVIEW MODAL */}
       <AnimatePresence>
         {selectedCity && (
-          <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div
+            ref={cityTrapRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedCity.name} overview`}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+          >
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -74,11 +79,7 @@ export const Modals: React.FC<ModalsProps> = ({
               className="relative w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl z-10 border border-slate-100"
             >
               <div className="relative h-52 overflow-hidden">
-                <img
-                  src={selectedCity.image}
-                  alt={selectedCity.name}
-                  className="w-full h-full object-cover"
-                />
+                <img src={selectedCity.image} alt={selectedCity.name} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent" />
                 <button
                   type="button"
@@ -101,16 +102,12 @@ export const Modals: React.FC<ModalsProps> = ({
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-heading">
                     Popular Tech & College Hubs
                   </h4>
-                  <p className="text-slate-800 text-sm font-semibold mt-1">
-                    {selectedCity.description}
-                  </p>
+                  <p className="text-slate-800 text-sm font-semibold mt-1">{selectedCity.description}</p>
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between border border-slate-100">
                   <span className="text-xs text-slate-500 font-medium">Average Monthly Rent</span>
-                  <span className="text-base font-extrabold text-[#5fa000] font-heading">
-                    {selectedCity.avgPrice}
-                  </span>
+                  <span className="text-base font-extrabold text-[#5fa000] font-heading">{selectedCity.avgPrice}</span>
                 </div>
 
                 <button

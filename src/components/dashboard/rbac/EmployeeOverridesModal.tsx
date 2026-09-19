@@ -19,17 +19,8 @@ const GROUPS: PermissionGroupKey[] = [
   'SETTINGS',
 ];
 
-export const EmployeeOverridesModal: React.FC<EmployeeOverridesModalProps> = ({
-  isOpen,
-  onClose,
-  employee,
-}) => {
-  const {
-    roles,
-    permissionCatalog,
-    setEmployeeOverride,
-    clearEmployeeOverrides,
-  } = useRBAC();
+export const EmployeeOverridesModal: React.FC<EmployeeOverridesModalProps> = ({ isOpen, onClose, employee }) => {
+  const { roles, permissionCatalog, setEmployeeOverride, clearEmployeeOverrides } = useRBAC();
 
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,7 +43,11 @@ export const EmployeeOverridesModal: React.FC<EmployeeOverridesModalProps> = ({
   });
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
+    >
       <div
         className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95"
         role="dialog"
@@ -93,11 +88,7 @@ export const EmployeeOverridesModal: React.FC<EmployeeOverridesModalProps> = ({
         {/* Informational Sub-header */}
         <div className="px-5 sm:px-6 py-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-64">
-            <Icon
-              name="search"
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+            <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Filter permissions..."
@@ -129,9 +120,7 @@ export const EmployeeOverridesModal: React.FC<EmployeeOverridesModalProps> = ({
             type="button"
             onClick={() => setSelectedGroup('all')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 ${
-              selectedGroup === 'all'
-                ? 'bg-[#062817] text-[#a3e635]'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              selectedGroup === 'all' ? 'bg-[#062817] text-[#a3e635]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             All Categories
@@ -142,9 +131,7 @@ export const EmployeeOverridesModal: React.FC<EmployeeOverridesModalProps> = ({
               type="button"
               onClick={() => setSelectedGroup(grp)}
               className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 ${
-                selectedGroup === grp
-                  ? 'bg-[#062817] text-[#a3e635]'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                selectedGroup === grp ? 'bg-[#062817] text-[#a3e635]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               {grp}
@@ -171,9 +158,7 @@ export const EmployeeOverridesModal: React.FC<EmployeeOverridesModalProps> = ({
                 <div className="flex-1 pr-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-slate-900">{perm.label}</span>
-                    <span className="text-[10px] uppercase font-mono text-slate-400">
-                      {perm.group}
-                    </span>
+                    <span className="text-[10px] uppercase font-mono text-slate-400">{perm.group}</span>
 
                     {hasOverride ? (
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 font-heading">
@@ -185,9 +170,7 @@ export const EmployeeOverridesModal: React.FC<EmployeeOverridesModalProps> = ({
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
-                    {perm.description}
-                  </p>
+                  <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{perm.description}</p>
                 </div>
 
                 <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">

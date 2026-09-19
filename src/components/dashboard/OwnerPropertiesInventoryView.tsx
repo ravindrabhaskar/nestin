@@ -5,7 +5,6 @@ import {
   Plus,
   Search,
   MapPin,
-  BedDouble,
   ShieldCheck,
   CheckCircle2,
   Clock,
@@ -16,7 +15,6 @@ import {
   Eye,
   ShieldAlert,
   Sparkles,
-  Info
 } from 'lucide-react';
 import { OwnerPropertyListing, PropertyListingStatus } from '../../types/property';
 import { usePropertyListing } from '../../context/PropertyListingContext';
@@ -35,13 +33,8 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
   showToast,
 }) => {
   const navigate = useNavigate();
-  const {
-    ownerProperties,
-    deleteProperty,
-    duplicateProperty,
-    submitForVerification,
-    calculateCompleteness,
-  } = usePropertyListing();
+  const { ownerProperties, deleteProperty, duplicateProperty, submitForVerification, calculateCompleteness } =
+    usePropertyListing();
 
   const [activeStatusTab, setActiveStatusTab] = useState<'all' | PropertyListingStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,7 +114,8 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
             Property Listings & Inventory Master
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-2xl font-medium">
-            Create, verify, and manage your property profiles with accurate room sharing plans, 360° photo tours, verified caretaker KYC, and automated occupancy tracking.
+            Create, verify, and manage your property profiles with accurate room sharing plans, 360° photo tours,
+            verified caretaker KYC, and automated occupancy tracking.
           </p>
         </div>
 
@@ -160,9 +154,7 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
               <span>{tab.label}</span>
               <span
                 className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                  activeStatusTab === tab.id
-                    ? 'bg-[#a3e635] text-slate-950'
-                    : 'bg-slate-200 text-slate-700'
+                  activeStatusTab === tab.id ? 'bg-[#a3e635] text-slate-950' : 'bg-slate-200 text-slate-700'
                 }`}
               >
                 {tab.count}
@@ -208,9 +200,7 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
             <Building2 className="w-8 h-8" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-base font-black text-slate-900 font-heading">
-              No Properties Found
-            </h3>
+            <h3 className="text-base font-black text-slate-900 font-heading">No Properties Found</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               {searchQuery
                 ? 'Try adjusting your search criteria or clear status filters.'
@@ -251,7 +241,8 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
                           Verification Feedback
                         </div>
                         <div className="text-xs text-rose-700 font-medium">
-                          {property.rejectionReason || 'Please update the missing details and re-submit your property for verification.'}
+                          {property.rejectionReason ||
+                            'Please update the missing details and re-submit your property for verification.'}
                         </div>
                       </div>
                     </div>
@@ -269,14 +260,16 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
                   {/* Property Image & Quick Badges */}
                   <div className="relative w-full lg:w-64 h-48 lg:h-auto rounded-2xl overflow-hidden bg-slate-100 shrink-0">
                     <img
-                      src={property.coverImage || property.gallery[0]?.url || 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800'}
+                      src={
+                        property.coverImage ||
+                        property.gallery[0]?.url ||
+                        'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=800'
+                      }
                       alt={property.name}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-2.5 left-2.5">
-                      {getStatusBadge(property.status)}
-                    </div>
+                    <div className="absolute top-2.5 left-2.5">{getStatusBadge(property.status)}</div>
                     {property.isFeatured && (
                       <div className="absolute bottom-2.5 left-2.5 px-2.5 py-1 bg-amber-400 text-slate-950 font-black text-[10px] rounded-md uppercase tracking-wider font-heading">
                         ★ Featured
@@ -299,12 +292,12 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
                             </span>
                           )}
                         </div>
-                        <h3 className="text-lg font-black text-slate-950 font-heading">
-                          {property.name}
-                        </h3>
+                        <h3 className="text-lg font-black text-slate-950 font-heading">{property.name}</h3>
                         <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
                           <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{property.location.area}, {property.location.city}</span>
+                          <span className="truncate">
+                            {property.location.area}, {property.location.city}
+                          </span>
                         </div>
                       </div>
 
@@ -338,7 +331,9 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[10px] font-bold uppercase">Occupancy</span>
-                        <span className="font-black text-[#4d7c0f]">{occupancyPct}% ({totalOccupiedBeds}/{totalBeds})</span>
+                        <span className="font-black text-[#4d7c0f]">
+                          {occupancyPct}% ({totalOccupiedBeds}/{totalBeds})
+                        </span>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[10px] font-bold uppercase">Profile Score</span>
@@ -346,7 +341,11 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
                           <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                             <div
                               className={`h-full rounded-full ${
-                                completeness.score >= 80 ? 'bg-[#65a30d]' : completeness.score >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                                completeness.score >= 80
+                                  ? 'bg-[#65a30d]'
+                                  : completeness.score >= 50
+                                    ? 'bg-amber-500'
+                                    : 'bg-rose-500'
                               }`}
                               style={{ width: `${completeness.score}%` }}
                             />
@@ -390,7 +389,11 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
                     {property.status === 'pending_approval' && (
                       <button
                         type="button"
-                        onClick={() => showToast(`"${property.name}" is currently under verification. Average turnaround is 2–4 hours.`)}
+                        onClick={() =>
+                          showToast(
+                            `"${property.name}" is currently under verification. Average turnaround is 2–4 hours.`
+                          )
+                        }
                         className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer font-heading"
                       >
                         <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />

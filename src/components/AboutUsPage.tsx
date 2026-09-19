@@ -1,19 +1,8 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ShieldCheck,
-  Eye,
-  Cpu,
-  Sparkles,
-  Users,
-  Target,
-  Compass,
-  Building2,
-  Award,
-  ArrowRight,
-  Heart,
-} from 'lucide-react';
+import { usePlatformStats } from '../lib/usePlatformData';
+import { ShieldCheck, Eye, Cpu, Sparkles, Users, Target, Compass, Award, ArrowRight } from 'lucide-react';
 
 interface AboutUsPageProps {
   onNavigate: (page: 'home' | 'about' | 'contact', sectionId?: string) => void;
@@ -21,10 +10,7 @@ interface AboutUsPageProps {
   onOpenListProperty?: () => void;
 }
 
-export const AboutUsPage: React.FC<AboutUsPageProps> = ({
-  onNavigate,
-  onOpenAuth,
-}) => {
+export const AboutUsPage: React.FC<AboutUsPageProps> = () => {
   const navigate = useNavigate();
 
   const CORE_VALUES = [
@@ -55,11 +41,17 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
     },
   ];
 
+  const { value: live, loaded } = usePlatformStats();
+  const fmt = (n: number) => (loaded ? n.toLocaleString('en-IN') : '—');
   const STATS = [
-    { value: '142+', label: 'Verified Hostels', sub: 'Across 12 Metro Hubs' },
-    { value: '12,400+', label: 'Happy Residents', sub: 'Verified & Secure' },
-    { value: '4.8 ★', label: 'Average Resident Rating', sub: 'From 8,200+ Reviews' },
-    { value: '100%', label: 'Physical Audit Rate', sub: 'Zero Fake Listings' },
+    {
+      value: fmt(live.verifiedListings),
+      label: 'Verified Stays',
+      sub: `Across ${loaded ? live.cities : '—'} ${live.cities === 1 ? 'city' : 'cities'}`,
+    },
+    { value: fmt(live.residentsHoused), label: 'Residents Housed', sub: 'Active residents on NestIn' },
+    { value: fmt(live.ownersOnboarded), label: 'Owner Partners', sub: 'Running their PGs on NestIn' },
+    { value: '100%', label: 'Physical Audit Rate', sub: 'Every Verified badge follows a site visit' },
   ];
 
   const VERIFICATION_STEPS = [
@@ -113,7 +105,8 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
           transition={{ delay: 0.2 }}
           className="text-slate-600 text-sm sm:text-base leading-relaxed"
         >
-          We founded Nestin with a clear principle: Finding student housing in a new city should be safe, transparent, and completely free from fake listings or hidden charges.
+          We founded Nestin with a clear principle: Finding student housing in a new city should be safe, transparent,
+          and completely free from fake listings or hidden charges.
         </motion.p>
       </div>
 
@@ -127,15 +120,9 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
             transition={{ delay: 0.1 * i }}
             className="p-6 sm:p-8 bg-white rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-2"
           >
-            <div className="text-2xl sm:text-4xl font-black text-[#063826] font-heading">
-              {stat.value}
-            </div>
-            <div className="text-xs sm:text-sm font-bold text-slate-800 font-heading">
-              {stat.label}
-            </div>
-            <div className="text-[11px] text-slate-400 font-sans">
-              {stat.sub}
-            </div>
+            <div className="text-2xl sm:text-4xl font-black text-[#063826] font-heading">{stat.value}</div>
+            <div className="text-xs sm:text-sm font-bold text-slate-800 font-heading">{stat.label}</div>
+            <div className="text-[11px] text-slate-400 font-sans">{stat.sub}</div>
           </motion.div>
         ))}
       </div>
@@ -159,7 +146,8 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
               To make finding a verified, comfortable stay effortless and 100% transparent for everyone in India.
             </h3>
             <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed">
-              We empower residents with trustworthy information, verified photos, transparent rent ledgers, and zero brokerage.
+              We empower residents with trustworthy information, verified photos, transparent rent ledgers, and zero
+              brokerage.
             </p>
           </motion.div>
 
@@ -179,7 +167,8 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
               To build India's standard housing infrastructure for students and young professionals.
             </h3>
             <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed font-sans">
-              Setting nationwide quality standards for hygiene, safety, digital payments, and community living across 50+ tier-1 and tier-2 cities.
+              Setting nationwide quality standards for hygiene, safety, digital payments, and community living across
+              50+ tier-1 and tier-2 cities.
             </p>
           </motion.div>
         </div>
@@ -188,9 +177,7 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
       {/* Core Values Section */}
       <div className="space-y-10">
         <div className="text-center max-w-2xl mx-auto space-y-2">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">
-            Our Core Pillars
-          </h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-heading">Our Core Pillars</h2>
           <p className="text-slate-500 text-sm font-sans">
             The values that drive every audit, feature, and customer interaction at NestIn.
           </p>
@@ -203,15 +190,9 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
               className="p-6 bg-white rounded-3xl border border-slate-200/90 shadow-xs hover:shadow-md hover:border-[#a3e635] transition-all space-y-3 flex flex-col justify-between"
             >
               <div className="space-y-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#a3e635]/20 flex items-center justify-center">
-                  {val.icon}
-                </div>
-                <h4 className="font-bold text-slate-900 font-heading text-base leading-snug">
-                  {val.title}
-                </h4>
-                <p className="text-xs text-slate-600 leading-relaxed font-sans">
-                  {val.desc}
-                </p>
+                <div className="w-10 h-10 rounded-2xl bg-[#a3e635]/20 flex items-center justify-center">{val.icon}</div>
+                <h4 className="font-bold text-slate-900 font-heading text-base leading-snug">{val.title}</h4>
+                <p className="text-xs text-slate-600 leading-relaxed font-sans">{val.desc}</p>
               </div>
             </div>
           ))}
@@ -228,22 +209,17 @@ export const AboutUsPage: React.FC<AboutUsPageProps> = ({
             The Nestin 4-Point Physical Verification Standard
           </h2>
           <p className="text-slate-500 text-xs sm:text-sm font-sans">
-            Before any property receives the 'Nestin Verified' badge, it undergoes rigorous physical inspection by our ground audit teams.
+            Before any property receives the 'Nestin Verified' badge, it undergoes rigorous physical inspection by our
+            ground audit teams.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {VERIFICATION_STEPS.map((step) => (
             <div key={step.step} className="p-5 rounded-2xl bg-[#FAF9F5] border border-slate-200/80 space-y-3 relative">
-              <span className="text-2xl font-black text-[#a3e635] font-heading">
-                {step.step}
-              </span>
-              <h3 className="text-base font-extrabold text-slate-900 font-heading">
-                {step.title}
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-sans">
-                {step.desc}
-              </p>
+              <span className="text-2xl font-black text-[#a3e635] font-heading">{step.step}</span>
+              <h3 className="text-base font-extrabold text-slate-900 font-heading">{step.title}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-sans">{step.desc}</p>
             </div>
           ))}
         </div>

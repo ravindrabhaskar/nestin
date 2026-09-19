@@ -1,3 +1,4 @@
+import { useFocusTrap } from '../../lib/useFocusTrap';
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -8,9 +9,6 @@ import {
   Check,
   Calendar,
   ShieldCheck,
-  Star,
-  MapPin,
-  Sparkles,
   Wifi,
   Shirt,
   Car,
@@ -42,13 +40,7 @@ const PRICE_BRACKETS = [
   { label: 'Any Budget', value: 35000 },
 ];
 
-const ROOM_TYPE_OPTIONS = [
-  'Single sharing',
-  'Double sharing',
-  'Triple sharing',
-  'Four sharing',
-  'Private room',
-];
+const ROOM_TYPE_OPTIONS = ['Single sharing', 'Double sharing', 'Triple sharing', 'Four sharing', 'Private room'];
 
 const FOOD_OPTIONS: ('Any' | 'Veg' | 'Non-veg' | 'Both')[] = ['Any', 'Veg', 'Non-veg', 'Both'];
 
@@ -246,12 +238,19 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
     };
   }, [isOpen]);
 
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen, onClose);
   if (typeof document === 'undefined') return null;
 
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+        <div
+          ref={trapRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search filters"
+          className="fixed inset-0 z-50 overflow-hidden flex justify-end"
+        >
           {/* BACKDROP BLUR */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -296,18 +295,14 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black font-heading text-slate-900 tracking-tight">
-                      Filters
-                    </h2>
+                    <h2 className="text-lg font-black font-heading text-slate-900 tracking-tight">Filters</h2>
                     {activeFilterCount > 0 && (
                       <span className="px-2.5 py-0.5 rounded-full bg-[#a3e635] text-slate-950 font-black text-xs">
                         {activeFilterCount} Active
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Customize your stay preferences & budget
-                  </p>
+                  <p className="text-xs text-slate-500 font-medium">Customize your stay preferences & budget</p>
                 </div>
               </div>
 
@@ -361,9 +356,7 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
                     max={35000}
                     step={1000}
                     value={filters.maxRent}
-                    onChange={(e) =>
-                      onFilterChange({ ...filters, maxRent: Number(e.target.value) })
-                    }
+                    onChange={(e) => onFilterChange({ ...filters, maxRent: Number(e.target.value) })}
                     className="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#88d900]"
                   />
                   <div className="flex items-center justify-between text-[11px] text-slate-400 font-bold px-1">
@@ -489,9 +482,7 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
                       <input
                         type="date"
                         value={filters.moveInDate}
-                        onChange={(e) =>
-                          onFilterChange({ ...filters, moveInDate: e.target.value })
-                        }
+                        onChange={(e) => onFilterChange({ ...filters, moveInDate: e.target.value })}
                         className="w-full bg-stone-50 border border-slate-200/90 rounded-2xl px-4 py-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#a3e635]"
                       />
                       <Calendar className="w-4 h-4 text-slate-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -504,9 +495,7 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
                     </label>
                     <button
                       type="button"
-                      onClick={() =>
-                        onFilterChange({ ...filters, availableNow: !filters.availableNow })
-                      }
+                      onClick={() => onFilterChange({ ...filters, availableNow: !filters.availableNow })}
                       className={`w-full py-2.5 px-4 rounded-2xl border text-xs font-extrabold flex items-center justify-between transition-all cursor-pointer ${
                         filters.availableNow
                           ? 'bg-emerald-500 text-white border-emerald-600 shadow-xs'
@@ -542,9 +531,7 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
                   max={30}
                   step={1}
                   value={filters.maxDistance}
-                  onChange={(e) =>
-                    onFilterChange({ ...filters, maxDistance: Number(e.target.value) })
-                  }
+                  onChange={(e) => onFilterChange({ ...filters, maxDistance: Number(e.target.value) })}
                   className="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#88d900]"
                 />
               </div>
@@ -607,9 +594,7 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      onFilterChange({ ...filters, verifiedOnly: !filters.verifiedOnly })
-                    }
+                    onClick={() => onFilterChange({ ...filters, verifiedOnly: !filters.verifiedOnly })}
                     className={`w-full p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-between transition-all cursor-pointer ${
                       filters.verifiedOnly
                         ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
@@ -659,4 +644,3 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
     document.body
   );
 };
-

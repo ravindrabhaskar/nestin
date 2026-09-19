@@ -10,8 +10,11 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3000}
       TRUST_PROXY: "false"
       DATABASE_PATH: /data/nestin.db
-      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
-      DEMO_PASSWORD: ${DEMO_PASSWORD:-NestIn@2026}
+      # Demo data is opt-in for production images; set SEED_DEMO_DATA=true *and* a unique DEMO_PASSWORD for a demo box.
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+      ALLOW_SIMULATED_PAYMENTS: ${ALLOW_SIMULATED_PAYMENTS:-false}
+      METRICS_TOKEN: ${METRICS_TOKEN:?Set METRICS_TOKEN in your .env}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET (>= 32 random characters) in your .env}
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-admin@nestin.io}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:?Set SUPER_ADMIN_PASSWORD in your .env}

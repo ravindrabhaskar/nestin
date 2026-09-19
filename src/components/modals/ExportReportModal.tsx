@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-import {
-  X,
-  FileDown,
-  FileText,
-  Calendar,
-  Building2,
-  CheckCircle2,
-  Printer,
-  ShieldCheck,
-  TrendingUp,
-  CreditCard,
-  BedDouble,
-  Receipt,
-  Sparkles
-} from 'lucide-react';
+import { X, FileDown, Calendar, Building2, ShieldCheck } from 'lucide-react';
 import { exportMonthlyReportPDF, SAMPLE_PROPERTIES_FINANCIAL } from '../../utils/pdfExport';
 
 interface ExportReportModalProps {
@@ -34,7 +20,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
   const [selectedMonth, setSelectedMonth] = useState('August');
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedProperty, setSelectedProperty] = useState('All Properties (Consolidated)');
-  const [reportType, setReportType] = useState<'full' | 'revenue' | 'occupancy' | 'tax'>('full');
+  const [reportType] = useState<'full' | 'revenue' | 'occupancy' | 'tax'>('full');
   const [includeLedger, setIncludeLedger] = useState(true);
   const [includeExpenses, setIncludeExpenses] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -42,8 +28,18 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
   if (!isOpen) return null;
 
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   const years = [2026, 2025, 2024];
@@ -74,7 +70,10 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
       data-lenis-prevent="true"
     >
       <div
@@ -91,9 +90,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
               <h3 className="text-base sm:text-lg font-black text-slate-900 font-heading">
                 Export Accounting PDF Report
               </h3>
-              <p className="text-xs text-slate-500">
-                Monthly revenue, occupancy breakdown, & CA audit statement
-              </p>
+              <p className="text-xs text-slate-500">Monthly revenue, occupancy breakdown, & CA audit statement</p>
             </div>
           </div>
           <button
@@ -182,9 +179,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
             onChange={(e) => setSelectedProperty(e.target.value)}
             className="w-full p-2.5 text-xs font-bold bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900"
           >
-            <option value="All Properties (Consolidated)">
-              All Properties (Consolidated Portfolio - 3 PGs)
-            </option>
+            <option value="All Properties (Consolidated)">All Properties (Consolidated Portfolio - 3 PGs)</option>
             {SAMPLE_PROPERTIES_FINANCIAL.map((p) => (
               <option key={p.id} value={p.name}>
                 {p.name} ({p.location})
@@ -195,9 +190,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
 
         {/* Report Customization Modules */}
         <div className="space-y-2.5 pt-1">
-          <label className="text-xs font-bold text-slate-700 block">
-            Include Accounting Modules in PDF:
-          </label>
+          <label className="text-xs font-bold text-slate-700 block">Include Accounting Modules in PDF:</label>
           <div className="space-y-2">
             <label className="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200/80 cursor-pointer hover:bg-slate-100/80 transition-colors">
               <input
@@ -207,9 +200,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
                 className="mt-0.5 rounded text-slate-900 focus:ring-slate-900"
               />
               <div className="text-xs">
-                <span className="font-bold text-slate-900 block">
-                  Executive Financial Summary & Occupancy Rate
-                </span>
+                <span className="font-bold text-slate-900 block">Executive Financial Summary & Occupancy Rate</span>
                 <span className="text-[11px] text-slate-500">
                   Gross billed rent, collections, occupancy percentage, and net owner payout.
                 </span>
@@ -224,9 +215,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
                 className="mt-0.5 rounded text-slate-900 focus:ring-slate-900"
               />
               <div className="text-xs">
-                <span className="font-bold text-slate-900 block">
-                  Operating Expenses & Maintenance Deductions
-                </span>
+                <span className="font-bold text-slate-900 block">Operating Expenses & Maintenance Deductions</span>
                 <span className="text-[11px] text-slate-500">
                   Commercial electricity, Wi-Fi fiber lease, housekeeping, and repairs.
                 </span>
@@ -241,9 +230,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
                 className="mt-0.5 rounded text-slate-900 focus:ring-slate-900"
               />
               <div className="text-xs">
-                <span className="font-bold text-slate-900 block">
-                  Detailed Tenant Rent & Receipt Ledger
-                </span>
+                <span className="font-bold text-slate-900 block">Detailed Tenant Rent & Receipt Ledger</span>
                 <span className="text-[11px] text-slate-500">
                   Unit-by-unit resident names, payment modes (UPI/Bank), and receipt numbers.
                 </span>
@@ -257,7 +244,8 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
           <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
           <div className="text-[11px] leading-relaxed">
             <span className="font-bold block">Chartered Accountant & GST Ready (SAC 997212)</span>
-            Generated PDF statements include digital audit verification hash, Section 194-I TDS notes, and compliant owner declaration signatures.
+            Generated PDF statements include digital audit verification hash, Section 194-I TDS notes, and compliant
+            owner declaration signatures.
           </div>
         </div>
 

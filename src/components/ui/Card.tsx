@@ -19,9 +19,7 @@ export const Card: React.FC<CardProps> = ({
     outline: 'bg-transparent border border-slate-200 text-slate-900',
   }[variant];
 
-  const hoverClasses = hoverEffect
-    ? 'hover:shadow-nestin-md hover:-translate-y-0.5 transition-all duration-300'
-    : '';
+  const hoverClasses = hoverEffect ? 'hover:shadow-nestin-md hover:-translate-y-0.5 transition-all duration-300' : '';
 
   return (
     <div

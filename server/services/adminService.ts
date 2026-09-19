@@ -13,7 +13,7 @@ import {
   type InboundRequest,
 } from '../db/repositories.js';
 import { conflict, forbidden, notFound } from '../lib/errors.js';
-import { newId } from '../lib/ids.js';
+import { newId, ticketNumber } from '../lib/ids.js';
 import * as v from '../lib/validate.js';
 import { events, type EventContext } from '../lib/events.js';
 import type { AuthUser } from '../middleware/auth.js';
@@ -81,6 +81,57 @@ export function stats(): PlatformStats {
     },
     recentEvents: auditEvents.list({ limit: 25 }),
   };
+}
+
+export interface PublicStats {
+  publishedListings: number;
+  verifiedListings: number;
+  cities: number;
+  bedsListed: number;
+  residentsHoused: number;
+  ownersOnboarded: number;
+  citiesBreakdown: Array<{ city: string; listings: number; minRent: number | null }>;
+  generatedAt: string;
+}
+
+let publicStatsCache: { value: PublicStats; expires: number } | null = null;
+
+/**
+ * Honest marketing numbers for the landing page, derived from live data (cached for a minute).
+ * Never inflates: a brand-new deployment shows zeros until real listings exist.
+ */
+export function publicStats(): PublicStats {
+  if (publicStatsCache && publicStatsCache.expires > Date.now()) return publicStatsCache.value;
+  const published = properties.list({ status: 'published' });
+  const byCity = new Map<string, { listings: number; minRent: number | null }>();
+  let beds = 0;
+  for (const p of published) {
+    const city = p.location?.city?.trim();
+    beds += p.details?.totalBeds || (p.rooms || []).reduce((n, r) => n + (r.capacity || 0), 0);
+    if (!city) continue;
+    const entry = byCity.get(city) || { listings: 0, minRent: null };
+    entry.listings += 1;
+    const rent = Math.min(p.pricing?.minRent || Infinity, ...(p.rooms || []).map((r) => r.monthlyRent || Infinity));
+    if (Number.isFinite(rent) && rent > 0)
+      entry.minRent = entry.minRent === null ? rent : Math.min(entry.minRent, rent);
+    byCity.set(city, entry);
+  }
+  const value: PublicStats = {
+    publishedListings: published.length,
+    verifiedListings: published.filter((p) => p.isNestinVerified).length,
+    cities: byCity.size,
+    bedsListed: beds,
+    residentsHoused: customers.count({ status: 'Active' }),
+    ownersOnboarded: users.list({ role: 'owner' }, 100000).length,
+    citiesBreakdown: [...byCity.entries()].map(([city, v]) => ({ city, ...v })).sort((a, b) => b.listings - a.listings),
+    generatedAt: new Date().toISOString(),
+  };
+  publicStatsCache = { value, expires: Date.now() + 60_000 };
+  return value;
+}
+
+export function invalidatePublicStats(): void {
+  publicStatsCache = null;
 }
 
 export interface AdminUserView {
@@ -183,7 +234,7 @@ export function submitContact(body: Record<string, unknown>, ctx: EventContext):
     id: newId('inb'),
     kind: 'contact',
     status: 'new',
-    ticketNumber: `NST-${100000 + Math.floor(Math.random() * 900000)}`,
+    ticketNumber: ticketNumber(),
     name: v.str(body.fullName || body.name, 'Name', { max: 120 }),
     email: v.email(body.email),
     phone: v.phone(body.phone, 'Phone', false) || undefined,

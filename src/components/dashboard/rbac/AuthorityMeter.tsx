@@ -7,11 +7,7 @@ interface AuthorityMeterProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const AuthorityMeter: React.FC<AuthorityMeterProps> = ({
-  level,
-  showLabel = true,
-  size = 'md',
-}) => {
+export const AuthorityMeter: React.FC<AuthorityMeterProps> = ({ level, showLabel = true, size = 'md' }) => {
   const getLevelConfig = (lvl: AuthorityLevel) => {
     switch (lvl) {
       case 'full':
@@ -72,7 +68,7 @@ export const AuthorityMeter: React.FC<AuthorityMeterProps> = ({
           {config.label}
         </span>
       )}
-      
+
       {/* 4-bar authority indicator matching visual reference */}
       <div className="flex items-center gap-1">
         {Array.from({ length: config.totalBars }).map((_, idx) => {

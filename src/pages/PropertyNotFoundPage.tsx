@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Building2, Search, ArrowLeft, Home, Sparkles, MapPin } from 'lucide-react';
+import { Building2, Search, Home, Sparkles, MapPin } from 'lucide-react';
 
 export const PropertyNotFoundPage: React.FC = () => {
   const navigate = useNavigate();
@@ -51,19 +51,19 @@ export const PropertyNotFoundPage: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          <span className="text-xs font-black uppercase tracking-widest text-slate-400">
-            Property Not Found
-          </span>
-          <h1 className="text-3xl font-black font-heading text-slate-900">
-            Stay Unlisted or Not Found
-          </h1>
+          <span className="text-xs font-black uppercase tracking-widest text-slate-400">Property Not Found</span>
+          <h1 className="text-3xl font-black font-heading text-slate-900">Stay Unlisted or Not Found</h1>
           <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-            We couldn't find a property matching this link. The listing might have been rented out, updated, or the URL might have a typo.
+            We couldn't find a property matching this link. The listing might have been rented out, updated, or the URL
+            might have a typo.
           </p>
         </div>
 
         {/* Search Input */}
-        <form onSubmit={handleSearch} className="flex items-center gap-2 bg-[#FAF9F5] p-2 rounded-2xl border border-slate-200">
+        <form
+          onSubmit={handleSearch}
+          className="flex items-center gap-2 bg-[#FAF9F5] p-2 rounded-2xl border border-slate-200"
+        >
           <MapPin className="w-4 h-4 text-emerald-600 ml-2 shrink-0" />
           <input
             type="text"

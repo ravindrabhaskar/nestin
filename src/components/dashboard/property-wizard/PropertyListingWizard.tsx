@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   X,
-  Check,
   ChevronRight,
   ChevronLeft,
   Save,
@@ -19,15 +18,10 @@ import {
   UserCheck,
   FolderLock,
   CheckCircle2,
-  AlertCircle,
   Plus,
   Trash2,
   Upload,
-  Play,
-  RotateCcw,
   ShieldAlert,
-  ShieldCheck,
-  Award
 } from 'lucide-react';
 import {
   OwnerPropertyListing,
@@ -36,7 +30,6 @@ import {
   PropertyRoom,
   PropertyMediaItem,
   PropertyNearbyPlace,
-  PropertyAmenityItem,
   PropertyDocument,
 } from '../../../types/property';
 import { usePropertyListing, calculatePropertyCompleteness } from '../../../context/PropertyListingContext';
@@ -97,8 +90,8 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
   const existingProp = initialData
     ? initialData
     : initialPropertyId
-    ? properties.find((p) => p.id === initialPropertyId) || null
-    : null;
+      ? properties.find((p) => p.id === initialPropertyId) || null
+      : null;
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [showLivePreview, setShowLivePreview] = useState<boolean>(false);
@@ -131,8 +124,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
       isNestinVerified: false,
       isFeatured: false,
       isZeroBrokerage: true,
-      coverImage:
-        'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1400&q=85',
+      coverImage: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=1400&q=85',
       gallery: [
         {
           id: 'g-1',
@@ -225,20 +217,78 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
         bookingFee: 999,
       },
       amenities: [
-        { id: 'a-1', name: 'High-Speed Wi-Fi', category: 'Connectivity', iconKey: 'wifi', subtext: '300 Mbps Dual Band', isAvailable: true },
-        { id: 'a-2', name: 'Air Conditioning', category: 'Comfort', iconKey: 'ac', subtext: 'In all bedrooms', isAvailable: true },
-        { id: 'a-3', name: 'Housekeeping', category: 'Housekeeping', iconKey: 'housekeeping', subtext: 'Daily room cleaning', isAvailable: true },
-        { id: 'a-4', name: 'Laundry', category: 'Housekeeping', iconKey: 'laundry', subtext: 'Washing machines', isAvailable: true },
-        { id: 'a-5', name: 'Power Backup', category: 'Utilities', iconKey: 'power', subtext: '24/7 Generator', isAvailable: true },
-        { id: 'a-6', name: 'CCTV Security', category: 'Security', iconKey: 'cctv', subtext: '3-tier biometric', isAvailable: true },
-        { id: 'a-7', name: 'RO Water', category: 'Utilities', iconKey: 'water', subtext: 'Purified drinking water', isAvailable: true },
-        { id: 'a-8', name: 'Study & Work Hub', category: 'Lifestyle', iconKey: 'study', subtext: 'Quiet co-working', isAvailable: true },
+        {
+          id: 'a-1',
+          name: 'High-Speed Wi-Fi',
+          category: 'Connectivity',
+          iconKey: 'wifi',
+          subtext: '300 Mbps Dual Band',
+          isAvailable: true,
+        },
+        {
+          id: 'a-2',
+          name: 'Air Conditioning',
+          category: 'Comfort',
+          iconKey: 'ac',
+          subtext: 'In all bedrooms',
+          isAvailable: true,
+        },
+        {
+          id: 'a-3',
+          name: 'Housekeeping',
+          category: 'Housekeeping',
+          iconKey: 'housekeeping',
+          subtext: 'Daily room cleaning',
+          isAvailable: true,
+        },
+        {
+          id: 'a-4',
+          name: 'Laundry',
+          category: 'Housekeeping',
+          iconKey: 'laundry',
+          subtext: 'Washing machines',
+          isAvailable: true,
+        },
+        {
+          id: 'a-5',
+          name: 'Power Backup',
+          category: 'Utilities',
+          iconKey: 'power',
+          subtext: '24/7 Generator',
+          isAvailable: true,
+        },
+        {
+          id: 'a-6',
+          name: 'CCTV Security',
+          category: 'Security',
+          iconKey: 'cctv',
+          subtext: '3-tier biometric',
+          isAvailable: true,
+        },
+        {
+          id: 'a-7',
+          name: 'RO Water',
+          category: 'Utilities',
+          iconKey: 'water',
+          subtext: 'Purified drinking water',
+          isAvailable: true,
+        },
+        {
+          id: 'a-8',
+          name: 'Study & Work Hub',
+          category: 'Lifestyle',
+          iconKey: 'study',
+          subtext: 'Quiet co-working',
+          isAvailable: true,
+        },
       ],
       policies: {
         curfew: 'Main entrance gate locks at 11:00 PM. Late entry permitted with registered guardian/owner approval.',
         visitorPolicy: 'Visitors allowed in ground floor common lounge between 9:00 AM – 8:00 PM with ID log.',
-        smokingAndAlcohol: 'Strictly zero smoking inside bedrooms, corridors, or dining halls. Designated rooftop zone provided.',
-        cancellationPolicy: '30 days prior written notice required before vacating. Security deposit refunded in 15 working days.',
+        smokingAndAlcohol:
+          'Strictly zero smoking inside bedrooms, corridors, or dining halls. Designated rooftop zone provided.',
+        cancellationPolicy:
+          '30 days prior written notice required before vacating. Security deposit refunded in 15 working days.',
         noticePeriod: '30 Days Mandatory Notice',
         petPolicy: 'No pets allowed.',
         guestPolicy: 'Lounge access only.',
@@ -259,9 +309,30 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
         moveInAvailabilityLabel: 'Available now',
       },
       nearbyPlaces: [
-        { id: 'np-1', category: 'Metro', name: 'Kukatpally Metro Station', distanceKm: 0.4, travelTime: '5 mins walk', travelMode: 'walk' },
-        { id: 'np-2', category: 'Bus Stop', name: 'Kukatpally Main Junction Stop', distanceKm: 0.2, travelTime: '2 mins walk', travelMode: 'walk' },
-        { id: 'np-3', category: 'Company', name: 'Tech Park & IT Cyber Hub', distanceKm: 1.1, travelTime: '4 mins ride', travelMode: 'ride' },
+        {
+          id: 'np-1',
+          category: 'Metro',
+          name: 'Kukatpally Metro Station',
+          distanceKm: 0.4,
+          travelTime: '5 mins walk',
+          travelMode: 'walk',
+        },
+        {
+          id: 'np-2',
+          category: 'Bus Stop',
+          name: 'Kukatpally Main Junction Stop',
+          distanceKm: 0.2,
+          travelTime: '2 mins walk',
+          travelMode: 'walk',
+        },
+        {
+          id: 'np-3',
+          category: 'Company',
+          name: 'Tech Park & IT Cyber Hub',
+          distanceKm: 1.1,
+          travelTime: '4 mins ride',
+          travelMode: 'ride',
+        },
       ],
       caretaker: {
         name: 'Ramesh Reddy',
@@ -301,8 +372,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
     setTimeout(() => setWizardNotice(null), 3000);
   };
 
-  const { score: completenessScore, missing: missingFields } =
-    calculatePropertyCompleteness(formData);
+  const { score: completenessScore, missing: missingFields } = calculatePropertyCompleteness(formData);
 
   // Save Draft Handler
   const handleSaveDraft = () => {
@@ -365,9 +435,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
-                Step 1 — Basic Property Information
-              </h3>
+              <h3 className="text-lg font-black text-slate-900 font-heading">Step 1 — Basic Property Information</h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 Enter your property title, operational category, and primary contact details.
               </p>
@@ -494,8 +562,8 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
               <div>
                 <strong className="block font-black font-heading">Verification Notice:</strong>
                 Trust badges like <span className="font-bold">"Nestin Verified Stay"</span> and{' '}
-                <span className="font-bold">"Featured Property"</span> are verified & awarded by
-                our verification team upon inspection of your uploaded documents and property audit.
+                <span className="font-bold">"Featured Property"</span> are verified & awarded by our verification team
+                upon inspection of your uploaded documents and property audit.
               </div>
             </div>
           </div>
@@ -508,9 +576,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
-                Step 2 — Photos & Media Upload
-              </h3>
+              <h3 className="text-lg font-black text-slate-900 font-heading">Step 2 — Photos & Media Upload</h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 High-quality photos significantly increase tenant booking inquiries. Add your cover and room views.
               </p>
@@ -601,7 +667,12 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                       onChange={async (e) => {
                         const urls = await uploadPhotos(e.target.files);
                         if (urls.length) {
-                          const added: PropertyMediaItem[] = urls.map((url, i) => ({ id: `g-${Date.now()}-${i}`, url, title: 'Property photo', category: 'Other' }));
+                          const added: PropertyMediaItem[] = urls.map((url, i) => ({
+                            id: `g-${Date.now()}-${i}`,
+                            url,
+                            title: 'Property photo',
+                            category: 'Other',
+                          }));
                           setFormData((prev) => ({ ...prev, gallery: [...prev.gallery, ...added] }));
                           notify(`${urls.length} photo${urls.length > 1 ? 's' : ''} added to gallery.`);
                         }
@@ -686,9 +757,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
             {/* Video Tour & 360 Tour URLs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Video Tour URL (YouTube/Vimeo)
-                </label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Video Tour URL (YouTube/Vimeo)</label>
                 <input
                   type="url"
                   placeholder="https://youtube.com/watch?v=..."
@@ -720,9 +789,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
-                Step 3 — Property Details & Utilities
-              </h3>
+              <h3 className="text-lg font-black text-slate-900 font-heading">Step 3 — Property Details & Utilities</h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 Define the overall capacity, security infrastructure, and maintenance protocols.
               </p>
@@ -883,10 +950,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
 
             <div className="space-y-4">
               {formData.rooms.map((room, rIdx) => (
-                <div
-                  key={room.id}
-                  className="p-5 rounded-2xl bg-white border border-slate-200 space-y-4 shadow-2xs"
-                >
+                <div key={room.id} className="p-5 rounded-2xl bg-white border border-slate-200 space-y-4 shadow-2xs">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2">
                       <span className="w-8 h-8 rounded-xl bg-slate-900 text-[#a3e635] font-black text-xs flex items-center justify-center font-heading">
@@ -1005,9 +1069,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                             const updated = [...formData.rooms];
                             const currentOcc = updated[rIdx].beds[bIdx].isOccupied;
                             updated[rIdx].beds[bIdx].isOccupied = !currentOcc;
-                            updated[rIdx].occupiedBedsCount = updated[rIdx].beds.filter(
-                              (b) => b.isOccupied
-                            ).length;
+                            updated[rIdx].occupiedBedsCount = updated[rIdx].beds.filter((b) => b.isOccupied).length;
                             updated[rIdx].availableBedsCount =
                               updated[rIdx].beds.length - updated[rIdx].occupiedBedsCount;
                             setFormData({ ...formData, rooms: updated });
@@ -1066,9 +1128,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Booking Token Fee (₹)
-                </label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Booking Token Fee (₹)</label>
                 <input
                   type="number"
                   value={formData.pricing.bookingFee}
@@ -1083,9 +1143,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Maintenance Fee (₹/mo)
-                </label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Maintenance Fee (₹/mo)</label>
                 <input
                   type="number"
                   value={formData.pricing.maintenance.amount}
@@ -1123,17 +1181,15 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
           </div>
         );
 
-      // -------------------------------------------------------------
-      // STEP 6 — AMENITIES & FACILITIES
-      // -------------------------------------------------------------
+        // -------------------------------------------------------------
+        // STEP 6 — AMENITIES & FACILITIES
+        // -------------------------------------------------------------
       }
       case 6:
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
-                Step 6 — Amenities & Facilities
-              </h3>
+              <h3 className="text-lg font-black text-slate-900 font-heading">Step 6 — Amenities & Facilities</h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 Check all available amenities. These render directly on the tenant property profile with verified icons.
               </p>
@@ -1156,9 +1212,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-900 font-heading">
-                      {amenity.name}
-                    </span>
+                    <span className="text-xs font-black text-slate-900 font-heading">{amenity.name}</span>
                     <div
                       className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black ${
                         amenity.isAvailable ? 'bg-slate-900 text-[#a3e635]' : 'bg-slate-200 text-slate-400'
@@ -1181,9 +1235,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
-                Step 7 — House Rules & Policies
-              </h3>
+              <h3 className="text-lg font-black text-slate-900 font-heading">Step 7 — House Rules & Policies</h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 Set clear community guidelines to ensure compatible resident onboarding.
               </p>
@@ -1260,9 +1312,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
-                Step 8 — Location & Map Coordinates
-              </h3>
+              <h3 className="text-lg font-black text-slate-900 font-heading">Step 8 — Location & Map Coordinates</h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 Accurate pin placement ensures prospective tenants find your accommodation easily on Find PG.
               </p>
@@ -1291,7 +1341,9 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">City <span className="text-rose-500">*</span></label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  City <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.location.city}
@@ -1409,10 +1461,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {formData.nearbyPlaces.map((place, idx) => (
-                <div
-                  key={place.id}
-                  className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2 relative"
-                >
+                <div key={place.id} className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2 relative">
                   <div className="flex items-center justify-between">
                     <select
                       value={place.category}
@@ -1494,9 +1543,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
         return (
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-black text-slate-900 font-heading">
-                Step 10 — Caretaker & Host Information
-              </h3>
+              <h3 className="text-lg font-black text-slate-900 font-heading">Step 10 — Caretaker & Host Information</h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 The resident sees this contact person on the verified property profile card.
               </p>
@@ -1600,9 +1647,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                     className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
                   >
                     <div>
-                      <div className="text-xs font-black text-slate-900 font-heading">
-                        {docItem.title}
-                      </div>
+                      <div className="text-xs font-black text-slate-900 font-heading">{docItem.title}</div>
                       <div className="text-[11px] text-slate-400 font-medium">
                         {uploaded ? `${uploaded.fileName} (${uploaded.fileSize})` : 'Not uploaded yet'}
                       </div>
@@ -1666,9 +1711,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                     Property Completeness
                   </span>
-                  <div className="text-2xl font-black text-slate-950 font-heading">
-                    {completenessScore}% Complete
-                  </div>
+                  <div className="text-2xl font-black text-slate-950 font-heading">{completenessScore}% Complete</div>
                 </div>
                 <div className="w-14 h-14 rounded-full border-4 border-[#a3e635] flex items-center justify-center font-black text-sm font-heading">
                   {completenessScore}%
@@ -1721,7 +1764,12 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
   };
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-between overflow-hidden font-sans" data-lenis-prevent="true">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-between overflow-hidden font-sans"
+      data-lenis-prevent="true"
+    >
       {/* Toast Notice */}
       {wizardNotice && (
         <div className="fixed top-6 right-6 z-50 bg-slate-950 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
@@ -1732,7 +1780,12 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
 
       {/* FULLSCREEN LIVE TENANT PREVIEW MODAL */}
       {showLivePreview && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-white overflow-y-auto" data-lenis-prevent="true">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-white overflow-y-auto"
+          data-lenis-prevent="true"
+        >
           <PropertyDetailsView
             property={formData}
             isPreviewMode={true}
@@ -1755,9 +1808,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                   STEP {currentStep} OF 12
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                <span className="text-[10px] font-extrabold text-[#4d7c0f]">
-                  {completenessScore}% Complete
-                </span>
+                <span className="text-[10px] font-extrabold text-[#4d7c0f]">{completenessScore}% Complete</span>
               </div>
               <h2 className="text-base sm:text-lg font-black text-slate-950 font-heading">
                 {WIZARD_STEPS[currentStep - 1].title}
@@ -1808,12 +1859,14 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                   isActive
                     ? 'bg-slate-900 text-white shadow-xs'
                     : isCompleted
-                    ? 'bg-[#ecfccb] text-[#3f6212]'
-                    : 'bg-slate-100 text-slate-400 hover:text-slate-700'
+                      ? 'bg-[#ecfccb] text-[#3f6212]'
+                      : 'bg-slate-100 text-slate-400 hover:text-slate-700'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
-                <span>{s.step}. {s.title.split(' ')[0]}</span>
+                <span>
+                  {s.step}. {s.title.split(' ')[0]}
+                </span>
               </button>
             );
           })}

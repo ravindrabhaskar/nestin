@@ -1,28 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Calendar,
-  Clock,
-  Download,
-  Eye,
-  Filter,
-  Mail,
-  MessageCircle,
-  MoreVertical,
-  Phone,
-  Plus,
-  Search,
-  Trash2,
-  User,
-  Users,
-  X,
-  Building2,
-  CheckCircle2,
-  XCircle,
-  CalendarCheck,
-  AlertCircle,
-  ArrowRight,
-  Edit3,
-} from 'lucide-react';
+import { Download, Eye, Plus, Search, Trash2, User, X, CheckCircle2, XCircle } from 'lucide-react';
 import { useCRM } from '../../../context/CRMContext';
 import { usePropertyListing } from '../../../context/PropertyListingContext';
 import { VisitorItem, VisitorStatus } from '../../../types/crm';
@@ -38,15 +15,8 @@ const STATUS_BADGES: Record<VisitorStatus, { label: string; color: string; bg: s
   'No-show': { label: 'No-show', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
 };
 
-export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => void }> = ({
-  onNavigateToLead,
-}) => {
-  const {
-    visitors,
-    updateVisitorStatus,
-    deleteVisitor,
-    getLeadById,
-  } = useCRM();
+export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => void }> = ({ onNavigateToLead }) => {
+  const { visitors, updateVisitorStatus, deleteVisitor } = useCRM();
   const { ownerProperties } = usePropertyListing();
 
   // Search and Filters
@@ -94,7 +64,9 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
   // Metrics
   const metrics = useMemo(() => {
     const todayVisits = visitors.filter((v) => v.visitDate === todayStr).length;
-    const upcoming = visitors.filter((v) => v.visitDate >= todayStr && v.status !== 'Completed' && v.status !== 'Cancelled').length;
+    const upcoming = visitors.filter(
+      (v) => v.visitDate >= todayStr && v.status !== 'Completed' && v.status !== 'Cancelled'
+    ).length;
     const completed = visitors.filter((v) => v.status === 'Completed').length;
     const cancelled = visitors.filter((v) => v.status === 'Cancelled').length;
     const noShow = visitors.filter((v) => v.status === 'No-show').length;
@@ -168,7 +140,9 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
           <p className="text-lg font-black text-blue-700 font-heading mt-0.5">{metrics.upcoming}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 font-heading">Completed</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 font-heading">
+            Completed
+          </span>
           <p className="text-lg font-black text-emerald-700 font-heading mt-0.5">{metrics.completed}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
@@ -287,9 +261,7 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
                           </div>
                           <div>
                             <p className="font-bold text-slate-900">{visitor.visitorName}</p>
-                            <p className="text-[10px] text-slate-400">
-                              {visitor.numberOfVisitors} person(s)
-                            </p>
+                            <p className="text-[10px] text-slate-400">{visitor.numberOfVisitors} person(s)</p>
                           </div>
                         </div>
                       </td>
@@ -364,7 +336,11 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
 
       {/* 5. VISITOR DETAILS MODAL */}
       {activeVisitorDetails && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
             {/* Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -483,12 +459,17 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
                 </div>
                 <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                   {activeVisitorDetails.timeline.map((act) => (
-                    <div key={act.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5">
+                    <div
+                      key={act.id}
+                      className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5"
+                    >
                       <div className="w-2 h-2 rounded-full bg-[#a3e635] mt-1.5 shrink-0" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-slate-800">{act.action}</span>
-                          <span className="text-[10px] text-slate-400">{act.date} · {act.time}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {act.date} · {act.time}
+                          </span>
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">{act.description}</p>
                       </div>

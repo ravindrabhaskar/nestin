@@ -1,32 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import {
-  UserPlus,
   FileSpreadsheet,
   Search,
-  Filter,
   Download,
   Phone,
-  Mail,
   MessageCircle,
   Calendar,
-  Layers,
-  ArrowRight,
-  MoreVertical,
   CheckCircle2,
-  XCircle,
-  Clock,
-  Building2,
-  IndianRupee,
   Eye,
   Plus,
   Trash2,
-  Edit3,
-  ChevronRight,
-  Sparkles,
-  LayoutGrid,
-  ListFilter,
-  Flame,
-  Check,
   X,
 } from 'lucide-react';
 import { useCRM } from '../../../context/CRMContext';
@@ -40,23 +23,28 @@ import { CreateBookingModal } from './CreateBookingModal';
 const STAGES: { key: LeadStage; label: string; color: string; bg: string; border: string }[] = [
   { key: 'New', label: 'New', color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' },
   { key: 'Contacted', label: 'Contacted', color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-200' },
-  { key: 'Visit Scheduled', label: 'Visit Scheduled', color: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
+  {
+    key: 'Visit Scheduled',
+    label: 'Visit Scheduled',
+    color: 'text-purple-700',
+    bg: 'bg-purple-50',
+    border: 'border-purple-200',
+  },
   { key: 'Visited', label: 'Visited', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
   { key: 'Interested', label: 'Interested', color: 'text-cyan-700', bg: 'bg-cyan-50', border: 'border-cyan-200' },
-  { key: 'Booking Requested', label: 'Booking Requested', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+  {
+    key: 'Booking Requested',
+    label: 'Booking Requested',
+    color: 'text-emerald-700',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+  },
   { key: 'Converted', label: 'Converted', color: 'text-green-800', bg: 'bg-[#a3e635]/20', border: 'border-[#a3e635]' },
   { key: 'Lost', label: 'Lost', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
 ];
 
 export const LeadsView: React.FC = () => {
-  const {
-    leads,
-    updateLeadStage,
-    deleteLead,
-    addLeadNote,
-    logLeadContact,
-    importLeads,
-  } = useCRM();
+  const { leads, updateLeadStage, deleteLead, addLeadNote, logLeadContact, importLeads } = useCRM();
   const { ownerProperties } = usePropertyListing();
 
   // View state
@@ -89,11 +77,9 @@ export const LeadsView: React.FC = () => {
         lead.propertyName.toLowerCase().includes(q) ||
         lead.roomType.toLowerCase().includes(q);
 
-      const matchesProperty =
-        selectedPropertyFilter === 'ALL' || lead.propertyId === selectedPropertyFilter;
+      const matchesProperty = selectedPropertyFilter === 'ALL' || lead.propertyId === selectedPropertyFilter;
       const matchesStage = selectedStageFilter === 'ALL' || lead.stage === selectedStageFilter;
-      const matchesSource =
-        selectedSourceFilter === 'ALL' || lead.source === selectedSourceFilter;
+      const matchesSource = selectedSourceFilter === 'ALL' || lead.source === selectedSourceFilter;
 
       return matchesQuery && matchesProperty && matchesStage && matchesSource;
     });
@@ -220,7 +206,9 @@ export const LeadsView: React.FC = () => {
           <p className="text-lg font-black text-blue-700 font-heading mt-0.5">{metrics.newCount}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 font-heading">Contacted</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 font-heading">
+            Contacted
+          </span>
           <p className="text-lg font-black text-indigo-700 font-heading mt-0.5">{metrics.contacted}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
@@ -232,7 +220,9 @@ export const LeadsView: React.FC = () => {
           <p className="text-lg font-black text-cyan-700 font-heading mt-0.5">{metrics.interested}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 font-heading">Converted</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 font-heading">
+            Converted
+          </span>
           <p className="text-lg font-black text-emerald-700 font-heading mt-0.5">{metrics.converted}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
@@ -546,7 +536,11 @@ export const LeadsView: React.FC = () => {
 
       {/* 5. LEAD DETAILS DRAWER / MODAL */}
       {activeLeadDetails && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
             {/* Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -556,7 +550,9 @@ export const LeadsView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-black font-heading text-white">{activeLeadDetails.fullName}</h3>
-                  <p className="text-xs text-slate-400">{activeLeadDetails.phone} · {activeLeadDetails.email || 'No email'}</p>
+                  <p className="text-xs text-slate-400">
+                    {activeLeadDetails.phone} · {activeLeadDetails.email || 'No email'}
+                  </p>
                 </div>
               </div>
               <button
@@ -622,7 +618,9 @@ export const LeadsView: React.FC = () => {
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 uppercase font-black">Budget</span>
-                  <p className="font-bold text-slate-900 mt-0.5">₹{activeLeadDetails.budget.toLocaleString('en-IN')}/mo</p>
+                  <p className="font-bold text-slate-900 mt-0.5">
+                    ₹{activeLeadDetails.budget.toLocaleString('en-IN')}/mo
+                  </p>
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <span className="text-[10px] text-slate-400 uppercase font-black">Source</span>
@@ -684,12 +682,17 @@ export const LeadsView: React.FC = () => {
                 </div>
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                   {activeLeadDetails.timeline.map((act) => (
-                    <div key={act.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5">
+                    <div
+                      key={act.id}
+                      className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5"
+                    >
                       <div className="w-2 h-2 rounded-full bg-[#a3e635] mt-1.5 shrink-0" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-slate-800">{act.action}</span>
-                          <span className="text-[10px] text-slate-400">{act.date} · {act.time}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {act.date} · {act.time}
+                          </span>
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">{act.description}</p>
                       </div>
@@ -726,7 +729,11 @@ export const LeadsView: React.FC = () => {
 
       {/* 6. IMPORT LEADS MODAL */}
       {showImportModal && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -778,18 +785,12 @@ export const LeadsView: React.FC = () => {
 
       {/* Schedule Visit Modal */}
       {scheduleVisitLead && (
-        <ScheduleVisitModal
-          initialLead={scheduleVisitLead}
-          onClose={() => setScheduleVisitLead(null)}
-        />
+        <ScheduleVisitModal initialLead={scheduleVisitLead} onClose={() => setScheduleVisitLead(null)} />
       )}
 
       {/* Create Booking Modal */}
       {createBookingLead && (
-        <CreateBookingModal
-          initialLead={createBookingLead}
-          onClose={() => setCreateBookingLead(null)}
-        />
+        <CreateBookingModal initialLead={createBookingLead} onClose={() => setCreateBookingLead(null)} />
       )}
     </div>
   );

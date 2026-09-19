@@ -20,7 +20,11 @@ export const HighRiskConfirmModal: React.FC<HighRiskConfirmModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in"
+    >
       <div
         className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95"
         role="dialog"
@@ -39,7 +43,8 @@ export const HighRiskConfirmModal: React.FC<HighRiskConfirmModalProps> = ({
               Give access to {permissionLabel}?
             </h3>
             <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-              Enabling this permission for <strong className="text-slate-900 font-bold">{roleName}</strong> grants elevated managerial authority (such as deleting records or processing refunds).
+              Enabling this permission for <strong className="text-slate-900 font-bold">{roleName}</strong> grants
+              elevated managerial authority (such as deleting records or processing refunds).
             </p>
           </div>
         </div>
@@ -50,7 +55,8 @@ export const HighRiskConfirmModal: React.FC<HighRiskConfirmModalProps> = ({
             <span>Security Precaution</span>
           </div>
           <p className="text-[11px] text-amber-800 leading-snug">
-            All actions performed by employees with this permission will be recorded in the security audit log with timestamps.
+            All actions performed by employees with this permission will be recorded in the security audit log with
+            timestamps.
           </p>
         </div>
 

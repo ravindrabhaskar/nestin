@@ -14,8 +14,8 @@ ENV NODE_ENV=production \
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# Vite copies public/ (manifest, service worker, icons) into dist/, so dist is the whole runtime.
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/public ./public
 RUN mkdir -p /data && chown -R node:node /data /app
 USER node
 VOLUME ["/data"]

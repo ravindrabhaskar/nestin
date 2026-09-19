@@ -21,12 +21,7 @@ const GROUPS: PermissionGroupKey[] = [
   'SETTINGS',
 ];
 
-export const CreateEditRoleModal: React.FC<CreateEditRoleModalProps> = ({
-  isOpen,
-  onClose,
-  roleToEdit,
-  onSuccess,
-}) => {
+export const CreateEditRoleModal: React.FC<CreateEditRoleModalProps> = ({ isOpen, onClose, roleToEdit, onSuccess }) => {
   const { createRole, updateRole, permissionCatalog, roles } = useRBAC();
 
   const isEditing = !!roleToEdit;
@@ -135,7 +130,11 @@ export const CreateEditRoleModal: React.FC<CreateEditRoleModalProps> = ({
   const totalPermCount = permissionCatalog.length;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
+    >
       <div
         className="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95"
         role="dialog"
@@ -230,9 +229,7 @@ export const CreateEditRoleModal: React.FC<CreateEditRoleModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-900 font-heading">
-                Authority Level Rating
-              </label>
+              <label className="text-xs font-black text-slate-900 font-heading">Authority Level Rating</label>
               <div className="flex items-center gap-2">
                 <select
                   value={authorityLevel}
@@ -254,9 +251,7 @@ export const CreateEditRoleModal: React.FC<CreateEditRoleModalProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-black text-slate-900 font-heading">
-              Role Description
-            </label>
+            <label className="text-xs font-black text-slate-900 font-heading">Role Description</label>
             <textarea
               rows={2}
               value={description}
@@ -270,9 +265,7 @@ export const CreateEditRoleModal: React.FC<CreateEditRoleModalProps> = ({
           <div className="space-y-3 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
               <div>
-                <h3 className="text-sm font-black font-heading text-slate-900">
-                  Granular Module Permissions
-                </h3>
+                <h3 className="text-sm font-black font-heading text-slate-900">Granular Module Permissions</h3>
                 <p className="text-xs text-slate-500">
                   {enabledCount} of {totalPermCount} permissions enabled for this role
                 </p>
@@ -310,100 +303,91 @@ export const CreateEditRoleModal: React.FC<CreateEditRoleModalProps> = ({
 
             {/* Permission Group Sections */}
             <div className="space-y-4">
-              {GROUPS.filter((g) => selectedGroupFilter === 'all' || selectedGroupFilter === g).map(
-                (grp) => {
-                  const groupPerms = permissionCatalog.filter((p) => p.group === grp);
-                  const groupEnabledCount = groupPerms.filter((p) => permissions[p.id]).length;
+              {GROUPS.filter((g) => selectedGroupFilter === 'all' || selectedGroupFilter === g).map((grp) => {
+                const groupPerms = permissionCatalog.filter((p) => p.group === grp);
+                const groupEnabledCount = groupPerms.filter((p) => permissions[p.id]).length;
 
-                  return (
-                    <div
-                      key={grp}
-                      className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs"
-                    >
-                      {/* Section Header */}
-                      <div className="bg-slate-50/80 px-4 py-2.5 border-b border-slate-200/80 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black uppercase tracking-wider text-slate-800 font-heading">
-                            {grp}
-                          </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700 font-heading">
-                            {groupEnabledCount}/{groupPerms.length}
-                          </span>
+                return (
+                  <div key={grp} className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs">
+                    {/* Section Header */}
+                    <div className="bg-slate-50/80 px-4 py-2.5 border-b border-slate-200/80 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-wider text-slate-800 font-heading">
+                          {grp}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200/80 text-slate-700 font-heading">
+                          {groupEnabledCount}/{groupPerms.length}
+                        </span>
+                      </div>
+
+                      {!isOwnerRole && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleGroupAll(grp, true)}
+                            className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                          >
+                            Grant All
+                          </button>
+                          <span className="text-slate-300">·</span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleGroupAll(grp, false)}
+                            className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                          >
+                            Revoke All
+                          </button>
                         </div>
-
-                        {!isOwnerRole && (
-                          <div className="flex items-center gap-2 text-xs">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleGroupAll(grp, true)}
-                              className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
-                            >
-                              Grant All
-                            </button>
-                            <span className="text-slate-300">·</span>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleGroupAll(grp, false)}
-                              className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
-                            >
-                              Revoke All
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Items in this group */}
-                      <div className="divide-y divide-slate-100">
-                        {groupPerms.map((perm) => {
-                          const isEnabled = !!permissions[perm.id];
-                          return (
-                            <div
-                              key={perm.id}
-                              className="p-3 sm:px-4 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
-                            >
-                              <div className="flex-1 pr-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-slate-900">
-                                    {perm.label}
-                                  </span>
-                                  {perm.isHighRisk && (
-                                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 font-heading">
-                                      High-Risk
-                                    </span>
-                                  )}
-                                  <span className="text-[10px] uppercase font-mono text-slate-400">
-                                    {perm.actionType}
-                                  </span>
-                                </div>
-                                <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
-                                  {perm.description}
-                                </p>
-                              </div>
-
-                              <div className="shrink-0 flex items-center gap-2">
-                                <span
-                                  className={`text-[11px] font-extrabold font-heading ${
-                                    isEnabled ? 'text-emerald-700' : 'text-rose-600'
-                                  }`}
-                                >
-                                  {isEnabled ? 'Access' : 'Denied'}
-                                </span>
-                                <PermissionToggle
-                                  checked={isEnabled}
-                                  disabled={isOwnerRole}
-                                  disabledTooltip="System Owner has permanent full access"
-                                  onChange={() => handleTogglePermission(perm.id)}
-                                  ariaLabel={`${perm.label} for ${name || 'role'}`}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      )}
                     </div>
-                  );
-                }
-              )}
+
+                    {/* Items in this group */}
+                    <div className="divide-y divide-slate-100">
+                      {groupPerms.map((perm) => {
+                        const isEnabled = !!permissions[perm.id];
+                        return (
+                          <div
+                            key={perm.id}
+                            className="p-3 sm:px-4 flex items-center justify-between gap-3 hover:bg-slate-50/50 transition-colors"
+                          >
+                            <div className="flex-1 pr-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-900">{perm.label}</span>
+                                {perm.isHighRisk && (
+                                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 font-heading">
+                                    High-Risk
+                                  </span>
+                                )}
+                                <span className="text-[10px] uppercase font-mono text-slate-400">
+                                  {perm.actionType}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{perm.description}</p>
+                            </div>
+
+                            <div className="shrink-0 flex items-center gap-2">
+                              <span
+                                className={`text-[11px] font-extrabold font-heading ${
+                                  isEnabled ? 'text-emerald-700' : 'text-rose-600'
+                                }`}
+                              >
+                                {isEnabled ? 'Access' : 'Denied'}
+                              </span>
+                              <PermissionToggle
+                                checked={isEnabled}
+                                disabled={isOwnerRole}
+                                disabledTooltip="System Owner has permanent full access"
+                                onChange={() => handleTogglePermission(perm.id)}
+                                ariaLabel={`${perm.label} for ${name || 'role'}`}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </form>

@@ -22,10 +22,7 @@ export const FeatureTrust: React.FC = () => {
               LISTINGS YOU'LL ACTUALLY TRUST
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-[2.75rem] font-extrabold tracking-tight text-[#121820] font-heading leading-[1.15]">
-              Every stay is checked{' '}
-              <span className="text-[#a3e635]">
-                for you.
-              </span>
+              Every stay is checked <span className="text-[#a3e635]">for you.</span>
             </h2>
           </div>
 
@@ -47,9 +44,7 @@ export const FeatureTrust: React.FC = () => {
                 <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#d9f99d] flex items-center justify-center text-slate-950">
                   <Check className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
-                <span className="text-sm sm:text-base font-semibold text-slate-700">
-                  {point}
-                </span>
+                <span className="text-sm sm:text-base font-semibold text-slate-700">{point}</span>
               </motion.div>
             ))}
           </div>
@@ -75,5 +70,3 @@ export const FeatureTrust: React.FC = () => {
     </section>
   );
 };
-
-

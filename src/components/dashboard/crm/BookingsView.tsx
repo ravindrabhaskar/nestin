@@ -1,30 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Download,
-  Eye,
-  Filter,
-  IndianRupee,
-  Mail,
-  MessageCircle,
-  MoreVertical,
-  Phone,
-  Plus,
-  Search,
-  ShieldCheck,
-  Trash2,
-  User,
-  X,
-  XCircle,
-  Building2,
-  Bed,
-  CheckCircle,
-  AlertTriangle,
-  Receipt,
-  FileCheck,
-} from 'lucide-react';
+import { Download, Eye, Plus, Search, User, X, XCircle, AlertTriangle, Receipt } from 'lucide-react';
 import { useCRM } from '../../../context/CRMContext';
 import { usePropertyListing } from '../../../context/PropertyListingContext';
 import { BookingItem, BookingStatus, PaymentStatus } from '../../../types/crm';
@@ -51,14 +26,7 @@ const PAYMENT_BADGES: Record<PaymentStatus, { label: string; color: string; bg: 
 export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string) => void }> = ({
   onNavigateToCustomer,
 }) => {
-  const {
-    bookings,
-    approveBooking,
-    rejectBooking,
-    cancelBooking,
-    completeMoveIn,
-    getCustomerById,
-  } = useCRM();
+  const { bookings, approveBooking, rejectBooking, cancelBooking, completeMoveIn } = useCRM();
   const { ownerProperties } = usePropertyListing();
 
   // Filters & Search
@@ -104,9 +72,7 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
       (b) => b.bookingStatus === 'Confirmed' && new Date(b.moveInDate) >= new Date()
     ).length;
     const completed = bookings.filter((b) => b.bookingStatus === 'Completed').length;
-    const cancelled = bookings.filter(
-      (b) => b.bookingStatus === 'Cancelled' || b.bookingStatus === 'Rejected'
-    ).length;
+    const cancelled = bookings.filter((b) => b.bookingStatus === 'Cancelled' || b.bookingStatus === 'Rejected').length;
     const totalRevenue = bookings
       .filter((b) => b.paymentStatus === 'Paid' || b.bookingStatus === 'Confirmed' || b.bookingStatus === 'Completed')
       .reduce((sum, b) => sum + (b.paidAmount || b.totalAmount), 0);
@@ -136,7 +102,7 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
   };
 
   const handleApprove = (bookingId: string) => {
-    const res = approveBooking(bookingId);
+    approveBooking(bookingId);
     if (activeBookingDetails && activeBookingDetails.id === bookingId) {
       const updated = bookings.find((b) => b.id === bookingId);
       if (updated) setActiveBookingDetails(updated);
@@ -200,7 +166,9 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
           <p className="text-lg font-black text-amber-700 font-heading mt-0.5">{metrics.pending}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 font-heading">Confirmed</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 font-heading">
+            Confirmed
+          </span>
           <p className="text-lg font-black text-emerald-700 font-heading mt-0.5">{metrics.confirmed}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
@@ -208,7 +176,9 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
           <p className="text-lg font-black text-blue-700 font-heading mt-0.5">{metrics.upcomingMoveIns}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 font-heading">Active Stay</span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-teal-600 font-heading">
+            Active Stay
+          </span>
           <p className="text-lg font-black text-teal-700 font-heading mt-0.5">{metrics.completed}</p>
         </div>
         <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
@@ -323,9 +293,7 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
                       onClick={() => setActiveBookingDetails(booking)}
                       className="hover:bg-slate-50/80 transition-colors cursor-pointer"
                     >
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                        {booking.bookingNumber}
-                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-900">{booking.bookingNumber}</td>
 
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
@@ -360,7 +328,9 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
                       </td>
 
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${payConfig.bg} ${payConfig.color}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${payConfig.bg} ${payConfig.color}`}
+                        >
                           {booking.paymentStatus}
                         </span>
                       </td>
@@ -438,7 +408,11 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
 
       {/* 5. BOOKING DETAILS MODAL */}
       {activeBookingDetails && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95">
             {/* Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
@@ -467,9 +441,7 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
               {/* Status Header Strip */}
               <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    Booking Status
-                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Booking Status</span>
                   <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#a3e635]" />
                     {activeBookingDetails.bookingStatus}
@@ -477,9 +449,7 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
                 </div>
 
                 <div className="text-right">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    Payment Status
-                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Payment Status</span>
                   <p className="text-sm font-black text-emerald-700 mt-0.5">
                     {activeBookingDetails.paymentStatus} (₹{activeBookingDetails.paidAmount.toLocaleString('en-IN')})
                   </p>
@@ -492,7 +462,8 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
                   <div>
                     <p className="font-bold text-emerald-950">Awaiting Owner Confirmation</p>
                     <p className="text-[11px] text-emerald-700">
-                      Approving will immediately allocate bed {activeBookingDetails.bedNumber} and create customer record.
+                      Approving will immediately allocate bed {activeBookingDetails.bedNumber} and create customer
+                      record.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -550,23 +521,33 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
                 <div className="divide-y divide-slate-200/60 text-xs">
                   <div className="flex justify-between py-1.5 text-slate-600">
                     <span>Monthly Accommodation Rent</span>
-                    <span className="font-bold text-slate-900">₹{activeBookingDetails.monthlyRent.toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-slate-900">
+                      ₹{activeBookingDetails.monthlyRent.toLocaleString('en-IN')}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1.5 text-slate-600">
                     <span>Refundable Security Deposit</span>
-                    <span className="font-bold text-slate-900">₹{activeBookingDetails.securityDeposit.toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-slate-900">
+                      ₹{activeBookingDetails.securityDeposit.toLocaleString('en-IN')}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1.5 text-slate-600">
                     <span>One-time Booking Token Fee</span>
-                    <span className="font-bold text-slate-900">₹{activeBookingDetails.bookingFee.toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-slate-900">
+                      ₹{activeBookingDetails.bookingFee.toLocaleString('en-IN')}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1.5 text-slate-600">
                     <span>Maintenance & Utility Surcharge</span>
-                    <span className="font-bold text-slate-900">₹{activeBookingDetails.maintenanceCharges.toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-slate-900">
+                      ₹{activeBookingDetails.maintenanceCharges.toLocaleString('en-IN')}
+                    </span>
                   </div>
                   <div className="flex justify-between py-2 text-sm font-black text-slate-900 font-heading">
                     <span>Total Move-in Package</span>
-                    <span className="text-emerald-700">₹{activeBookingDetails.totalAmount.toLocaleString('en-IN')}</span>
+                    <span className="text-emerald-700">
+                      ₹{activeBookingDetails.totalAmount.toLocaleString('en-IN')}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -578,12 +559,17 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
                 </div>
                 <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                   {activeBookingDetails.timeline.map((act) => (
-                    <div key={act.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5">
+                    <div
+                      key={act.id}
+                      className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2.5"
+                    >
                       <div className="w-2 h-2 rounded-full bg-[#a3e635] mt-1.5 shrink-0" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-slate-800">{act.action}</span>
-                          <span className="text-[10px] text-slate-400">{act.date} · {act.time}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {act.date} · {act.time}
+                          </span>
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">{act.description}</p>
                       </div>
@@ -632,7 +618,11 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
 
       {/* Reject Modal */}
       {rejectReasonModalBooking && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-sm font-black font-heading text-slate-900">Reject Booking Request</h3>
             <p className="text-xs text-slate-500">
@@ -667,7 +657,11 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
 
       {/* Cancel Modal */}
       {cancelReasonModalBooking && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+        >
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
             <h3 className="text-sm font-black font-heading text-slate-900">Cancel Confirmed Booking</h3>
             <p className="text-xs text-slate-500">

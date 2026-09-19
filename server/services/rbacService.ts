@@ -1,3 +1,4 @@
+import { assertCanAddStaff } from './billingService.js';
 import crypto from 'node:crypto';
 import type { Role, Employee, AuditLog, AuthorityLevel } from '../../src/types/rbac';
 import { PERMISSION_CATALOG, INITIAL_ROLES } from '../../src/data/rbacData';
@@ -179,6 +180,7 @@ export function upsertEmployee(
   ensureDefaultRoles(ownerId);
   const existing = id ? employees.get(id) : null;
   if (existing && existing.ownerId !== ownerId) throw notFound('Employee');
+  if (!existing) assertCanAddStaff(ownerId);
 
   const name = v.str(body.name ?? existing?.name, 'Employee name', { max: 120 });
   const email = v.email(body.email ?? existing?.email);

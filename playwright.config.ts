@@ -42,6 +42,13 @@ export default defineConfig({
       DATABASE_PATH: './data/e2e.db',
       JWT_SECRET: 'e2e-secret-e2e-secret-e2e-secret-1234567890',
       DISABLE_HMR: 'true',
+      // Deterministic demo credentials regardless of the developer's local .env
+      SEED_DEMO_DATA: 'true',
+      DEMO_PASSWORD: 'NestIn@2026',
+      SUPER_ADMIN_EMAIL: 'admin@nestin.io',
+      SUPER_ADMIN_PASSWORD: 'Admin@NestIn2026',
+      SUPER_ADMIN_ACCESS_CODE: 'NESTIN-SUPER-ADMIN-2026',
+      DISABLE_BACKUPS: 'true',
     },
   },
 });

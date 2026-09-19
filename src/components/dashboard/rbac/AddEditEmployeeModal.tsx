@@ -140,7 +140,11 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
+    >
       <div
         className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95"
         role="dialog"
@@ -184,9 +188,7 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
 
           {/* Profile Photo Preset Selection */}
           <div className="space-y-2">
-            <label className="text-xs font-black text-slate-900 font-heading">
-              Profile Photo
-            </label>
+            <label className="text-xs font-black text-slate-900 font-heading">Profile Photo</label>
             <div className="flex items-center gap-3 overflow-x-auto pb-1">
               {AVATAR_PRESETS.map((preset, idx) => (
                 <button
@@ -236,9 +238,7 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-900 font-heading">
-                Phone Number
-              </label>
+              <label className="text-xs font-black text-slate-900 font-heading">Phone Number</label>
               <input
                 type="tel"
                 value={phone}
@@ -249,9 +249,7 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-900 font-heading">
-                Account Status
-              </label>
+              <label className="text-xs font-black text-slate-900 font-heading">Account Status</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
@@ -269,9 +267,7 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
               <label className="text-xs font-black text-slate-900 font-heading">
                 Assign Operational Role <span className="text-rose-500">*</span>
               </label>
-              {selectedRole && (
-                <AuthorityMeter level={selectedRole.authorityLevel} size="sm" />
-              )}
+              {selectedRole && <AuthorityMeter level={selectedRole.authorityLevel} size="sm" />}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -288,18 +284,14 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-slate-900 font-heading">
-                        {r.name}
-                      </span>
+                      <span className="text-xs font-black text-slate-900 font-heading">{r.name}</span>
                       {r.isSystem && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                           System
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-500 line-clamp-1">
-                      {r.description}
-                    </p>
+                    <p className="text-[10px] text-slate-500 line-clamp-1">{r.description}</p>
                   </div>
                 );
               })}
@@ -310,9 +302,7 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-xs font-black text-slate-900 font-heading">
-                  Property-Level Access Scope
-                </label>
+                <label className="text-xs font-black text-slate-900 font-heading">Property-Level Access Scope</label>
                 <p className="text-[11px] text-slate-500">
                   Control which PG properties this employee is authorized to view & manage.
                 </p>
@@ -349,7 +339,11 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <Icon name="properties" size={16} className={isChecked ? 'text-emerald-700' : 'text-slate-400'} />
+                        <Icon
+                          name="properties"
+                          size={16}
+                          className={isChecked ? 'text-emerald-700' : 'text-slate-400'}
+                        />
                         <div>
                           <div className="text-xs font-bold text-slate-900">{prop.name}</div>
                           <div className="text-[11px] text-slate-500">{prop.location}</div>
@@ -358,9 +352,7 @@ export const AddEditEmployeeModal: React.FC<AddEditEmployeeModalProps> = ({
 
                       <div
                         className={`w-5 h-5 rounded-md border flex items-center justify-center ${
-                          isChecked
-                            ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'border-slate-300 bg-white'
+                          isChecked ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
                         }`}
                       >
                         {isChecked && <Icon name="check" size={12} />}

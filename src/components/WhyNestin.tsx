@@ -1,17 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  ShieldCheck,
-  Building2,
-  FileText,
-  Tag,
-  Truck,
-  Home,
-  ChevronDown,
-  Search,
-  HelpCircle,
-  Sparkles,
-} from 'lucide-react';
+import { ShieldCheck, Building2, FileText, Tag, Truck, Home, Search, HelpCircle } from 'lucide-react';
 import { WHY_NESTIN_FEATURES } from '../data/landingData';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -36,7 +25,7 @@ const FAQ_LIST_COMPREHENSIVE: FAQItemData[] = [
     category: 'General',
     question: 'What is Nestin?',
     answer:
-      'Nestin is India\'s technology platform that helps students and working professionals discover verified PGs, hostels, co-living spaces, and rental accommodations across major tech cities.',
+      "Nestin is India's technology platform that helps students and working professionals discover verified PGs, hostels, co-living spaces, and rental accommodations across major tech cities.",
   },
   {
     id: 'faq-2',
@@ -95,7 +84,8 @@ interface WhyNestinProps {
 
 export const WhyNestin: React.FC<WhyNestinProps> = ({ onSelectFeature }) => {
   const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; cardId: string }>>([]);
-  const [activeTab, setActiveTab] = useState<'All' | 'General' | 'Booking' | 'Verification' | 'Owners'>('All');
+  const rippleSeq = useRef(0);
+  const [activeTab] = useState<'All' | 'General' | 'Booking' | 'Verification' | 'Owners'>('All');
   const [openFaqId, setOpenFaqId] = useState<string | null>('faq-1');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -103,7 +93,7 @@ export const WhyNestin: React.FC<WhyNestinProps> = ({ onSelectFeature }) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const newRipple = { id: Date.now(), x, y, cardId };
+    const newRipple = { id: rippleSeq.current++, x, y, cardId };
 
     setRipples((prev) => [...prev, newRipple]);
     setTimeout(() => {
@@ -131,9 +121,7 @@ export const WhyNestin: React.FC<WhyNestinProps> = ({ onSelectFeature }) => {
           </span>
           <h2 className="text-h1 sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#121820] leading-tight">
             Everything you need in{' '}
-            <span className="text-[#88d900] underline decoration-[#a3e635]/40 underline-offset-8">
-              one place.
-            </span>
+            <span className="text-[#88d900] underline decoration-[#a3e635]/40 underline-offset-8">one place.</span>
           </h2>
           <p className="text-slate-600 text-body-lg">
             From verified homes to hassle-free agreements, every part of your move is handled.
@@ -181,9 +169,7 @@ export const WhyNestin: React.FC<WhyNestinProps> = ({ onSelectFeature }) => {
                   {feature.title}
                 </h3>
 
-                <p className="text-slate-600 text-sm leading-relaxed font-sans">
-                  {feature.description}
-                </p>
+                <p className="text-slate-600 text-sm leading-relaxed font-sans">{feature.description}</p>
               </div>
             </motion.div>
           ))}
@@ -195,9 +181,7 @@ export const WhyNestin: React.FC<WhyNestinProps> = ({ onSelectFeature }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
           {/* Left Side Header Sticky */}
           <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-28">
-            <span className="text-xs font-bold tracking-widest text-slate-500 uppercase font-heading">
-              WHY NESTIN
-            </span>
+            <span className="text-xs font-bold tracking-widest text-slate-500 uppercase font-heading">WHY NESTIN</span>
             <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#121820] font-heading leading-tight">
               Answers before{' '}
               <span className="text-[#a3e635] bg-clip-text">
@@ -238,10 +222,7 @@ export const WhyNestin: React.FC<WhyNestinProps> = ({ onSelectFeature }) => {
               filteredFaqs.map((faq) => {
                 const isOpen = openFaqId === faq.id;
                 return (
-                  <div
-                    key={faq.id}
-                    className="border-b border-stone-200/90 py-1 transition-colors"
-                  >
+                  <div key={faq.id} className="border-b border-stone-200/90 py-1 transition-colors">
                     <button
                       onClick={() => setOpenFaqId(isOpen ? null : faq.id)}
                       className="w-full py-4 text-left flex items-center justify-between gap-4 cursor-pointer select-none group"
@@ -266,9 +247,7 @@ export const WhyNestin: React.FC<WhyNestinProps> = ({ onSelectFeature }) => {
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.25, ease: 'easeInOut' }}
                         >
-                          <div className="pb-5 pr-8 text-slate-600 text-sm leading-relaxed font-sans">
-                            {faq.answer}
-                          </div>
+                          <div className="pb-5 pr-8 text-slate-600 text-sm leading-relaxed font-sans">{faq.answer}</div>
                         </motion.div>
                       )}
                     </AnimatePresence>

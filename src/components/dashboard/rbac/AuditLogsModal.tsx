@@ -31,7 +31,11 @@ export const AuditLogsModal: React.FC<AuditLogsModalProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in"
+    >
       <div
         className="bg-white rounded-3xl max-w-3xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95"
         role="dialog"
@@ -67,11 +71,7 @@ export const AuditLogsModal: React.FC<AuditLogsModalProps> = ({ isOpen, onClose 
         {/* Filters and Search Bar */}
         <div className="px-5 sm:px-6 py-3 bg-slate-50 border-b border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="relative w-full sm:w-72">
-            <Icon
-              name="search"
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+            <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Search actor, role, or permission..."
@@ -113,8 +113,12 @@ export const AuditLogsModal: React.FC<AuditLogsModalProps> = ({ isOpen, onClose 
                 timeStyle: 'short',
               });
 
-              const isGrant = log.action.toLowerCase().includes('grant') || log.action.toLowerCase().includes('enabled');
-              const isRevoke = log.action.toLowerCase().includes('revoke') || log.action.toLowerCase().includes('denied') || log.action.toLowerCase().includes('deactivat');
+              const isGrant =
+                log.action.toLowerCase().includes('grant') || log.action.toLowerCase().includes('enabled');
+              const isRevoke =
+                log.action.toLowerCase().includes('revoke') ||
+                log.action.toLowerCase().includes('denied') ||
+                log.action.toLowerCase().includes('deactivat');
 
               return (
                 <div
@@ -128,24 +132,18 @@ export const AuditLogsModal: React.FC<AuditLogsModalProps> = ({ isOpen, onClose 
                           isGrant
                             ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                             : isRevoke
-                            ? 'bg-rose-50 text-rose-800 border border-rose-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                              ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
                         }`}
                       >
                         {log.action}
                       </span>
-                      <span className="text-xs font-black text-slate-900 font-heading">
-                        {log.targetName}
-                      </span>
+                      <span className="text-xs font-black text-slate-900 font-heading">{log.targetName}</span>
                     </div>
-                    <span className="text-[11px] text-slate-400 font-medium shrink-0">
-                      {formattedDate}
-                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium shrink-0">{formattedDate}</span>
                   </div>
 
-                  <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                    {log.note}
-                  </p>
+                  <p className="text-xs text-slate-600 leading-relaxed font-medium">{log.note}</p>
 
                   <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                     <div className="flex items-center gap-1.5">

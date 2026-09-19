@@ -1,6 +1,6 @@
 import React from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ShieldAlert, Lock, ArrowLeft, Home, Building2, UserCheck, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldAlert, Lock, Home, Building2, UserCheck, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 // -------------------------------------------------------------
@@ -12,7 +12,6 @@ interface ProtectedOwnerRouteProps {
 
 export const ProtectedOwnerRoute: React.FC<ProtectedOwnerRouteProps> = ({ children }) => {
   const { isAuthenticated, isOwner, isEmployee, isLoading, user } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -40,12 +39,12 @@ export const ProtectedOwnerRoute: React.FC<ProtectedOwnerRouteProps> = ({ childr
               <Lock className="w-3.5 h-3.5" />
               <span>Owner & Partner Portal Only</span>
             </div>
-            <h2 className="text-2xl font-black text-white font-heading">
-              Access Restricted (403)
-            </h2>
+            <h2 className="text-2xl font-black text-white font-heading">Access Restricted (403)</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
               This section is reserved exclusively for registered PG Owners and property management staff.
-              {user ? ` You are currently signed in as "${user.name}" (${user.role}).` : ' Please sign in with an authorized Owner account.'}
+              {user
+                ? ` You are currently signed in as "${user.name}" (${user.role}).`
+                : ' Please sign in with an authorized Owner account.'}
             </p>
           </div>
 
@@ -92,7 +91,9 @@ export const ProtectedSuperAdminRoute: React.FC<ProtectedSuperAdminRouteProps> =
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider">Verifying Root Administrator Credentials...</p>
+          <p className="text-xs font-mono text-slate-400 uppercase tracking-wider">
+            Verifying Root Administrator Credentials...
+          </p>
         </div>
       </div>
     );
@@ -112,12 +113,10 @@ export const ProtectedSuperAdminRoute: React.FC<ProtectedSuperAdminRouteProps> =
               <Shield className="w-3.5 h-3.5" />
               <span>Platform Administration Zone</span>
             </div>
-            <h2 className="text-2xl font-black text-white font-heading">
-              Unauthorized Access (403)
-            </h2>
+            <h2 className="text-2xl font-black text-white font-heading">Unauthorized Access (403)</h2>
             <p className="text-xs text-slate-400 leading-relaxed">
-              This system is strictly isolated and restricted to authorized NestIn Super Administrators.
-              All access attempts are logged and monitored.
+              This system is strictly isolated and restricted to authorized NestIn Super Administrators. All access
+              attempts are logged and monitored.
             </p>
           </div>
 
@@ -157,7 +156,6 @@ interface ProtectedTenantRouteProps {
 
 export const ProtectedTenantRoute: React.FC<ProtectedTenantRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading, setAuthModalOpen, setAuthMessage } = useAuth();
-  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -175,9 +173,7 @@ export const ProtectedTenantRoute: React.FC<ProtectedTenantRouteProps> = ({ chil
             <UserCheck className="w-8 h-8" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-xl font-black text-slate-950 font-heading">
-              Resident Sign-In Required
-            </h3>
+            <h3 className="text-xl font-black text-slate-950 font-heading">Resident Sign-In Required</h3>
             <p className="text-xs text-slate-500">
               Please sign in to your resident account to view your bookings, saved properties, and profile.
             </p>

@@ -2,23 +2,7 @@ import { ApiClient } from '../lib/apiClient';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  Mail,
-  Phone,
-  MapPin,
-  Clock,
-  Send,
-  CheckCircle2,
-  ChevronRight,
-  MessageSquare,
-  HelpCircle,
-  Building,
-  User,
-  ShieldCheck,
-  Headphones,
-  ArrowRight,
-  Sparkles,
-} from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Send, CheckCircle2, ChevronRight, HelpCircle, Sparkles } from 'lucide-react';
 
 interface ContactPageProps {
   onNavigate: (page: 'home' | 'about' | 'contact', sectionId?: string) => void;
@@ -45,14 +29,18 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
         ...prev,
         userRole: 'PG Property Owner',
         subject: 'Request a Demo / Owner Partnership',
-        message: prev.message || 'Hi Nestin team, I am interested in listing my property and would like to request a demo of the Nestin Owner Platform.',
+        message:
+          prev.message ||
+          'Hi Nestin team, I am interested in listing my property and would like to request a demo of the Nestin Owner Platform.',
       }));
     } else if (subjectParam === 'owner-pricing') {
       setFormData((prev) => ({
         ...prev,
         userRole: 'PG Property Owner',
         subject: 'Owner Pricing & Listing Inquiry',
-        message: prev.message || 'Hi Nestin team, I would like to know more about the pricing plans and listing options for PG owners.',
+        message:
+          prev.message ||
+          'Hi Nestin team, I would like to know more about the pricing plans and listing options for PG owners.',
       }));
     }
   }, [subjectParam, roleParam]);
@@ -61,9 +49,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
   const [submitted, setSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -103,10 +89,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
     <div className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-16 lg:space-y-20 font-sans">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 font-heading">
-        <button
-          onClick={() => onNavigate('home')}
-          className="hover:text-black transition-colors cursor-pointer"
-        >
+        <button onClick={() => onNavigate('home')} className="hover:text-black transition-colors cursor-pointer">
           Home
         </button>
         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
@@ -122,7 +105,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
           We're Here to Help You Find Your Ideal Stay.
         </h1>
         <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
-          Have questions about a PG listing, visit scheduling, or listing your property? Our support team is active 7 days a week.
+          Have questions about a PG listing, visit scheduling, or listing your property? Our support team is active 7
+          days a week.
         </p>
       </div>
 
@@ -136,9 +120,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             <h3 className="text-xs font-bold text-slate-400 font-heading uppercase tracking-wider">
               CUSTOMER HELPLINE
             </h3>
-            <p className="text-base font-extrabold text-[#121820] font-heading mt-1">
-              +91 1800-NESTIN-01
-            </p>
+            <p className="text-base font-extrabold text-[#121820] font-heading mt-1">+91 1800-NESTIN-01</p>
             <p className="text-xs text-slate-500 mt-0.5">+91 8000 123 456</p>
           </div>
         </div>
@@ -148,12 +130,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             <Mail className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-slate-400 font-heading uppercase tracking-wider">
-              EMAIL SUPPORT
-            </h3>
-            <p className="text-base font-extrabold text-[#121820] font-heading mt-1">
-              support@nestinfinds.app
-            </p>
+            <h3 className="text-xs font-bold text-slate-400 font-heading uppercase tracking-wider">EMAIL SUPPORT</h3>
+            <p className="text-base font-extrabold text-[#121820] font-heading mt-1">support@nestinfinds.app</p>
             <p className="text-xs text-slate-500 mt-0.5">owners@nestinfinds.app</p>
           </div>
         </div>
@@ -163,9 +141,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-slate-400 font-heading uppercase tracking-wider">
-              SUPPORT HOURS
-            </h3>
+            <h3 className="text-xs font-bold text-slate-400 font-heading uppercase tracking-wider">SUPPORT HOURS</h3>
             <p className="text-base font-extrabold text-[#121820] font-heading mt-1">
               Mon – Sun: 8:00 AM – 10:00 PM IST
             </p>
@@ -180,15 +156,11 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             <MapPin className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-slate-400 font-heading uppercase tracking-wider">
-              HEADQUARTERS
-            </h3>
+            <h3 className="text-xs font-bold text-slate-400 font-heading uppercase tracking-wider">HEADQUARTERS</h3>
             <p className="text-xs font-extrabold text-[#121820] font-heading mt-1 leading-snug">
               Nestin Technologies Pvt Ltd
             </p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              100ft Road, Indiranagar, Bengaluru 560038
-            </p>
+            <p className="text-xs text-slate-500 mt-0.5">100ft Road, Indiranagar, Bengaluru 560038</p>
           </div>
         </div>
       </div>
@@ -207,18 +179,15 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                 <CheckCircle2 className="w-10 h-10" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-[#121820] font-heading">
-                  Message Submitted Successfully!
-                </h3>
+                <h3 className="text-2xl font-black text-[#121820] font-heading">Message Submitted Successfully!</h3>
                 <p className="text-slate-600 text-sm max-w-md mx-auto">
-                  Thank you for reaching out to Nestin. Our support specialist will review your request and contact you shortly.
+                  Thank you for reaching out to Nestin. Our support specialist will review your request and contact you
+                  shortly.
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#FAF9F5] border border-slate-200 max-w-xs mx-auto text-left space-y-1">
-                <p className="text-[11px] font-bold text-slate-400 font-heading uppercase">
-                  TICKET REFERENCE ID
-                </p>
+                <p className="text-[11px] font-bold text-slate-400 font-heading uppercase">TICKET REFERENCE ID</p>
                 <p className="text-lg font-mono font-bold text-[#121820]">{ticketId}</p>
                 <p className="text-xs text-slate-500">A confirmation email has been sent to {formData.email}</p>
               </div>
@@ -234,9 +203,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="border-b border-slate-100 pb-4 space-y-1">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-heading">
-                  Send Us a Message
-                </h2>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 font-heading">Send Us a Message</h2>
                 <p className="text-xs text-slate-500 font-sans">
                   Fill in your contact details and message below. We will respond promptly.
                 </p>
@@ -278,9 +245,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
               {/* Phone & Role Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 font-heading">
-                    Phone Number
-                  </label>
+                  <label className="text-xs font-bold text-slate-700 font-heading">Phone Number</label>
                   <input
                     type="tel"
                     name="phone"
@@ -292,9 +257,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 font-heading">
-                    I am a...
-                  </label>
+                  <label className="text-xs font-bold text-slate-700 font-heading">I am a...</label>
                   <select
                     name="userRole"
                     value={formData.userRole}
@@ -311,9 +274,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
 
               {/* Subject */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 font-heading">
-                  Subject
-                </label>
+                <label className="text-xs font-bold text-slate-700 font-heading">Subject</label>
                 <input
                   type="text"
                   name="subject"
@@ -342,12 +303,13 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
 
               {/* Preferred Contact Method */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 font-heading block">
-                  Preferred Contact Method
-                </label>
+                <label className="text-xs font-bold text-slate-700 font-heading block">Preferred Contact Method</label>
                 <div className="flex items-center gap-6">
                   {['Email', 'Phone Call', 'WhatsApp'].map((method) => (
-                    <label key={method} className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700">
+                    <label
+                      key={method}
+                      className="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700"
+                    >
                       <input
                         type="radio"
                         name="preferredContact"
@@ -393,17 +355,24 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
             <div className="space-y-3 text-xs">
               <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-slate-200/80 space-y-1">
                 <p className="font-bold text-[#121820]">How quickly can I schedule a PG visit?</p>
-                <p className="text-slate-600">You can schedule a visit instantly on Nestin. Site visits are confirmed within 10 minutes.</p>
+                <p className="text-slate-600">
+                  You can schedule a visit instantly on Nestin. Site visits are confirmed within 10 minutes.
+                </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-slate-200/80 space-y-1">
                 <p className="font-bold text-[#121820]">Are there any brokerage charges?</p>
-                <p className="text-slate-600">No! Nestin is 100% zero brokerage for tenants searching for verified PGs and hostels.</p>
+                <p className="text-slate-600">
+                  No! Nestin is 100% zero brokerage for tenants searching for verified PGs and hostels.
+                </p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-slate-200/80 space-y-1">
                 <p className="font-bold text-[#121820]">I am a PG Owner. How do I list my property?</p>
-                <p className="text-slate-600">Click 'List your property' or call our owner hotline at +91 1800-NESTIN-01 to get verified within 24 hours.</p>
+                <p className="text-slate-600">
+                  Click 'List your property' or call our owner hotline at +91 1800-NESTIN-01 to get verified within 24
+                  hours.
+                </p>
               </div>
             </div>
           </div>

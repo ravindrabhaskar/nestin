@@ -8,6 +8,11 @@ import { storageDriverName } from '../lib/storage.js';
 import { razorpayEnabled } from '../lib/razorpay.js';
 import { authenticate, requireRole, currentUser, type AuthedRequest } from '../middleware/auth.js';
 import { sendOk, wrap } from '../middleware/common.js';
+import * as billing from '../services/billingService.js';
+import { backupStatus, runBackup } from '../lib/backup.js';
+import { metricsSnapshot } from '../lib/logger.js';
+import { pushEnabled } from '../lib/push.js';
+import { config } from '../config.js';
 
 export const adminRouter = Router();
 
@@ -53,6 +58,19 @@ adminRouter.post(
   wrap((req, res) =>
     sendOk(res, props.adminReject(currentUser(req), req.params.id, String(req.body?.reason || ''), ctx(req)))
   )
+);
+adminRouter.post(
+  '/properties/:id/revoke-verification',
+  wrap((req, res) =>
+    sendOk(
+      res,
+      props.adminRevokeVerification(currentUser(req), req.params.id, String(req.body?.reason || ''), ctx(req))
+    )
+  )
+);
+adminRouter.post(
+  '/properties/verification-sweep',
+  wrap((_req, res) => sendOk(res, props.runVerificationExpiry()))
 );
 adminRouter.patch(
   '/properties/:id/badges',
@@ -112,6 +130,38 @@ adminRouter.get(
       messaging: messagingStatus(),
       storage: storageDriverName,
       payments: razorpayEnabled() ? 'razorpay' : 'simulated',
+      push: pushEnabled() ? 'vapid' : 'disabled',
+      platformFeePercent: config.billing.platformFeePercent,
+      trialDays: config.billing.trialDays,
     })
   )
+);
+
+// ---- Billing --------------------------------------------------------------------------------
+
+adminRouter.get(
+  '/billing',
+  wrap((_req, res) => sendOk(res, { stats: billing.stats(), subscriptions: billing.adminList() }))
+);
+adminRouter.put(
+  '/billing/:ownerId',
+  wrap((req, res) => sendOk(res, billing.adminSetPlan(currentUser(req), req.params.ownerId, req.body || {}, ctx(req))))
+);
+
+// ---- Operations -----------------------------------------------------------------------------
+
+adminRouter.get(
+  '/ops/backups',
+  wrap((_req, res) => sendOk(res, backupStatus()))
+);
+adminRouter.post(
+  '/ops/backups',
+  wrap(async (_req, res) => sendOk(res, await runBackup('manual'), 201))
+);
+adminRouter.get(
+  '/ops/metrics',
+  wrap((_req, res) => {
+    const b = backupStatus();
+    sendOk(res, { ...metricsSnapshot(), databaseSizeBytes: b.databaseSizeBytes, lastBackupAt: b.lastBackupAt });
+  })
 );

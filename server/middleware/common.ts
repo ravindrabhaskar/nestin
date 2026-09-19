@@ -15,11 +15,56 @@ export function correlation(req: AuthedRequest, res: Response, next: NextFunctio
   next();
 }
 
+/**
+ * Content-Security-Policy for the SPA. Scripts are locked to this origin plus the two third-party
+ * SDKs we load (Google Identity, Razorpay checkout); styles need 'unsafe-inline' because Tailwind
+ * runtime utilities and motion/leaflet set inline styles. Images stay open over https because
+ * listing photos come from the configured object store/CDN. In development Vite injects inline
+ * module scripts for HMR / React Fast Refresh, so scripts are relaxed there only.
+ */
+export function contentSecurityPolicy(): string {
+  const scriptSrc = ["'self'", 'https://accounts.google.com/gsi/', 'https://checkout.razorpay.com'];
+  if (!config.isProduction) scriptSrc.push("'unsafe-inline'", "'unsafe-eval'");
+  const connectSrc = [
+    "'self'",
+    'https://accounts.google.com/gsi/',
+    'https://api.razorpay.com',
+    'https://lumberjack.razorpay.com',
+    'https://*.basemaps.cartocdn.com',
+  ];
+  if (!config.isProduction) connectSrc.push('ws:', 'wss:');
+  const directives: Record<string, string[]> = {
+    'default-src': ["'self'"],
+    'base-uri': ["'self'"],
+    'object-src': ["'none'"],
+    'frame-ancestors': ["'none'"],
+    'form-action': ["'self'"],
+    'script-src': scriptSrc,
+    'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://accounts.google.com/gsi/style'],
+    'font-src': ["'self'", 'https://fonts.gstatic.com', 'data:'],
+    'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+    'media-src': ["'self'", 'blob:'],
+    'connect-src': connectSrc,
+    'frame-src': ["'self'", 'https://accounts.google.com', 'https://api.razorpay.com', 'https://checkout.razorpay.com'],
+    'worker-src': ["'self'", 'blob:'],
+    'manifest-src': ["'self'"],
+  };
+  if (config.isProduction) directives['upgrade-insecure-requests'] = [];
+  return Object.entries(directives)
+    .map(([k, v]) => (v.length ? `${k} ${v.join(' ')}` : k))
+    .join('; ');
+}
+
+const CSP_VALUE = contentSecurityPolicy();
+
+/** Applied to every response (API and SPA alike) so the HTML document is protected too. */
 export function securityHeaders(_req: Request, res: Response, next: NextFunction): void {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=(self)');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Content-Security-Policy', CSP_VALUE);
   if (config.isProduction) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 }

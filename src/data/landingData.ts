@@ -1,4 +1,4 @@
-import { FeatureItem, CityItem, TestimonialItem, FAQItem, PropertyListing } from '../types';
+import { FeatureItem,CityItem,TestimonialItem,FAQItem } from '../types';
 
 export const STATS_DATA = [
   { value: 15000, suffix: '+', label: 'Verified stays' },

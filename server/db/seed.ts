@@ -1,3 +1,4 @@
+import type { OwnerPropertyListing } from '../../src/types/property';
 import { config } from '../config.js';
 import { getMeta, setMeta, Collection } from './database.js';
 import {
@@ -145,8 +146,40 @@ function seedDemo(): void {
   });
 
   // ---- Properties ----------------------------------------------------------------------------
+  // Demo listings that carry the Verified badge get a matching verification record (as the admin
+  // approval flow would create) so expiry sweeps and the trust desk have real data to show.
+  const demoVerification = (p: OwnerPropertyListing): OwnerPropertyListing['verification'] | undefined => {
+    if (!p.isNestinVerified) return undefined;
+    const verifiedAt = new Date(Date.now() - 30 * 86_400_000);
+    const expiresAt = new Date(verifiedAt);
+    expiresAt.setMonth(expiresAt.getMonth() + 12);
+    return {
+      status: 'verified',
+      checklist: {
+        ownershipDocuments: true,
+        licenses: true,
+        siteVisit: true,
+        photosMatch: true,
+        caretakerIdentity: true,
+        caretakerBackground: true,
+        safety: true,
+        pricingAccurate: true,
+      },
+      notes: 'Demo verification record (SEED_DEMO_DATA).',
+      siteVisitDate: verifiedAt.toISOString().slice(0, 10),
+      verifiedByName: 'NestIn Trust Desk',
+      verifiedAt: verifiedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+    };
+  };
   for (const seed of INITIAL_PROPERTIES_SEED) {
-    properties.insert({ ...seed, ownerId, ownerName: DEMO_ACCOUNTS.owner.name, ownerEmail: DEMO_ACCOUNTS.owner.email });
+    properties.insert({
+      ...seed,
+      ownerId,
+      ownerName: DEMO_ACCOUNTS.owner.name,
+      ownerEmail: DEMO_ACCOUNTS.owner.email,
+      verification: demoVerification(seed),
+    });
   }
 
   // Marketplace catalogue: the generated demo inventory is owned by a separate "marketplace" owner
@@ -174,6 +207,7 @@ function seedDemo(): void {
       ownerName: marketplace.fullName,
       ownerEmail: marketplace.email,
       status: 'published',
+      verification: demoVerification(converted),
     });
   }
 

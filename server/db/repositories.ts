@@ -1,4 +1,4 @@
-import { Collection, getDb, nowIso } from './database.js';
+import { Collection, getDb, getMeta, nowIso, setMeta } from './database.js';
 import type { OwnerPropertyListing } from '../../src/types/property';
 import type {
   LeadItem,
@@ -11,6 +11,7 @@ import type {
 import type { Role, Employee, AuditLog } from '../../src/types/rbac';
 import type { TenantDocument, TenantSupportTicket } from '../../src/types';
 import type { AppRole } from '../lib/jwt.js';
+import type { PlanId, BillingInterval } from '../../src/lib/domain/plans';
 
 // ---------------------------------------------------------------------------------------------
 // Users & sessions (relational, not document-based, because they are security-sensitive)
@@ -251,10 +252,57 @@ export const sessions = {
 // Document collections (domain aggregates)
 // ---------------------------------------------------------------------------------------------
 
+/** The rent shown on cards: the listing's headline `pricing.minRent`, else the cheapest room. */
+export function propertyMinRent(p: OwnerPropertyListing): number {
+  if (p.pricing?.minRent && p.pricing.minRent > 0) return p.pricing.minRent;
+  const rents = (p.rooms || []).map((r) => r.monthlyRent).filter((n) => Number.isFinite(n) && n > 0);
+  return rents.length ? Math.min(...rents) : 0;
+}
+
 export const properties = new Collection<OwnerPropertyListing>({
   table: 'properties',
-  columns: (p) => ({ owner_id: p.ownerId, slug: p.slug, status: p.status, city: p.location?.city || '' }),
+  columns: (p) => ({
+    owner_id: p.ownerId,
+    slug: p.slug,
+    status: p.status,
+    city: p.location?.city || '',
+    category: p.category || '',
+    type: p.type || '',
+    area: p.location?.area || '',
+    min_rent: propertyMinRent(p),
+    rating: p.systemMetrics?.averageRating || 0,
+    is_verified: p.isNestinVerified ? 1 : 0,
+    is_featured: p.isFeatured ? 1 : 0,
+    available_beds: (p.rooms || []).reduce((n, r) => n + (r.availableBedsCount || 0), 0),
+    search_text: [p.name, p.location?.area, p.location?.city, p.location?.formattedAddress, ...(p.tags || [])]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase(),
+  }),
 });
+
+/** Re-derives indexed catalogue columns once after upgrading a database created before v3.1. */
+export function backfillCatalogueColumns(): number {
+  let touched = 0;
+  if (!getMeta('migration:catalogue-columns-v1')) {
+    const all = properties.list({}, { limit: 100000 });
+    Collection.transaction(() => {
+      for (const p of all) properties.replace(p);
+    });
+    setMeta('migration:catalogue-columns-v1', new Date().toISOString());
+    touched += all.length;
+  }
+  // payments.gateway_order_id was added later; rewrite once so webhooks can look orders up by index.
+  if (!getMeta('migration:payments-gateway-order-v1')) {
+    const all = payments.list({}, { limit: 1000000 });
+    Collection.transaction(() => {
+      for (const p of all) payments.replace(p);
+    });
+    setMeta('migration:payments-gateway-order-v1', new Date().toISOString());
+    touched += all.length;
+  }
+  return touched;
+}
 
 export const leads = new Collection<LeadItem & { ownerId: string }>({
   table: 'leads',
@@ -349,6 +397,9 @@ export interface PaymentRecord {
   description?: string;
   date: string;
   createdAt: string;
+  /** Platform commission retained from this payment (INR); the owner receives `amount - platformFee`. */
+  platformFee?: number;
+  platformFeePercent?: number;
 }
 
 export const payments = new Collection<PaymentRecord>({
@@ -361,7 +412,79 @@ export const payments = new Collection<PaymentRecord>({
     status: p.status,
     amount: p.amount,
     idempotency_key: p.idempotencyKey || null,
+    platform_fee: p.platformFee || 0,
+    gateway_order_id: p.gatewayOrderId || null,
   }),
+});
+
+// ---------------------------------------------------------------------------------------------
+// Billing (owner subscriptions) & push notifications
+// ---------------------------------------------------------------------------------------------
+
+export interface SubscriptionRecord {
+  id: string;
+  ownerId: string;
+  plan: PlanId;
+  interval: BillingInterval;
+  status: 'active' | 'trialing' | 'past_due' | 'cancelled';
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  trialEndsAt?: string;
+  cancelAtPeriodEnd: boolean;
+  /** Set by an operator (complimentary / enterprise deals) — bypasses payment. */
+  grantedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const subscriptions = new Collection<SubscriptionRecord>({
+  table: 'subscriptions',
+  columns: (s) => ({ owner_id: s.ownerId, plan: s.plan, status: s.status }),
+});
+
+export interface SubscriptionInvoice {
+  id: string;
+  ownerId: string;
+  plan: PlanId;
+  interval: BillingInterval;
+  invoiceNumber: string;
+  subtotal: number;
+  gstPercent: number;
+  gst: number;
+  amount: number;
+  currency: 'INR';
+  status: 'Pending' | 'Paid' | 'Failed';
+  gateway: 'razorpay' | 'simulated' | 'manual';
+  gatewayOrderId?: string;
+  gatewayPaymentId?: string;
+  periodStart: string;
+  periodEnd: string;
+  paidAt?: string;
+  createdAt: string;
+}
+
+export const subscriptionInvoices = new Collection<SubscriptionInvoice>({
+  table: 'subscription_invoices',
+  columns: (i) => ({
+    owner_id: i.ownerId,
+    status: i.status,
+    amount: i.amount,
+    gateway_order_id: i.gatewayOrderId || null,
+  }),
+});
+
+export interface PushSubscriptionRecord {
+  id: string;
+  userId: string;
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  userAgent?: string;
+  createdAt: string;
+}
+
+export const pushSubscriptions = new Collection<PushSubscriptionRecord>({
+  table: 'push_subscriptions',
+  columns: (p) => ({ user_id: p.userId, endpoint: p.endpoint }),
 });
 
 export type StoredDocument = TenantDocument & {
