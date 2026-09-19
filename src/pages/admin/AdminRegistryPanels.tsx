@@ -60,6 +60,7 @@ const UsersPanel: React.FC<{ onNotice: (m: string) => void }> = ({ onNotice }) =
       subtitle="Every tenant, owner and staff account on the platform. Suspending an owner also signs out their staff."
       action={
         <select
+          aria-label="Filter by role"
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value as typeof roleFilter)}
           className="bg-slate-950 border border-slate-700 text-xs text-slate-200 rounded-xl px-3 py-2"
@@ -261,6 +262,7 @@ const InboundPanel: React.FC<{ onNotice: (m: string) => void }> = ({ onNotice })
                   {new Date(r.createdAt).toLocaleString('en-IN')}
                 </span>
                 <select
+                  aria-label="Lead stage"
                   value={r.status}
                   onChange={(e) => setStatus(r.id, e.target.value)}
                   className="bg-slate-900 border border-slate-700 text-[11px] text-slate-200 rounded-lg px-2 py-1"

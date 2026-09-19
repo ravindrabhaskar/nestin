@@ -157,7 +157,14 @@ export const TenantProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              aria-label="Upload profile photo"
+              onChange={handlePhotoUpload}
+            />
 
             {!isEditing && (
               <div>

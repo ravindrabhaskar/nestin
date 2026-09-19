@@ -722,6 +722,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                     />
                     <div className="flex items-center justify-between">
                       <select
+                        aria-label="Photo category"
                         value={photo.category}
                         onChange={(e) => {
                           const updated = [...formData.gallery];
@@ -969,6 +970,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <select
+                        aria-label="Room sharing type"
                         value={room.type}
                         onChange={(e) => {
                           const updated = [...formData.rooms];
@@ -1464,6 +1466,7 @@ export const PropertyListingWizard: React.FC<PropertyListingWizardProps> = ({
                 <div key={place.id} className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2 relative">
                   <div className="flex items-center justify-between">
                     <select
+                      aria-label="Nearby place type"
                       value={place.category}
                       onChange={(e) => {
                         const updated = [...formData.nearbyPlaces];

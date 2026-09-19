@@ -172,6 +172,7 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <select
+            aria-label="Filter by Properties"
             value={selectedPropertyFilter}
             onChange={(e) => setSelectedPropertyFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -185,6 +186,7 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
           </select>
 
           <select
+            aria-label="Filter by Statuses"
             value={selectedStatusFilter}
             onChange={(e) => setSelectedStatusFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -198,6 +200,7 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
           </select>
 
           <select
+            aria-label="Filter by Dates"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -371,6 +374,7 @@ export const VisitorsView: React.FC<{ onNavigateToLead?: (leadId: string) => voi
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-slate-700">Current Status:</span>
                   <select
+                    aria-label="Visit status"
                     value={activeVisitorDetails.status}
                     onChange={(e) => handleStatusChange(activeVisitorDetails.id, e.target.value as VisitorStatus)}
                     className="py-1 px-2.5 text-xs font-bold rounded-xl border border-slate-200 bg-white"

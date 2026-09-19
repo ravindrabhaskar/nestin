@@ -205,6 +205,8 @@ export interface TenantBookingItem {
   depositAmount: number;
   paidAmount: number;
   status: 'upcoming' | 'active' | 'completed' | 'cancelled';
+  /** Owner-side workflow state; `Pending` means the owner has not confirmed the reservation yet. */
+  approval?: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'Rejected';
   image: string;
   ownerName?: string;
   ownerPhone?: string;
@@ -227,6 +229,8 @@ export interface TenantPaymentItem {
   receiptUrl?: string;
   month?: string;
   invoiceNumber: string;
+  /** How the money moved: a real gateway, a manual owner entry, or a demo-only simulated success. */
+  gateway?: 'razorpay' | 'manual' | 'simulated';
 }
 
 export interface TenantSupportTicket {

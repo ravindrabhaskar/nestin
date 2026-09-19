@@ -70,8 +70,9 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
   const [showTour360Modal, setShowTour360Modal] = useState(false);
 
   // Selected sharing option
+  // Default to the first room that actually has a free bed, so "Reserve" never opens on a full room.
   const [selectedRoomId, setSelectedRoomId] = useState<string>(
-    property.rooms && property.rooms.length > 0 ? property.rooms[0].id : ''
+    (property.rooms || []).find((r) => (r.availableBedsCount ?? r.beds.length) > 0)?.id || property.rooms?.[0]?.id || ''
   );
 
   // Modals for actions
@@ -959,6 +960,7 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
                     + Write Review
                   </button>
                   <select
+                    aria-label="Sort listings"
                     value={reviewSort}
                     onChange={(e) => setReviewSort(e.target.value as any)}
                     className="bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 text-xs font-bold text-slate-700"
@@ -1217,10 +1219,31 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
             <form onSubmit={handleConfirmBooking} className="space-y-4 text-xs">
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1">
                 <div className="text-[10px] font-extrabold uppercase text-slate-400">Selected Room</div>
-                <div className="font-black text-slate-900 text-sm">{selectedRoom?.name || property.name}</div>
+                {property.rooms.length > 1 ? (
+                  <select
+                    aria-label="Room"
+                    value={selectedRoom?.id || ''}
+                    onChange={(e) => setSelectedRoomId(e.target.value)}
+                    className="w-full font-black text-slate-900 text-sm bg-white border border-slate-200 rounded-xl px-2.5 py-1.5"
+                  >
+                    {property.rooms.map((r) => (
+                      <option key={r.id} value={r.id} disabled={(r.availableBedsCount ?? 0) <= 0}>
+                        {r.name} —{' '}
+                        {(r.availableBedsCount ?? 0) > 0
+                          ? `${r.availableBedsCount} bed${r.availableBedsCount === 1 ? '' : 's'} free`
+                          : 'full'}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="font-black text-slate-900 text-sm">{selectedRoom?.name || property.name}</div>
+                )}
                 <div className="text-slate-600 font-bold">
                   Token: ₹{moveInCalc.bookingFee} • Rent: ₹{moveInCalc.monthlyRent.toLocaleString('en-IN')}/mo
                 </div>
+                {selectedRoom && (selectedRoom.availableBedsCount ?? 0) <= 0 && (
+                  <div className="text-rose-600 font-semibold">This room is fully booked — pick another room.</div>
+                )}
               </div>
 
               <div>
@@ -1274,8 +1297,8 @@ export const PropertyDetailsView: React.FC<PropertyDetailsViewProps> = ({
 
               <button
                 type="submit"
-                disabled={isBooking}
-                className="w-full py-3.5 bg-[#a3e635] hover:bg-[#92d428] disabled:opacity-60 disabled:cursor-wait text-slate-950 font-black text-sm rounded-xl shadow-md transition-all cursor-pointer"
+                disabled={isBooking || (selectedRoom ? (selectedRoom.availableBedsCount ?? 0) <= 0 : false)}
+                className="w-full py-3.5 bg-[#a3e635] hover:bg-[#92d428] disabled:opacity-60 disabled:cursor-not-allowed text-slate-950 font-black text-sm rounded-xl shadow-md transition-all cursor-pointer"
               >
                 {isBooking ? 'Reserving your bed…' : `Pay Token ₹${moveInCalc.bookingFee} & Confirm Bed`}
               </button>

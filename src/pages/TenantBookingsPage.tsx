@@ -49,8 +49,16 @@ export const TenantBookingsPage: React.FC = () => {
     return true;
   });
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, approval?: string) => {
     const s = status.toLowerCase();
+    if (approval === 'Pending') {
+      return (
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-500/15 text-sky-700 border border-sky-500/30 flex items-center gap-1 font-heading">
+          <Clock className="w-3 h-3" />
+          <span>Awaiting confirmation</span>
+        </span>
+      );
+    }
     if (s === 'active' || s === 'confirmed') {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#a3e635]/25 text-[#3d6800] border border-[#a3e635]/40 flex items-center gap-1 font-heading">
@@ -138,7 +146,7 @@ export const TenantBookingsPage: React.FC = () => {
                 key={booking.id}
                 className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs hover:border-slate-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5"
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto">
                   <img
                     src={booking.image || 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=500&q=80'}
                     alt={booking.pgName}
@@ -150,7 +158,7 @@ export const TenantBookingsPage: React.FC = () => {
                       <h3 className="text-sm sm:text-base font-bold font-heading text-slate-900 truncate">
                         {booking.pgName}
                       </h3>
-                      {getStatusBadge(booking.status)}
+                      {getStatusBadge(booking.status, booking.approval)}
                     </div>
 
                     <div className="flex items-center gap-1 text-xs text-slate-500">
@@ -249,7 +257,12 @@ export const TenantBookingsPage: React.FC = () => {
                 <div className="text-xs text-slate-500 truncate">
                   {selectedBooking.location}, {selectedBooking.city}
                 </div>
-                <div className="mt-1">{getStatusBadge(selectedBooking.status)}</div>
+                <div className="mt-1">{getStatusBadge(selectedBooking.status, selectedBooking.approval)}</div>
+                {selectedBooking.approval === 'Pending' && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    The owner reviews requests within 24 hours. Your bed is held until they respond.
+                  </p>
+                )}
               </div>
             </div>
 

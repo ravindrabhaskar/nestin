@@ -304,6 +304,21 @@ export function backfillCatalogueColumns(): number {
   return touched;
 }
 
+/**
+ * One-time: fold active reservations into each listing's advertised availability (see
+ * propertyService.syncBedAvailability). Runs after seeding so demo data is consistent too.
+ */
+export function backfillReservedAvailability(sync: (propertyId: string) => unknown): number {
+  if (getMeta('migration:reserved-availability-v2')) return 0;
+  // Every listing, not only those with bookings: imported/seeded data may carry stale counts.
+  const ids = properties.list({}, { limit: 100000 }).map((p) => p.id);
+  Collection.transaction(() => {
+    for (const id of ids) sync(id);
+  });
+  setMeta('migration:reserved-availability-v2', new Date().toISOString());
+  return ids.length;
+}
+
 export const leads = new Collection<LeadItem & { ownerId: string }>({
   table: 'leads',
   columns: (l) => ({ owner_id: l.ownerId, property_id: l.propertyId || null, stage: l.stage }),

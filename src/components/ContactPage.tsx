@@ -259,6 +259,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 font-heading">I am a...</label>
                   <select
+                    aria-label="I am a"
                     name="userRole"
                     value={formData.userRole}
                     onChange={handleChange}

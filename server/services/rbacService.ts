@@ -88,10 +88,10 @@ export function upsertRole(
   ensureDefaultRoles(ownerId);
   const existing = id ? roles.get(id) : null;
   if (existing && existing.ownerId !== ownerId) throw notFound('Role');
-  if (existing?.isOwnerRole && body.permissions) {
-    const perms = sanitizePermissions(body.permissions);
-    if (Object.values(perms).some((val) => !val))
-      throw conflict('The owner role always has every permission and cannot be restricted.');
+  if (existing?.isOwnerRole && body.permissions !== undefined) {
+    // The owner role always carries every permission; any attempt to change its permission set
+    // (including sending an empty object) is refused rather than silently narrowing it.
+    throw conflict('The owner role always has every permission and cannot be restricted.');
   }
 
   const name = v.str(body.name ?? existing?.name, 'Role name', { max: 80 });

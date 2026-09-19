@@ -63,6 +63,7 @@ function toTenantBooking(b: StoredBooking): TenantBookingItem {
     depositAmount: b.securityDeposit,
     paidAmount: b.paidAmount,
     status: deriveTenantStatus(b),
+    approval: b.bookingStatus,
     image: b.propertyImage || prop?.coverImage || '',
     ownerName: owner?.fullName,
     ownerPhone: prop?.caretaker?.isPubliclyVisible ? prop.caretaker.phone : undefined,
@@ -104,6 +105,7 @@ function toTenantPayment(p: PaymentRecord): TenantPaymentItem {
     status: p.status,
     month: p.month,
     invoiceNumber: p.invoiceNumber,
+    gateway: p.gateway,
     receiptUrl: `/api/v1/tenant/payments/${p.id}/receipt`,
   };
 }
@@ -120,7 +122,11 @@ export function paymentReceipt(userId: string, id: string): PaymentRecord {
 
 /** Tenant pays rent/dues online. Without gateway keys the payment is recorded as a simulated success. */
 export function payOnline(actor: AuthUser, body: Record<string, unknown>, ctx: EventContext): TenantPaymentItem {
-  const amount = v.num(body.amount, 'Amount', { min: 1, max: 10_000_000 });
+  // Legacy one-shot payment: only meaningful while payments are simulated. With a real gateway the
+  // client must use the checkout handshake, otherwise a "Paid" record would exist without money.
+  if (razorpayEnabled()) throw badRequest('Use the checkout flow to pay online.');
+  assertPaymentsAvailable();
+  const amount = v.money(body.amount, 'Amount', { min: 1, max: 10_000_000 });
   const type = v.oneOf(
     body.type,
     ['Rent', 'Security Deposit', 'Token Booking', 'Maintenance', 'Electricity'] as const,
@@ -389,7 +395,7 @@ export async function createCheckoutOrder(
     throw badRequest('This payment is not pending or does not belong to you.');
 
   if (!pending) {
-    const amount = v.num(body.amount, 'Amount', { min: 1, max: 10_000_000 });
+    const amount = v.money(body.amount, 'Amount', { min: 1, max: 10_000_000 });
     const type = v.oneOf(
       body.type,
       ['Rent', 'Security Deposit', 'Token Booking', 'Maintenance', 'Electricity'] as const,

@@ -550,6 +550,7 @@ export const SuperAdminDashboardPage: React.FC = () => {
               </div>
 
               <select
+                aria-label="Filter by Cities"
                 value={filterCity}
                 onChange={(e) => setFilterCity(e.target.value)}
                 className="px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 focus:outline-none cursor-pointer"

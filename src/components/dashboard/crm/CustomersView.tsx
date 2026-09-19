@@ -249,6 +249,7 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <select
+            aria-label="Filter by Properties"
             value={selectedPropertyFilter}
             onChange={(e) => setSelectedPropertyFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -262,6 +263,7 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
           </select>
 
           <select
+            aria-label="Filter by Tenant Statuses"
             value={selectedTenantStatusFilter}
             onChange={(e) => setSelectedTenantStatusFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -274,6 +276,7 @@ export const CustomersView: React.FC<{ initialCustomerId?: string | null }> = ({
           </select>
 
           <select
+            aria-label="Filter by Payment Statuses"
             value={selectedPaymentStatusFilter}
             onChange={(e) => setSelectedPaymentStatusFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"

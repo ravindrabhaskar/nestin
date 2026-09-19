@@ -75,6 +75,16 @@ export function bool(value: unknown, fallback = false): boolean {
   throw badRequest('Expected a boolean value');
 }
 
+/** A currency amount in INR: validated like `num` and rounded to whole paise (2 decimals). */
+export function money(
+  value: unknown,
+  field: string,
+  opts: { min?: number; max?: number; required?: boolean } = {}
+): number {
+  const n = num(value, field, opts);
+  return Math.round(n * 100) / 100;
+}
+
 export function isoDate(value: unknown, field: string, required = true): string {
   const v = str(value, field, { required, max: 40 });
   if (!v) return '';

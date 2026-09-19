@@ -232,6 +232,7 @@ export const CreateEditRoleModal: React.FC<CreateEditRoleModalProps> = ({ isOpen
               <label className="text-xs font-black text-slate-900 font-heading">Authority Level Rating</label>
               <div className="flex items-center gap-2">
                 <select
+                  aria-label="Authority level"
                   value={authorityLevel}
                   onChange={(e) => setAuthorityLevel(e.target.value as AuthorityLevel)}
                   disabled={isOwnerRole}

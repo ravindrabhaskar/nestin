@@ -168,6 +168,7 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({ filters, onFilterC
           <span className="text-xs text-slate-600 font-medium">Sort by</span>
           <div className="relative">
             <select
+              aria-label="Sort results"
               value={filters.sortBy}
               onChange={(e) =>
                 onFilterChange({

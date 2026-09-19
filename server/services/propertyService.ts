@@ -131,6 +131,33 @@ export function searchPublished(filters: PublicPropertyFilters = {}): PublicCata
   };
 }
 
+/**
+ * Recomputes every room's `availableBedsCount` so that beds held by an active (Pending/Confirmed)
+ * booking are not advertised as free. Occupancy alone under-reports reservations: a resident would
+ * otherwise see "1 bed available", try to book, and be refused with a conflict. Called after any
+ * booking transition; returns the stored listing.
+ */
+export function syncBedAvailability(propertyId: string): OwnerPropertyListing | null {
+  const prop = properties.get(propertyId);
+  if (!prop) return null;
+  const held = new Set(
+    bookings
+      .list({ property_id: prop.id })
+      .filter((b) => b.bedId && ['Pending', 'Confirmed'].includes(b.bookingStatus))
+      .map((b) => b.bedId as string)
+  );
+  let changed = false;
+  prop.rooms = (prop.rooms || []).map((room) => {
+    const occupied = room.beds.filter((b) => b.isOccupied).length;
+    const reserved = room.beds.filter((b) => !b.isOccupied && held.has(b.id)).length;
+    const available = Math.max(0, room.beds.length - occupied - reserved);
+    if (room.availableBedsCount === available && room.occupiedBedsCount === occupied) return room;
+    changed = true;
+    return { ...room, occupiedBedsCount: occupied, availableBedsCount: available };
+  });
+  return changed ? properties.replace(prop) : prop;
+}
+
 /** Removes owner-private information before a listing is exposed publicly. */
 export function toPublicListing(p: OwnerPropertyListing): OwnerPropertyListing {
   return {

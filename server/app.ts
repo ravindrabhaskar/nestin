@@ -4,7 +4,7 @@ import compression from 'compression';
 import { config, assertProductionConfig } from './config.js';
 import { getDb } from './db/database.js';
 import { seedDatabase } from './db/seed.js';
-import { sessions, backfillCatalogueColumns } from './db/repositories.js';
+import { sessions, backfillCatalogueColumns, backfillReservedAvailability } from './db/repositories.js';
 import {
   correlation,
   cors,
@@ -25,6 +25,7 @@ import { publicRouter, auditRouter } from './routes/public.js';
 import { filesRouter } from './routes/files.js';
 import { razorpayWebhookRouter } from './routes/webhooks.js';
 import { startJobs } from './jobs/index.js';
+import { syncBedAvailability } from './services/propertyService.js';
 import { storageDriverName } from './lib/storage.js';
 import { messagingStatus } from './lib/messaging.js';
 import { billingRouter } from './routes/billing.js';
@@ -98,6 +99,7 @@ export async function createApp(options: AppOptions = {}): Promise<Express> {
   getDb();
   seedDatabase();
   backfillCatalogueColumns();
+  backfillReservedAvailability(syncBedAvailability);
   sessions.purgeExpired();
 
   const app = express();

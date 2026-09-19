@@ -100,6 +100,8 @@ describe('hardening: production guards, billing correctness, headers, push and s
       assert.equal(sub.error?.code, 'PAYMENTS_UNAVAILABLE');
       const rent = await api.post('/tenant/payments/checkout', { amount: 1000, type: 'Rent' }, tenant);
       assert.equal(rent.status, 503);
+      const legacy = await api.post('/tenant/payments', { amount: 1000, type: 'Rent' }, tenant);
+      assert.equal(legacy.status, 503);
     } finally {
       (config as { allowSimulatedPayments: boolean }).allowSimulatedPayments = true;
     }
@@ -228,6 +230,63 @@ describe('hardening: production guards, billing correctness, headers, push and s
     // The previous account can no longer remove it (it is not theirs any more).
     const un = await api.post('/push/unsubscribe', { endpoint }, tenant);
     assert.equal(un.data.unsubscribed, false);
+  });
+
+  test('sweep regressions: owner role immutable, past move-in refused, paise rounding, oversized upload is 413', async () => {
+    const owner = await login(api, DEMO.owner);
+    const tenant = await login(api, DEMO.tenant);
+    const snap = await api.get('/rbac/snapshot', owner);
+    const ownerRole = snap.data.roles.find((r: any) => r.isOwnerRole);
+    const wipe = await api.put(`/rbac/roles/${ownerRole.id}`, { permissions: {} }, owner);
+    assert.equal(wipe.status, 409);
+    const after = await api.get('/rbac/snapshot', owner);
+    assert.ok(Object.keys(after.data.roles.find((r: any) => r.id === ownerRole.id).permissions).length > 0);
+
+    const list = await fetch(`${baseUrl}/properties/public?page=1&pageSize=1&available=true`).then((r) => r.json());
+    const past = await api.post('/tenant/bookings', { propertyId: list.data[0].id, moveInDate: '2001-01-01' }, tenant);
+    assert.equal(past.status, 400);
+
+    const frac = await api.post('/tenant/payments/checkout', { amount: 100.999, type: 'Rent' }, tenant);
+    assert.equal(frac.status, 201, frac.error?.message);
+    assert.equal(frac.data.amount, 101);
+
+    const fd = new FormData();
+    fd.append('file', new Blob([new Uint8Array(11 * 1024 * 1024)], { type: 'image/png' }), 'big.png');
+    fd.append('purpose', 'listing-photo');
+    const big = await fetch(`${baseUrl}/files`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tenant}` },
+      body: fd,
+    });
+    assert.equal(big.status, 413);
+    const body = await big.json();
+    assert.equal(body.error.code, 'PAYLOAD_TOO_LARGE');
+  });
+
+  test('a pending reservation is subtracted from the advertised availability and restored on cancel', async () => {
+    const tenant = await login(api, DEMO.tenant);
+    const list = await fetch(`${baseUrl}/properties/public?page=1&pageSize=1&available=true&sort=newest`).then((r) =>
+      r.json()
+    );
+    const prop = list.data[0];
+    const before = (await api.get(`/properties/public/${prop.slug}`)).data.rooms.reduce(
+      (n: number, r: any) => n + r.availableBedsCount,
+      0
+    );
+    const booking = await api.post('/tenant/bookings', { propertyId: prop.id, moveInDate: '2027-01-15' }, tenant);
+    assert.equal(booking.status, 201, booking.error?.message);
+    const during = (await api.get(`/properties/public/${prop.slug}`)).data.rooms.reduce(
+      (n: number, r: any) => n + r.availableBedsCount,
+      0
+    );
+    assert.equal(during, before - 1);
+    const cancel = await api.post(`/tenant/bookings/${booking.data.booking.id}/cancel`, { reason: 'test' }, tenant);
+    assert.equal(cancel.status, 200, cancel.error?.message);
+    const after = (await api.get(`/properties/public/${prop.slug}`)).data.rooms.reduce(
+      (n: number, r: any) => n + r.availableBedsCount,
+      0
+    );
+    assert.equal(after, before);
   });
 
   test('super admins are not sent owner-scoped snapshots (the UI must not request them)', async () => {

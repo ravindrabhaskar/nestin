@@ -248,6 +248,7 @@ export const LeadsView: React.FC = () => {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <select
+            aria-label="Filter by Properties"
             value={selectedPropertyFilter}
             onChange={(e) => setSelectedPropertyFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -261,6 +262,7 @@ export const LeadsView: React.FC = () => {
           </select>
 
           <select
+            aria-label="Filter by Stages"
             value={selectedStageFilter}
             onChange={(e) => setSelectedStageFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -274,6 +276,7 @@ export const LeadsView: React.FC = () => {
           </select>
 
           <select
+            aria-label="Filter by Sources"
             value={selectedSourceFilter}
             onChange={(e) => setSelectedSourceFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -405,6 +408,7 @@ export const LeadsView: React.FC = () => {
 
                             {/* Stage move dropdown */}
                             <select
+                              aria-label={`Stage for ${lead.fullName}`}
                               value={lead.stage}
                               onChange={(e) => updateLeadStage(lead.id, e.target.value as LeadStage)}
                               className="text-[10px] py-0.5 px-1.5 rounded-lg border border-slate-200 bg-slate-50 font-bold text-slate-700"

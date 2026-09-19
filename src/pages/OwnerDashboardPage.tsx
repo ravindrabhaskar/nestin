@@ -586,12 +586,20 @@ export const OwnerDashboardPage: React.FC<OwnerDashboardProps> = ({ initialNav =
           ) : activeNav === 'Notifications' ? (
             <OwnerNotificationsView showToast={showToast} />
           ) : activeNav === 'Support' ? (
-            <SupportDesk
-              fetchTickets={ApiClient.crm.supportTickets}
-              reply={ApiClient.crm.replySupport}
-              resolve={ApiClient.crm.resolveSupport}
-              onNotice={showToast}
-            />
+            <div className="space-y-5">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-black font-heading text-slate-900 tracking-tight">
+                  Support Desk
+                </h1>
+                <p className="text-sm text-slate-500 mt-1">Tickets raised by residents of your properties.</p>
+              </div>
+              <SupportDesk
+                fetchTickets={ApiClient.crm.supportTickets}
+                reply={ApiClient.crm.replySupport}
+                resolve={ApiClient.crm.resolveSupport}
+                onNotice={showToast}
+              />
+            </div>
           ) : (
             <>
               {/* MONTHLY ACCOUNTING PDF DOWNLOAD BANNER */}

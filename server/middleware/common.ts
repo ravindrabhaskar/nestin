@@ -132,7 +132,21 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     });
     return;
   }
-  const anyErr = err as { type?: string; status?: number; message?: string };
+  const anyErr = err as { type?: string; status?: number; message?: string; name?: string; code?: string };
+  if (anyErr?.name === 'MulterError') {
+    const tooLarge = anyErr.code === 'LIMIT_FILE_SIZE';
+    res.status(tooLarge ? 413 : 400).json({
+      success: false,
+      error: {
+        code: tooLarge ? 'PAYLOAD_TOO_LARGE' : 'INVALID_UPLOAD',
+        message: tooLarge
+          ? `File exceeds the ${config.storage.maxFileBytes / 1024 / 1024} MB upload limit`
+          : anyErr.message || 'Invalid upload',
+      },
+      metadata: { timestamp: new Date().toISOString(), correlationId },
+    });
+    return;
+  }
   if (anyErr?.type === 'entity.parse.failed' || anyErr?.type === 'entity.too.large') {
     res.status(anyErr.status || 400).json({
       success: false,

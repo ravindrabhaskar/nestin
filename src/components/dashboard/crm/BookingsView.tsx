@@ -210,6 +210,7 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
           <select
+            aria-label="Filter by Properties"
             value={selectedPropertyFilter}
             onChange={(e) => setSelectedPropertyFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -223,6 +224,7 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
           </select>
 
           <select
+            aria-label="Filter by Booking Statuses"
             value={selectedStatusFilter}
             onChange={(e) => setSelectedStatusFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"
@@ -236,6 +238,7 @@ export const BookingsView: React.FC<{ onNavigateToCustomer?: (customerId: string
           </select>
 
           <select
+            aria-label="Filter by Payment Statuses"
             value={selectedPaymentFilter}
             onChange={(e) => setSelectedPaymentFilter(e.target.value)}
             className="px-2.5 py-1.5 text-xs font-medium rounded-xl border border-slate-200 bg-white"

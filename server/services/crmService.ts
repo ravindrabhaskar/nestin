@@ -25,12 +25,12 @@ import {
   type PaymentRecord,
 } from '../db/repositories.js';
 import { Collection } from '../db/database.js';
-import { conflict, notFound } from '../lib/errors.js';
+import { badRequest, conflict, notFound } from '../lib/errors.js';
 import { isSafeId, newId, bookingNumber as makeBookingNumber, invoiceNumber } from '../lib/ids.js';
 import * as v from '../lib/validate.js';
 import { events, type EventContext } from '../lib/events.js';
 import type { AuthUser } from '../middleware/auth.js';
-import { setBedStatus } from './propertyService.js';
+import { setBedStatus, syncBedAvailability } from './propertyService.js';
 import { dispatchNotification } from '../lib/messaging.js';
 import { razorpayEnabled, simulatedPaymentsAllowed } from '../lib/razorpay.js';
 
@@ -275,6 +275,12 @@ export function createBooking(
   if (!options.tenantInitiated && prop.ownerId !== options.ownerId) throw notFound('Property');
 
   const moveInDate = v.isoDate(body.moveInDate, 'Move-in date');
+  if (options.tenantInitiated) {
+    // Owners may backfill historical move-ins; a resident booking online must pick today or later.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (Date.parse(moveInDate) < today.getTime()) throw badRequest('Move-in date cannot be in the past');
+  }
   const roomId = v.optionalStr(body.roomId, 'Room', 80);
   let bedId = v.optionalStr(body.bedId, 'Bed', 80);
   let room = roomId ? prop.rooms.find((r) => r.id === roomId) : undefined;
@@ -445,6 +451,7 @@ export function createBooking(
     { bookingNumber, propertyId, bedId: bedId!, tenantInitiated: options.tenantInitiated },
     { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId: prop.ownerId }
   );
+  syncBedAvailability(propertyId);
   return booking;
 }
 
@@ -685,7 +692,13 @@ export function approveBooking(
       { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId }
     );
 
-    return { booking, customer, property, lead, isDuplicateCustomer: !!existing };
+    return {
+      booking,
+      customer,
+      property: syncBedAvailability(property.id) || property,
+      lead,
+      isDuplicateCustomer: !!existing,
+    };
   });
 }
 
@@ -727,6 +740,7 @@ export function rejectBooking(
     { reason: why },
     { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId }
   );
+  syncBedAvailability(booking.propertyId);
   return booking;
 }
 
@@ -801,7 +815,7 @@ export function cancelBooking(
       { reason: why },
       { ...ctx, actorId: actor.id, actorRole: actor.role, ownerId: booking.ownerId }
     );
-    return { booking, property };
+    return { booking, property: syncBedAvailability(booking.propertyId) || property };
   });
 }
 

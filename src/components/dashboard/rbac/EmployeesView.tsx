@@ -230,6 +230,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
           {/* Role Filter */}
           <div>
             <select
+              aria-label="Filter by Properties"
               value={selectedRoleFilter}
               onChange={(e) => setSelectedRoleFilter(e.target.value)}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#062817]"
@@ -246,6 +247,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
           {/* Property Filter */}
           <div>
             <select
+              aria-label="Filter by Properties"
               value={selectedPropertyFilter}
               onChange={(e) => setSelectedPropertyFilter(e.target.value)}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#062817]"
@@ -262,6 +264,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
           {/* Status Filter */}
           <div>
             <select
+              aria-label="Filter by Account Statuses"
               value={selectedStatusFilter}
               onChange={(e) => setSelectedStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#062817]"
@@ -284,6 +287,7 @@ export const EmployeesView: React.FC<EmployeesViewProps> = ({ onNavigateToRoles 
 
             <div className="flex items-center gap-2 flex-wrap text-xs">
               <select
+                aria-label="Assign role"
                 onChange={(e) => {
                   if (e.target.value) {
                     bulkAssignRole(selectedEmployeeIds, e.target.value);

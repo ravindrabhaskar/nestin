@@ -178,6 +178,7 @@ export const OwnerPropertiesInventoryView: React.FC<OwnerPropertiesInventoryView
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <select
+              aria-label="Filter by Property Types"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
               className="px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"

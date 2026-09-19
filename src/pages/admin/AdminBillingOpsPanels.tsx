@@ -176,6 +176,7 @@ export const AdminBillingPanel: React.FC<{ onNotice: (msg: string) => void }> = 
                   <td className="px-4 py-3 text-slate-200 font-mono">{formatInr(r.lifetimeValue)}</td>
                   <td className="px-4 py-3">
                     <select
+                      aria-label="Change plan"
                       disabled={busy === r.ownerId}
                       value=""
                       onChange={(e) => e.target.value && setPlan(r, e.target.value as PlanId)}

@@ -1,14 +1,15 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --nestin-deep-green: #0F5132;
-  --nestin-lime: #A3E635;
-  --nestin-light-gray: #E5E6EA;
-  --nestin-white: #FFFFFF;
+  --nestin-deep-green: #0f5132;
+  --nestin-lime: #a3e635;
+  --nestin-light-gray: #e5e6ea;
+  --nestin-white: #ffffff;
 }
 
 /* Lenis Smooth Scrolling Styles */
-html.lenis, html.lenis body {
+html.lenis,
+html.lenis body {
   height: auto;
 }
 
@@ -34,9 +35,15 @@ html.lenis, html.lenis body {
   }
 
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      'SF Pro Display',
+      'Segoe UI',
+      sans-serif;
     color: #121820;
-    background-color: #FAF9F5;
+    background-color: #faf9f5;
     min-height: 100vh;
   }
 
@@ -46,35 +53,43 @@ html.lenis, html.lenis body {
     flex-direction: column;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-heading {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .font-heading {
     font-family: 'Manrope', 'Inter', sans-serif;
   }
 
   /* Accessibility focus ring */
   *:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px #FAF9F5, 0 0 0 4px #a3e635;
+    box-shadow:
+      0 0 0 2px #faf9f5,
+      0 0 0 4px #a3e635;
   }
 }
 
 /* Centralized Nestin Design Utilities */
 .bg-nestin-deep-green {
-  background-color: #0F5132;
+  background-color: #0f5132;
 }
 .text-nestin-deep-green {
-  color: #0F5132;
+  color: #0f5132;
 }
 .border-nestin-deep-green {
-  border-color: #0F5132;
+  border-color: #0f5132;
 }
 .bg-nestin-lime {
-  background-color: #A3E635;
+  background-color: #a3e635;
 }
 .text-nestin-lime {
-  color: #A3E635;
+  color: #a3e635;
 }
 .border-nestin-light-gray {
-  border-color: #E5E6EA;
+  border-color: #e5e6ea;
 }
 
 /* Centralized Design System Tokens */
@@ -150,19 +165,27 @@ html.lenis, html.lenis body {
 
 /* Standardized Shadows */
 .shadow-nestin-sm {
-  box-shadow: 0 2px 8px -2px rgba(18, 24, 32, 0.05), 0 1px 3px 0 rgba(18, 24, 32, 0.03);
+  box-shadow:
+    0 2px 8px -2px rgba(18, 24, 32, 0.05),
+    0 1px 3px 0 rgba(18, 24, 32, 0.03);
 }
 
 .shadow-nestin-md {
-  box-shadow: 0 6px 16px -4px rgba(18, 24, 32, 0.08), 0 2px 6px -1px rgba(18, 24, 32, 0.04);
+  box-shadow:
+    0 6px 16px -4px rgba(18, 24, 32, 0.08),
+    0 2px 6px -1px rgba(18, 24, 32, 0.04);
 }
 
 .shadow-nestin-lg {
-  box-shadow: 0 16px 36px -6px rgba(18, 24, 32, 0.12), 0 4px 12px -2px rgba(18, 24, 32, 0.04);
+  box-shadow:
+    0 16px 36px -6px rgba(18, 24, 32, 0.12),
+    0 4px 12px -2px rgba(18, 24, 32, 0.04);
 }
 
 .shadow-nestin-floating {
-  box-shadow: 0 24px 48px -12px rgba(18, 24, 32, 0.16), 0 8px 16px -4px rgba(18, 24, 32, 0.06);
+  box-shadow:
+    0 24px 48px -12px rgba(18, 24, 32, 0.16),
+    0 8px 16px -4px rgba(18, 24, 32, 0.06);
 }
 
 .shadow-nestin-glass {
@@ -239,7 +262,8 @@ html.lenis, html.lenis body {
 
 /* Pulse animation for search button */
 @keyframes softPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(163, 230, 53, 0.4);
     transform: scale(1);
   }
@@ -285,7 +309,11 @@ html.lenis, html.lenis body {
   justify-content: space-between;
   height: 100%;
   padding: 1.5rem;
-  transition: border-color 0.25s ease-out, box-shadow 0.25s ease-out, transform 0.25s ease-out, background-color 0.25s ease-out;
+  transition:
+    border-color 0.25s ease-out,
+    box-shadow 0.25s ease-out,
+    transform 0.25s ease-out,
+    background-color 0.25s ease-out;
   cursor: pointer;
   user-select: none;
 }
@@ -329,14 +357,18 @@ html.lenis, html.lenis body {
 
 .feature-grid .card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 16px 32px -6px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  box-shadow:
+    0 16px 32px -6px rgba(15, 23, 42, 0.08),
+    0 4px 12px -2px rgba(15, 23, 42, 0.04);
   transform: translateY(-4px);
 }
 
 .feature-grid .card:active {
   border-color: #94a3b8;
   transform: translateY(0) scale(0.98);
-  box-shadow: 0 4px 8px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.03);
+  box-shadow:
+    0 4px 8px -2px rgba(15, 23, 42, 0.06),
+    0 2px 4px -2px rgba(15, 23, 42, 0.03);
 }
 
 /* Navbar fluid transition enhancement */

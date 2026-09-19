@@ -354,6 +354,7 @@ export const TenantSettingsPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Preferred City</label>
                 <select
+                  aria-label="Preferred city"
                   value={searchPrefs.city}
                   onChange={(e) => setSearchPrefs({ ...searchPrefs, city: e.target.value })}
                   className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-all font-sans"
@@ -384,6 +385,7 @@ export const TenantSettingsPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Monthly Budget</label>
                 <select
+                  aria-label="Monthly budget"
                   value={searchPrefs.budget}
                   onChange={(e) => setSearchPrefs({ ...searchPrefs, budget: e.target.value })}
                   className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-all font-sans"
@@ -400,6 +402,7 @@ export const TenantSettingsPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Room Type</label>
                 <select
+                  aria-label="Room type"
                   value={searchPrefs.roomType}
                   onChange={(e) => setSearchPrefs({ ...searchPrefs, roomType: e.target.value })}
                   className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-all font-sans"
@@ -415,6 +418,7 @@ export const TenantSettingsPage: React.FC = () => {
               <div className="sm:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 font-heading mb-1.5">Move-in Date</label>
                 <select
+                  aria-label="Move-in date"
                   value={searchPrefs.moveInDate}
                   onChange={(e) => setSearchPrefs({ ...searchPrefs, moveInDate: e.target.value })}
                   className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs text-slate-900 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-all font-sans"
